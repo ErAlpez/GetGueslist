@@ -1,0 +1,60 @@
+.app-shell .app-sidebar .sidebar-brand-row {
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--dashboard-border, #e8ece7);
+}
+
+.app-shell .app-sidebar .app-nav {
+  position: relative;
+  margin-top: 20px;
+}
+
+.app-shell .app-sidebar .app-nav-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  border-radius: 8px;
+  background: #eaf3eb;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.app-shell .app-sidebar .app-nav[data-indicator-ready="true"] .app-nav-indicator {
+  transition: transform .36s cubic-bezier(.22, 1, .36, 1), width .36s cubic-bezier(.22, 1, .36, 1), height .36s cubic-bezier(.22, 1, .36, 1), opacity .15s ease;
+}
+
+.app-shell .app-sidebar .app-nav-link,
+.app-shell .app-sidebar .app-nav-label {
+  position: relative;
+  z-index: 1;
+}
+
+.app-shell .app-sidebar .app-nav[data-indicator-ready="true"] .app-nav-link.active,
+html[data-theme="dark"] .app-shell .app-sidebar .app-nav[data-indicator-ready="true"] .app-nav-link.active {
+  background: transparent;
+  animation: none;
+}
+
+.app-shell .app-sidebar .app-nav-link.active:hover {
+  transform: none;
+}
+
+html[data-theme="dark"] .app-shell .app-sidebar .app-nav-indicator {
+  background: var(--dashboard-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell .app-sidebar .app-nav[data-indicator-ready="true"] .app-nav-indicator {
+    transition: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .app-shell .app-sidebar .sidebar-brand-row {
+    padding-bottom: 12px;
+  }
+
+  .app-shell .app-sidebar .app-nav {
+    margin-top: 12px;
+  }
+}

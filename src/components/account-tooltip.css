@@ -1,0 +1,118 @@
+:is(.app-shell, .site-header) .account-tooltip {
+  width: max-content;
+  min-width: 0;
+  max-width: calc(100vw - 64px);
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 18px 13px 13px;
+  border-color: #dfe9e2;
+  border-radius: 16px;
+  background: rgba(250, 253, 251, .6);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 18px 44px rgba(28, 48, 36, .15), 0 3px 10px rgba(28, 48, 36, .06);
+  text-align: start;
+}
+
+:is(.app-shell, .site-header) .account-tooltip::before {
+  border-color: #dfe9e2;
+  background: rgba(250, 253, 251, .6);
+}
+
+:is(.app-shell, .site-header) .account-tooltip-avatar {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  overflow: hidden;
+  place-items: center;
+  border: 2px solid rgba(39, 123, 104, .2);
+  border-radius: 50%;
+  color: #277b68;
+  background: #edf6f0;
+  box-shadow: 0 0 0 3px rgba(39, 123, 104, .06);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+:is(.app-shell, .site-header) .account-tooltip-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+}
+
+:is(.app-shell, .site-header) .account-tooltip-copy strong {
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+:is(.app-shell, .site-header) .account-tooltip-copy small {
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+html[data-theme="dark"] :is(.app-shell, .site-header) .account-menu .account-tooltip {
+  border-color: #393b3c;
+  background: rgba(43, 45, 46, .6);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, .38), 0 3px 12px rgba(0, 0, 0, .18);
+}
+
+html[data-theme="dark"] :is(.app-shell, .site-header) .account-tooltip::before {
+  border-color: #393b3c;
+  background: rgba(43, 45, 46, .6);
+}
+
+html[data-theme="dark"] :is(.app-shell, .site-header) .account-tooltip-avatar {
+  border-color: rgba(131, 196, 164, .22);
+  color: #83c4a4;
+  background: #24372b;
+  box-shadow: 0 0 0 3px rgba(131, 196, 164, .08);
+}
+
+:is(.app-shell, .site-header) .account-menu .account-popover {
+  background: rgba(250, 253, 251, .6);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+html[data-theme="dark"] :is(.app-shell, .site-header) .account-menu .account-popover {
+  border-color: #393b3c;
+  background: rgba(43, 45, 46, .6);
+}
+
+html[data-theme="dark"] .site-header .account-popover-user {
+  border-color: #393b3c;
+  background: rgba(34, 36, 37, .72);
+}
+
+html[data-theme="dark"] .site-header :is(.account-popover-copy strong, .account-tooltip strong) {
+  color: #f0f1f1;
+}
+
+html[data-theme="dark"] .site-header :is(.account-popover-copy small, .account-tooltip small, .account-popover-link, .account-popover-sign-out) {
+  color: #c1c6c3;
+}
+
+html[data-theme="dark"] .site-header .account-popover-divider {
+  background: #393b3c;
+}
+
+html[data-theme="dark"] .site-header :is(.account-avatar, .account-popover-avatar) {
+  border-color: rgba(131, 196, 164, .28);
+  color: #83c4a4;
+  background: #24372b;
+}
+
+html[data-theme="dark"] .site-header .account-popover-link:hover {
+  color: #a8ddba;
+  background: #263e30;
+}
+
+html[data-theme="dark"] .site-header .account-error {
+  color: #ffb1a2;
+  background: #3b2926;
+}

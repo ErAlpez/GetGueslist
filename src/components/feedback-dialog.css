@@ -1,0 +1,12 @@
+.app-shell .feedback-stars .feedback-star {
+  width: 30px;
+}
+
+.app-shell #feedback-message {
+  height: 160px !important;
+}
+
+.app-shell .feedback-dialog {
+  max-height: calc(100dvh - 36px);
+  overflow-y: auto;
+}

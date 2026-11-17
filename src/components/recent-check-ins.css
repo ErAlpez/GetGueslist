@@ -1,0 +1,39 @@
+.app-shell .check-in-page .recent-checkin-new {
+  animation: recent-checkin-highlight 5s ease-out;
+}
+
+@keyframes recent-checkin-highlight {
+  0%, 85% { background-color: #e6f4ea; }
+  100% { background-color: transparent; }
+}
+
+html[data-theme="dark"] .app-shell .check-in-page .recent-checkin-new {
+  animation-name: recent-checkin-highlight-dark;
+}
+
+@keyframes recent-checkin-highlight-dark {
+  0%, 85% { background-color: #1d382b; }
+  100% { background-color: transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell .check-in-page .recent-checkin-new {
+    animation-duration: 5s !important;
+    animation-timing-function: steps(1, end);
+  }
+}
+
+.app-shell .check-in-page .scan-next-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 9px 12px;
+  border: 1px solid var(--dashboard-border, #dce8df);
+  border-radius: 9px;
+  color: var(--dashboard-text, #35433b);
+  background: var(--dashboard-surface, #fff);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}

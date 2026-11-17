@@ -1,0 +1,29 @@
+.app-shell .checkin-event-switcher {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.app-shell .checkin-event-switcher .language-trigger {
+  max-width: 100%;
+}
+
+.app-shell .checkin-event-switcher .language-trigger-name {
+  display: block;
+  max-width: min(240px, 55vw);
+}
+
+.app-shell .checkin-event-switcher .language-option-name {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 700px) {
+  .app-shell .checkin-event-switcher .language-trigger-icon {
+    display: grid;
+  }
+
+  .app-shell .checkin-event-switcher .language-popover {
+    right: auto;
+    left: auto;
+    inset-inline-start: 0;
+  }
+}

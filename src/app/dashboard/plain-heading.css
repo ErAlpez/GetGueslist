@@ -1,0 +1,8 @@
+html .app-shell .app-content :is(.check-in-page, .settings-page) > .page-heading-row,
+html[data-theme="dark"] .app-shell .app-content :is(.check-in-page, .settings-page) > .page-heading-row {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}

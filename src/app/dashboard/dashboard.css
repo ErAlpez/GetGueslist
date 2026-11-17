@@ -1,0 +1,132 @@
+.app-content .dashboard-page .attendance-summary-number {
+  margin-top: 12px;
+  font-size: 130px !important;
+  line-height: 1;
+}
+
+.app-content .dashboard-page .attendance-summary-caption {
+  margin-top: 4px;
+}
+
+.app-shell .dashboard-page .dashboard-event:nth-child(4n + 1) .event-calendar {
+  color: #458b71;
+  background: #e9f4ed;
+}
+
+.app-shell .dashboard-page .dashboard-event:nth-child(4n + 2) .event-calendar {
+  color: #806ba9;
+  background: #f0ecfa;
+}
+
+.app-shell .dashboard-page .dashboard-event:nth-child(4n + 3) .event-calendar {
+  color: #aa752e;
+  background: #fcf1e4;
+}
+
+.app-shell .dashboard-page .dashboard-event:nth-child(4n + 4) .event-calendar {
+  color: #4b7fa4;
+  background: #eaf3fa;
+}
+
+html[data-theme="dark"] .app-shell .dashboard-page .dashboard-event:nth-child(4n + 1) .event-calendar {
+  color: #a1d5b5;
+  background: #263d32;
+}
+
+html[data-theme="dark"] .app-shell .dashboard-page .dashboard-event:nth-child(4n + 2) .event-calendar {
+  color: #c4b5e7;
+  background: #383249;
+}
+
+html[data-theme="dark"] .app-shell .dashboard-page .dashboard-event:nth-child(4n + 3) .event-calendar {
+  color: #e9bf88;
+  background: #47392c;
+}
+
+html[data-theme="dark"] .app-shell .dashboard-page .dashboard-event:nth-child(4n + 4) .event-calendar {
+  color: #a8cbe3;
+  background: #2b3c48;
+}
+
+.app-shell .dashboard-page .registrations-panel .registration-row:nth-child(5n + 1) .registration-avatar {
+  color: #458b71;
+  background: #e9f4ed;
+}
+
+.app-shell .dashboard-page .registrations-panel .registration-row:nth-child(5n + 2) .registration-avatar {
+  color: #806ba9;
+  background: #f0ecfa;
+}
+
+.app-shell .dashboard-page .registrations-panel .registration-row:nth-child(5n + 3) .registration-avatar {
+  color: #aa752e;
+  background: #fcf1e4;
+}
+
+.app-shell .dashboard-page .registrations-panel .registration-row:nth-child(5n + 4) .registration-avatar {
+  color: #4b7fa4;
+  background: #eaf3fa;
+}
+
+.app-shell .dashboard-page .registrations-panel .registration-row:nth-child(5n + 5) .registration-avatar {
+  color: #a75e81;
+  background: #fbeef4;
+}
+
+html[data-theme="dark"] .app-shell .dashboard-page .registrations-panel .registration-row:nth-child(5n + 1) .registration-avatar {
+  color: #a1d5b5;
+  background: #263d32;
+}
+
+html[data-theme="dark"] .app-shell .dashboard-page .registrations-panel .registration-row:nth-child(5n + 2) .registration-avatar {
+  color: #c4b5e7;
+  background: #383249;
+}
+
+html[data-theme="dark"] .app-shell .dashboard-page .registrations-panel .registration-row:nth-child(5n + 3) .registration-avatar {
+  color: #e9bf88;
+  background: #47392c;
+}
+
+html[data-theme="dark"] .app-shell .dashboard-page .registrations-panel .registration-row:nth-child(5n + 4) .registration-avatar {
+  color: #a8cbe3;
+  background: #2b3c48;
+}
+
+html[data-theme="dark"] .app-shell .dashboard-page .registrations-panel .registration-row:nth-child(5n + 5) .registration-avatar {
+  color: #e7afc9;
+  background: #48313d;
+}
+
+.app-shell .dashboard-page .overview-chart {
+  margin-bottom: 26px;
+  border-bottom-color: #393b3c;
+}
+
+.app-shell .dashboard-page .overview-chart-column {
+  position: relative;
+  padding-bottom: 8px;
+}
+
+.app-shell .dashboard-page .overview-chart-column i {
+  width: min(100px, 100%);
+}
+
+.app-shell .dashboard-page .overview-chart-column small {
+  position: absolute;
+  top: calc(100% + 8px);
+  margin: 0;
+  white-space: nowrap;
+}
+
+@media (max-width: 1050px) {
+  .app-shell .dashboard-page .dashboard-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .app-shell .dashboard-page .dashboard-lower-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

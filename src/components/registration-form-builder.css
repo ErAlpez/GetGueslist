@@ -1,0 +1,93 @@
+.app-shell .registration-builder-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  align-items: start;
+  gap: 20px;
+}
+
+.app-shell .registration-builder-columns > * {
+  min-width: 0;
+}
+
+.app-shell .registration-builder-columns .event-logo-form {
+  margin-bottom: 0;
+}
+
+.app-shell .registration-builder-columns .registration-question-list {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.app-shell .registration-builder-columns .registration-builder-actions {
+  flex-wrap: wrap;
+}
+
+.app-shell .registration-question-editor {
+  position: relative;
+}
+
+.app-shell .registration-question-editor details {
+  min-width: 0;
+}
+
+.app-shell .registration-question-editor-heading {
+  min-height: 34px;
+  padding-inline-end: 44px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.app-shell .registration-question-editor-heading::-webkit-details-marker {
+  display: none;
+}
+
+.app-shell .registration-question-editor-heading:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+.app-shell .registration-question-title {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--dashboard-muted, #74857b);
+  font-size: 12px;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell .registration-question-chevron {
+  flex: 0 0 auto;
+  margin-inline-start: auto;
+  transition: transform .2s ease;
+}
+
+.app-shell .registration-question-editor details[open] .registration-question-chevron {
+  transform: rotate(180deg);
+}
+
+.app-shell .registration-question-body {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding-top: 15px;
+}
+
+.app-shell .registration-question-editor .registration-question-remove {
+  position: absolute;
+  top: 20px;
+  inset-inline-end: 20px;
+}
+
+@media (max-width: 700px) {
+  .app-shell .registration-question-editor .registration-question-remove {
+    top: 16px;
+    inset-inline-end: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell .registration-question-chevron {
+    transition: none;
+  }
+}

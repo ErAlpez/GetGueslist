@@ -1,0 +1,16 @@
+.app-shell main.app-content {
+  animation: none;
+}
+
+.app-shell .app-content :is(.attendance-summary-bar, .usage-bar) {
+  height: 15px;
+}
+
+.app-content .motion-metric-value {
+  display: inline;
+  color: inherit;
+}
+
+.app-content .attendance-summary-number .motion-metric-value {
+  font-size: inherit !important;
+}

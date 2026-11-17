@@ -1,0 +1,359 @@
+import Link from "next/link";
+import {
+  ArrowDownRight,
+  ArrowRight,
+  ArrowUpRight,
+  BadgeCheck,
+  BarChart3,
+  Bell,
+  CalendarDays,
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  CircleHelp,
+  Clock3,
+  CreditCard,
+  LayoutDashboard,
+  LockKeyhole,
+  LogIn,
+  QrCode,
+  ScanLine,
+  Search,
+  Settings2,
+  ShieldCheck,
+  Sparkles,
+  Ticket,
+  UsersRound,
+  Zap,
+} from "lucide-react";
+import { LanguageControl, ThemeToggle } from "@/components/preference-controls";
+import { AccountMenu } from "@/components/account-menu";
+import { LandingSections } from "@/components/landing-sections";
+import { getPreferences } from "@/lib/preferences";
+import { getCurrentSession } from "@/lib/auth";
+import { localizeNode, translate } from "@/lib/localization";
+import "./home-header.css";
+import "./landing.css";
+import "./landing-experience.css";
+
+const featureCards = [
+  {
+    icon: CalendarDays,
+    title: "Events, all in one place",
+    text: "Create, publish, and manage every event from one calm, clear workspace.",
+    tone: "mint",
+  },
+  {
+    icon: UsersRound,
+    title: "A guestlist that stays in sync",
+    text: "Keep registrations, RSVPs, categories, and guest details organized as they change.",
+    tone: "lavender",
+  },
+  {
+    icon: QrCode,
+    title: "Tickets that check in fast",
+    text: "Give every guest a unique QR ticket and welcome them with a quick scan.",
+    tone: "peach",
+  },
+  {
+    icon: ScanLine,
+    title: "Attendance you can trust",
+    text: "See who arrived, when they checked in, and how the event is moving.",
+    tone: "blue",
+  },
+];
+
+const faqs = [
+  {
+    question: "What is Guestlist?",
+    answer: "Guestlist is an event operations workspace for organizing registrations, invitations, guestlists, tickets, and check-in in one place.",
+  },
+  {
+    question: "Can I start for free?",
+    answer: "Yes. The Free plan is designed to help you get started with one active event and up to 50 attendees per event.",
+  },
+  {
+    question: "Does Guestlist support QR check-in?",
+    answer: "QR ticketing and attendance are part of the product foundation. The webcam scanner is being built as part of the initial release.",
+  },
+  {
+    question: "Can my team manage events together?",
+    answer: "Team workspaces and role-based access are part of the platform architecture. Team collaboration features will roll out in a later release.",
+  },
+];
+
+function Brand({ light = false }: { light?: boolean }) {
+  return (
+    <Link aria-label="Guestlist home" className={`brand${light ? " brand-light" : ""}`} href="/">
+      <span className="brand-mark"><span /></span>
+      <span><span>G</span><span>uestlist</span></span>
+    </Link>
+  );
+}
+
+const previewStats = [
+  { label: "Total events", value: "6", note: "In your workspace", icon: CalendarDays, tone: "blue", progress: 100 },
+  { label: "Active events", value: "1", note: "Published or ongoing", icon: ArrowUpRight, tone: "violet", progress: 17 },
+  { label: "Upcoming events", value: "3", note: "Scheduled ahead", icon: CalendarDays, tone: "amber", progress: 50 },
+  { label: "Completed events", value: "2", note: "In your workspace", icon: CheckCircle2, tone: "green", progress: 33 },
+  { label: "Total attendees", value: "120", note: "Across all events", icon: UsersRound, tone: "pink", progress: 100 },
+  { label: "Checked in", value: "84", note: "70% of registrations", icon: CheckCircle2, tone: "cyan", progress: 70 },
+  { label: "Not checked in", value: "36", note: "Awaiting arrival", icon: Clock3, tone: "slate", progress: 30 },
+  { label: "Attendance rate", value: "70%", note: "Checked in / registrations", icon: ArrowUpRight, tone: "purple", progress: 70 },
+];
+
+function ProductPreview({ locale }: { locale: Parameters<typeof localizeNode>[1] }) {
+  return localizeNode((
+    <div aria-label="Illustrative preview of the Guestlist event dashboard" className="preview-frame" role="img">
+      <div className="preview-dashboard">
+        <aside className="preview-dashboard-sidebar">
+          <div className="preview-dashboard-brand"><span className="mini-mark"><span /></span> Guestlist</div>
+          <span className="preview-dashboard-label">WORKSPACE</span>
+          <span className="preview-dashboard-nav active"><LayoutDashboard size={11} /> Overview</span>
+          <span className="preview-dashboard-nav"><CalendarDays size={11} /> My events</span>
+          <span className="preview-dashboard-nav"><UsersRound size={11} /> Guestlist</span>
+          <span className="preview-dashboard-nav"><Ticket size={11} /> Tickets</span>
+          <span className="preview-dashboard-nav"><ScanLine size={11} /> Check-in</span>
+          <span className="preview-dashboard-nav"><BarChart3 size={11} /> Reports & analytics</span>
+          <span className="preview-dashboard-label">MANAGE</span>
+          <span className="preview-dashboard-nav"><CreditCard size={11} /> Subscription & billing</span>
+          <span className="preview-dashboard-nav"><Settings2 size={11} /> Settings</span>
+        </aside>
+        <div className="preview-dashboard-workspace">
+          <div className="preview-dashboard-topbar">
+            <span className="preview-dashboard-search"><Search size={11} /> Search events...</span>
+            <span className="preview-dashboard-topbar-actions"><Bell size={12} /><span className="preview-dashboard-avatar">A</span></span>
+          </div>
+          <div className="preview-dashboard-content">
+            <div className="preview-dashboard-heading">
+              <div><span className="preview-dashboard-kicker">OVERVIEW</span><h3>Good morning, Alex</h3><span>Here’s the latest from Studio North.</span></div>
+              <span className="preview-dashboard-create">+ &nbsp; Create event</span>
+            </div>
+            <div className="preview-dashboard-stats">
+              {previewStats.map(({ label, value, note, icon: Icon, tone, progress }) => (
+                <div className={`preview-dashboard-stat preview-tone-${tone}`} key={label}>
+                  <span className="preview-dashboard-stat-label">{label}</span>
+                  <span className="preview-dashboard-stat-icon"><Icon size={10} /></span>
+                  <strong className="preview-dashboard-ring">
+                    <svg aria-hidden="true" viewBox="0 0 36 36"><circle cx="18" cy="18" r="15" pathLength="100" strokeDasharray="100 100" strokeDashoffset={100 - progress} /></svg>
+                    {value}
+                  </strong>
+                  <span className="preview-dashboard-stat-note">{note}</span>
+                </div>
+              ))}
+            </div>
+            <div className="preview-dashboard-panels">
+              <div className="preview-dashboard-panel">
+                <div className="preview-dashboard-panel-heading"><strong>Upcoming events</strong><span>View all <ArrowRight size={9} /></span></div>
+                <span className="preview-dashboard-panel-caption">Your next events at a glance.</span>
+                <div className="preview-dashboard-event"><span className="preview-dashboard-date">MAY<br /><b>24</b></span><span><strong>Gather & Grow</strong><small>May 24 · The Greenhouse</small></span><span className="preview-dashboard-status">Registration open</span></div>
+              </div>
+              <div className="preview-dashboard-panel">
+                <div className="preview-dashboard-panel-heading"><strong>Your plan</strong><span>Manage <ArrowRight size={9} /></span></div>
+                <span className="preview-dashboard-panel-caption">Usage for the current plan.</span>
+                <div className="preview-dashboard-plan"><span>✳</span><strong>Free plan</strong></div>
+                <div className="preview-dashboard-usage"><span>Active events</span><strong>1 / 1</strong></div>
+                <div className="preview-dashboard-progress"><span /></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  ), locale);
+}
+
+export default async function Home() {
+  const [{ locale }, session] = await Promise.all([getPreferences(), getCurrentSession()]);
+
+  return localizeNode((
+    <main className="landing-page">
+      <noscript><style>{".landing-page{height:auto!important;overflow:visible!important}.landing-page .landing-frame{height:auto!important;overflow:visible!important}.landing-page .landing-experience{display:block!important}.landing-page .landing-deck{overflow:visible!important}.landing-page .landing-slide{position:static!important;opacity:1!important;visibility:visible!important;transform:none!important;overflow:visible!important}"}</style></noscript>
+      <div className="landing-frame">
+      <header className="site-header">
+        <div className="header-inner">
+          <span className="landing-frame-mark">GUESTLIST</span>
+          <div className={`header-actions${session ? " header-actions-authenticated" : ""}`}>
+            <LanguageControl />
+            <ThemeToggle />
+            {session ? (
+              <AccountMenu email={session.user.email} image={session.user.image ?? null} name={session.user.name} showOverview />
+            ) : (
+              <>
+                <Link aria-label="Sign in" className="sign-in-link" href="/login"><LogIn aria-hidden="true" size={14} /><span>Sign in</span></Link>
+                <Link className="button button-dark header-cta" href="/sign-up">Get started <ArrowRight size={15} /></Link>
+              </>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <LandingSections labels={["Home", "Features", "Solutions", "How it works", "Modules", "Check-in", "Reports", "Pricing", "FAQ", "Get started"].map((label) => translate(locale, label))}>
+      <section className="hero" id="home">
+        <div className="hero-grid" />
+        <div className="hero-content">
+          <div className="section-kicker hero-kicker">A calmer way to run events</div>
+          <h1><span>Every guest.</span>{" "}<span>Every event.</span><br /><span>Under control.</span></h1>
+          <p>Manage registrations, invitations, guestlists, tickets, and attendance in one powerful platform built for every kind of event.</p>
+          <div className="hero-actions">
+            <Link className="button button-dark button-large" href="/sign-up">Get started free <ArrowRight size={16} /></Link>
+            <a className="button button-light button-large" href="#features">Explore features <ArrowDownRight size={16} /></a>
+          </div>
+          <div className="hero-note"><ShieldCheck size={15} /> Free to get started <span /> No card required</div>
+        </div>
+        <div className="hero-showcase">
+          <div className="hero-aside hero-aside-start">
+            <span className="hero-aside-index"><CalendarDays size={16} /> 01</span>
+            <strong>Set the scene</strong>
+            <p>Create your event, choose how guests register, and bring the important details together.</p>
+          </div>
+          <div className="hero-preview"><ProductPreview locale={locale} /></div>
+          <div className="hero-aside hero-aside-end">
+            <span className="hero-aside-index"><QrCode size={16} /> 02</span>
+            <strong>Unique by design</strong>
+            <p>Each ticket gets its own secure identifier.</p>
+            <a href="#features">Explore features <ArrowUpRight size={14} /></a>
+          </div>
+        </div>
+        <div className="hero-bottom">
+          <span>ONE WORKSPACE FOR THE DETAILS THAT MAKE IT HAPPEN</span>
+          <div><span><CalendarDays size={15} /> Plan</span><span><UsersRound size={15} /> Organize</span><span><QrCode size={15} /> Welcome</span><span><Sparkles size={15} /> Learn</span></div>
+        </div>
+      </section>
+
+      <section className="section trust-section" id="features">
+        <div className="section-kicker">LESS SPREADSHEETS. MORE IN-SYNC.</div>
+        <h2>All the moving parts.<br /><span>Finally moving together.</span></h2>
+        <p className="section-lead">The event is the experience. Guestlist takes care of the coordination behind it, so the right details are there when you need them.</p>
+        <div className="feature-grid">
+          {featureCards.map(({ icon: Icon, title, text, tone }) => (
+            <article className="feature-card" key={title}>
+              <div className={`feature-icon ${tone}`}><Icon size={20} strokeWidth={1.8} /></div>
+              <h3>{title}</h3>
+              <p>{text}</p>
+              <a className="text-link" href="#how-it-works">Explore feature <ArrowRight size={14} /></a>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="section audience-section" id="solutions">
+        <div className="audience-copy">
+          <div className="section-kicker">BUILT FOR THE PEOPLE BRINGING PEOPLE TOGETHER</div>
+          <h2>One platform.<br /><span>Every kind of gathering.</span></h2>
+          <p className="section-lead">From a close-knit workshop to a room full of new ideas, organize the details without losing sight of the people.</p>
+          <a className="text-link" href="#how-it-works">Find your event flow <ArrowRight size={14} /></a>
+        </div>
+        <div className="audience-grid">
+          <div className="audience-card aqua"><span className="audience-emoji"><UsersRound aria-hidden="true" size={24} /></span><span className="audience-label">COMMUNITY</span><strong>Meetups &<br />workshops</strong><span className="audience-arrow"><ArrowUpRight size={18} /></span></div>
+          <div className="audience-card peach-bg"><span className="audience-emoji">◒</span><span className="audience-label">CULTURE</span><strong>Private &<br />social events</strong><span className="audience-arrow"><ArrowUpRight size={18} /></span></div>
+          <div className="audience-card lilac-bg"><span className="audience-emoji">✦</span><span className="audience-label">BUSINESS</span><strong>Conferences &<br />brand experiences</strong><span className="audience-arrow"><ArrowUpRight size={18} /></span></div>
+          <div className="audience-card yellow-bg"><span className="audience-emoji">⌁</span><span className="audience-label">ORGANIZATIONS</span><strong>Team &<br />company events</strong><span className="audience-arrow"><ArrowUpRight size={18} /></span></div>
+        </div>
+      </section>
+
+      <section className="section steps-section" id="how-it-works">
+        <div className="center-heading">
+          <div className="section-kicker">A LITTLE LESS TO JUGGLE</div>
+          <h2>From idea to <span>“glad you came.”</span></h2>
+          <p className="section-lead">A clear path from the first invite to the last guest through the door.</p>
+        </div>
+        <div className="steps-grid">
+          <article className="step-card"><span className="step-number">01</span><div className="step-icon"><CalendarDays size={21} /></div><h3>Set the scene</h3><p>Create your event, choose how guests register, and bring the important details together.</p><span className="step-line" /></article>
+          <article className="step-card"><span className="step-number">02</span><div className="step-icon lilac-step"><UsersRound size={21} /></div><h3>Know who’s coming</h3><p>Keep registrations and guest details organized, with a guestlist your team can trust.</p><span className="step-line" /></article>
+          <article className="step-card"><span className="step-number">03</span><div className="step-icon peach-step"><QrCode size={21} /></div><h3>Make arrivals easy</h3><p>Give every guest a ticket and keep check-in moving with clear attendance records.</p><span className="step-line" /></article>
+        </div>
+      </section>
+
+      <section className="module-section" id="modules">
+        <div className="module-visual">
+          <div className="module-orbit orbit-one" /><div className="module-orbit orbit-two" />
+          <div className="module-core"><span className="core-mark"><span /></span><strong>One event</strong><small>your way</small></div>
+          <div className="module-chip chip-registration"><span className="chip-check"><Check size={11} /></span> Registration</div>
+          <div className="module-chip chip-tickets"><span className="chip-check"><Check size={11} /></span> QR tickets</div>
+          <div className="module-chip chip-attendance"><span className="chip-check"><Check size={11} /></span> Attendance</div>
+          <div className="module-chip chip-rsvp">RSVP <span className="chip-muted">optional</span></div>
+          <div className="module-chip chip-meals">Meals <span className="chip-muted">optional</span></div>
+          <div className="module-chip chip-sessions">Sessions <span className="chip-muted">optional</span></div>
+        </div>
+        <div className="module-copy">
+          <div className="section-kicker">FLEXIBLE BY DESIGN</div>
+          <h2>Your event.<br /><span>Your mix of modules.</span></h2>
+          <p className="section-lead">Not every event needs the same toolkit. Turn on the pieces that fit, and keep everything else out of the way.</p>
+          <div className="module-list"><span><Check size={15} /> Start with the essentials</span><span><Check size={15} /> Add modules when you need them</span><span><Check size={15} /> Keep your event data together</span></div>
+          <Link className="text-link" href="/sign-up">Build your first event <ArrowRight size={14} /></Link>
+        </div>
+      </section>
+
+      <section className="section checkin-section" id="check-in">
+        <div className="checkin-copy">
+          <div className="section-kicker">A WELCOME, NOT A WAIT</div>
+          <h2>Check in with a<br /><span>little more confidence.</span></h2>
+          <p className="section-lead">Unique QR tickets and clear validation help your team welcome guests quickly and keep attendance accurate.</p>
+          <div className="checkin-points">
+            <div><span className="point-icon"><QrCode size={17} /></span><span><strong>Unique by design</strong><small>Each ticket gets its own secure identifier.</small></span></div>
+            <div><span className="point-icon lilac-point"><ScanLine size={17} /></span><span><strong>Clear at the door</strong><small>See valid, used, and cancelled tickets at a glance.</small></span></div>
+            <div><span className="point-icon peach-point"><Clock3 size={17} /></span><span><strong>Recorded as it happens</strong><small>Keep a time-stamped attendance history.</small></span></div>
+          </div>
+          <p className="phase-note"><LockKeyhole size={13} /> NFC check-in is planned for a future release.</p>
+        </div>
+        <div className="checkin-visual">
+          <div className="phone-card">
+            <div className="phone-top"><span className="phone-dot" /><span>GUESTLIST CHECK-IN</span><span className="phone-more">···</span></div>
+            <div className="scan-stage"><div className="scan-corner corner-tl" /><div className="scan-corner corner-tr" /><div className="scan-corner corner-bl" /><div className="scan-corner corner-br" /><QrCode size={106} strokeWidth={1.1} /><span className="scan-laser" /></div>
+            <div className="checkin-toast"><span className="toast-check"><Check size={16} /></span><span><strong>You’re all set, Jamie!</strong><small>Checked in at 10:42 AM</small></span><BadgeCheck size={19} className="toast-badge" /></div>
+            <div className="phone-footer"><span><span className="live-dot" /> SCANNER READY</span><span>Gather & Grow</span></div>
+          </div>
+          <div className="float-note"><span className="float-note-icon"><Zap size={14} /></span><span><strong>One quick scan</strong><small>and they’re on the list.</small></span></div>
+        </div>
+      </section>
+
+      <section className="analytics-band" id="reports">
+        <div className="analytics-copy"><div className="section-kicker">SEE THE SHAPE OF YOUR EVENT</div><h2>Make the next one<br /><span>even more you.</span></h2><p>Understand registrations and attendance with straightforward reporting, not another complicated spreadsheet.</p></div>
+        <div className="analytics-card">
+          <div className="analytics-card-head"><span>Event attendance</span><span className="analytics-select"><CalendarDays aria-hidden="true" size={14} /> Gather & Grow</span></div>
+          <div className="attendance-number">—<small>attendance data</small></div>
+          <div className="attendance-empty"><BarChart3 aria-hidden="true" size={20} /><span>Attendance updates as guests check in.</span></div>
+          <div className="analytics-divider" />
+          <div className="analytics-foot"><span><ArrowUpRight size={14} /> Live attendance updates</span><span>Event day · May 24</span></div>
+        </div>
+        <span className="analytics-decoration deco-one">✳</span><span className="analytics-decoration deco-two">✳</span>
+      </section>
+
+      <section className="section pricing-section" id="pricing">
+        <div className="center-heading">
+          <div className="section-kicker">ROOM TO GROW, NEVER A SURPRISE</div>
+          <h2>A good place to <span>get started.</span></h2>
+          <p className="section-lead">Start with what you need. Move up when the events—and your ambitions—get bigger.</p>
+        </div>
+        <div className="pricing-card">
+          <div className="pricing-main"><span className="plan-tag">GOOD THINGS START HERE</span><h3>Free</h3><p>Everything you need to bring your first event together.</p><div className="price"><strong>₱0</strong><span>forever</span></div><Link className="button button-dark pricing-cta" href="/sign-up">Get started free <ArrowRight size={15} /></Link><small className="no-card">No credit card required</small></div>
+          <div className="pricing-includes"><span className="includes-title">A thoughtful start, with:</span><span><Check size={15} /> 1 active event</span><span><Check size={15} /> Up to 50 attendees per event</span><span><Check size={15} /> Guestlist essentials</span><span><Check size={15} /> QR tickets</span><span><Check size={15} /> Basic attendance tracking</span><div className="pricing-footnote"><CircleHelp size={15} /> More plans and configurable limits are coming as the platform grows.</div></div>
+        </div>
+      </section>
+
+      <section className="section faq-section" id="faq">
+        <div className="faq-heading"><div className="section-kicker">GOOD QUESTIONS</div><h2>Before the<br /><span>first guest arrives.</span></h2><p>Something else on your mind? <a href="mailto:hello@guestlist.app">Talk to us <ArrowUpRight size={13} /></a></p></div>
+        <div className="faq-list">{faqs.map((faq, index) => <details className="faq-item" key={faq.question} name="landing-faq"><summary><span className="faq-index">0{index + 1}</span><span>{faq.question}</span><ChevronDown size={17} /></summary><p>{faq.answer}</p></details>)}</div>
+      </section>
+
+      <div className="landing-end" id="get-started">
+      <section className="final-cta">
+        <div className="cta-content"><span className="section-kicker">YOUR NEXT EVENT STARTS HERE</span><h2>Make room for<br />a better <em>gathering.</em></h2><p>Start with a free workspace. Bring your event details, your guestlist, and your team together.</p><Link className="button button-cream button-large" href="/sign-up">Create your free workspace <ArrowRight size={16} /></Link></div>
+      </section>
+
+      <footer className="site-footer">
+        <div className="footer-main">
+          <div className="footer-brand"><Brand light /><p>Good events have a lot of moving parts.<br />We help you bring them together.</p></div>
+          <div className="footer-col"><span>EXPLORE</span><a href="#features">Features</a><a href="#solutions">Solutions</a><a href="#how-it-works">How it works</a><a href="#pricing">Pricing</a></div>
+          <div className="footer-col"><span>GUESTLIST</span><a href="#faq">About the platform</a><a href="#faq">FAQs</a><Link href="/login">Sign in</Link><Link href="/sign-up">Get started</Link></div>
+          <div className="footer-note"><div className="footer-note-mark">✳</div><strong>Thoughtful events<br />start with thoughtful details.</strong><span>One guest at a time.</span></div>
+        </div>
+        <div className="footer-bottom"><span>© {new Date().getFullYear()} Guestlist.</span><div><a href="#privacy" id="privacy">Privacy</a><span aria-hidden="true">|</span><a href="#terms" id="terms">Terms</a></div></div>
+      </footer>
+      </div>
+      </LandingSections>
+      </div>
+    </main>
+  ), locale);
+}

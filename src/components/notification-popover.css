@@ -1,0 +1,29 @@
+.app-shell .notification-item {
+  transition: transform .18s ease;
+}
+
+.app-shell .notification-item.is-highlighted,
+.app-shell .notification-item.is-highlighted:hover {
+  background: #f3f7f2;
+}
+
+html[data-theme="dark"] .app-shell .notification-item.is-highlighted,
+html[data-theme="dark"] .app-shell .notification-item.is-highlighted:hover {
+  background: #222425;
+}
+
+html[data-theme="dark"] .app-shell .notification-item.is-highlighted .notification-item-copy strong {
+  color: #f0f1f1;
+}
+
+html[data-theme="dark"] .app-shell .notification-item.is-highlighted .notification-item-copy > span {
+  color: #c4cfca;
+}
+
+html[data-theme="dark"] .app-shell .notification-item.is-highlighted .notification-item-copy time {
+  color: #a7aaab;
+}
+
+html[data-theme="dark"] .app-shell .notification-item:not(.is-highlighted):hover {
+  background: #303333;
+}

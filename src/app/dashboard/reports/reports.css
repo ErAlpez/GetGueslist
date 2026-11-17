@@ -1,0 +1,44 @@
+.app-content .reports-page .attendance-summary-number {
+  margin-top: 12px;
+  font-size: 130px !important;
+  line-height: 1;
+}
+
+.app-content .reports-page .attendance-summary-caption {
+  margin-top: 4px;
+}
+
+.app-shell .reports-page .registration-chart {
+  height: 320px;
+  gap: 9px;
+  margin: 20px 2px 26px;
+  border-bottom-color: #393b3c;
+}
+
+.app-shell .reports-page .registration-chart-column {
+  position: relative;
+  gap: 4px;
+  padding-bottom: 8px;
+}
+
+.app-shell .reports-page .registration-chart-column > span {
+  color: #87938a;
+}
+
+.app-shell .reports-page .registration-chart-column > div {
+  height: 280px;
+}
+
+.app-shell .reports-page .registration-chart-column i {
+  width: min(100px, 100%);
+  border-radius: 4px 4px 0 0;
+  background: #83b08a;
+  box-shadow: none;
+}
+
+.app-shell .reports-page .registration-chart-column small {
+  position: absolute;
+  top: calc(100% + 8px);
+  margin: 0;
+  white-space: nowrap;
+}
