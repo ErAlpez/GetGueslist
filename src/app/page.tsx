@@ -15,7 +15,6 @@ import {
   CreditCard,
   LayoutDashboard,
   LockKeyhole,
-  LogIn,
   QrCode,
   ScanLine,
   Search,
@@ -26,13 +25,14 @@ import {
   UsersRound,
   Zap,
 } from "lucide-react";
-import { LanguageControl, ThemeToggle } from "@/components/preference-controls";
-import { AccountMenu } from "@/components/account-menu";
+import { LandingFrameHeader } from "@/components/landing-frame-header";
 import { LandingSections } from "@/components/landing-sections";
+import { LandingAuthModal, LandingAuthTrigger } from "@/components/landing-auth-modal";
+import { StatisticCircle } from "@/components/statistic-circle";
 import { getPreferences } from "@/lib/preferences";
 import { getCurrentSession } from "@/lib/auth";
+import { landingNavigationItems } from "@/lib/landing-navigation";
 import { localizeNode, translate } from "@/lib/localization";
-import "./home-header.css";
 import "./landing.css";
 import "./landing-experience.css";
 
@@ -163,32 +163,28 @@ function ProductPreview({ locale }: { locale: Parameters<typeof localizeNode>[1]
   ), locale);
 }
 
-export default async function Home() {
-  const [{ locale }, session] = await Promise.all([getPreferences(), getCurrentSession()]);
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const [{ locale }, session, params] = await Promise.all([
+    getPreferences(),
+    getCurrentSession(),
+    searchParams,
+  ]);
+  const authMode = params.auth === "sign-up" ? "sign-up" : "sign-in";
+  const openAuthModal = params.auth === "sign-in" || params.auth === "sign-up";
+  const showDemoAccount = params.demo === "account";
 
   return localizeNode((
     <main className="landing-page">
       <noscript><style>{".landing-page{height:auto!important;overflow:visible!important}.landing-page .landing-frame{height:auto!important;overflow:visible!important}.landing-page .landing-experience{display:block!important}.landing-page .landing-deck{overflow:visible!important}.landing-page .landing-slide{position:static!important;opacity:1!important;visibility:visible!important;transform:none!important;overflow:visible!important}"}</style></noscript>
+      <LandingAuthModal authenticated={Boolean(session)} initialMode={authMode} openInitially={openAuthModal} showDemoAccount={showDemoAccount}>
       <div className="landing-frame">
-      <header className="site-header">
-        <div className="header-inner">
-          <span className="landing-frame-mark">GUESTLIST</span>
-          <div className={`header-actions${session ? " header-actions-authenticated" : ""}`}>
-            <LanguageControl />
-            <ThemeToggle />
-            {session ? (
-              <AccountMenu email={session.user.email} image={session.user.image ?? null} name={session.user.name} showOverview />
-            ) : (
-              <>
-                <Link aria-label="Sign in" className="sign-in-link" href="/login"><LogIn aria-hidden="true" size={14} /><span>Sign in</span></Link>
-                <Link className="button button-dark header-cta" href="/sign-up">Get started <ArrowRight size={15} /></Link>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
+      <LandingFrameHeader locale={locale} session={session} />
 
-      <LandingSections labels={["Home", "Features", "Solutions", "How it works", "Modules", "Check-in", "Reports", "Pricing", "FAQ", "Get started"].map((label) => translate(locale, label))}>
+      <LandingSections labels={landingNavigationItems.map(({ label }) => translate(locale, label))}>
       <section className="hero" id="home">
         <div className="hero-grid" />
         <div className="hero-content">
@@ -196,7 +192,7 @@ export default async function Home() {
           <h1><span>Every guest.</span>{" "}<span>Every event.</span><br /><span>Under control.</span></h1>
           <p>Manage registrations, invitations, guestlists, tickets, and attendance in one powerful platform built for every kind of event.</p>
           <div className="hero-actions">
-            <Link className="button button-dark button-large" href="/sign-up">Get started free <ArrowRight size={16} /></Link>
+            <LandingAuthTrigger className="button button-dark button-large" mode="sign-up">Get started free <ArrowRight size={16} /></LandingAuthTrigger>
             <a className="button button-light button-large" href="#features">Explore features <ArrowDownRight size={16} /></a>
           </div>
           <div className="hero-note"><ShieldCheck size={15} /> Free to get started <span /> No card required</div>
@@ -267,21 +263,28 @@ export default async function Home() {
 
       <section className="module-section" id="modules">
         <div className="module-visual">
-          <div className="module-orbit orbit-one" /><div className="module-orbit orbit-two" />
-          <div className="module-core"><span className="core-mark"><span /></span><strong>One event</strong><small>your way</small></div>
-          <div className="module-chip chip-registration"><span className="chip-check"><Check size={11} /></span> Registration</div>
-          <div className="module-chip chip-tickets"><span className="chip-check"><Check size={11} /></span> QR tickets</div>
-          <div className="module-chip chip-attendance"><span className="chip-check"><Check size={11} /></span> Attendance</div>
-          <div className="module-chip chip-rsvp">RSVP <span className="chip-muted">optional</span></div>
-          <div className="module-chip chip-meals">Meals <span className="chip-muted">optional</span></div>
-          <div className="module-chip chip-sessions">Sessions <span className="chip-muted">optional</span></div>
+          <div className="module-network">
+            <div className="module-orbit orbit-one" /><div className="module-orbit orbit-two" />
+            <div className="module-node chip-registration"><div className="module-chip"><span className="chip-check"><Check size={11} /></span> Registration</div></div>
+            <div className="module-node chip-invitations"><div className="module-chip">Invitations</div></div>
+            <div className="module-node chip-nfc-checkin"><div className="module-chip">NFC Check-In</div></div>
+            <div className="module-node chip-tickets"><div className="module-chip"><span className="chip-check"><Check size={11} /></span> QR tickets</div></div>
+            <div className="module-node chip-custom-question"><div className="module-chip">Custom Question</div></div>
+            <div className="module-node chip-active-events"><div className="module-chip">Active Events</div></div>
+            <div className="module-node chip-export-guestlist"><div className="module-chip">Export Guestlist</div></div>
+            <div className="module-node chip-attendance"><div className="module-chip"><span className="chip-check"><Check size={11} /></span> Attendance</div></div>
+            <div className="module-node chip-rsvp"><div className="module-chip">RSVP <span className="chip-muted">optional</span></div></div>
+            <div className="module-node chip-meals"><div className="module-chip">Meals <span className="chip-muted">optional</span></div></div>
+            <div className="module-node chip-sessions"><div className="module-chip">Sessions <span className="chip-muted">optional</span></div></div>
+          </div>
+          <div className="module-core"><strong>One event</strong><small>your way</small></div>
         </div>
         <div className="module-copy">
           <div className="section-kicker">FLEXIBLE BY DESIGN</div>
           <h2>Your event.<br /><span>Your mix of modules.</span></h2>
           <p className="section-lead">Not every event needs the same toolkit. Turn on the pieces that fit, and keep everything else out of the way.</p>
           <div className="module-list"><span><Check size={15} /> Start with the essentials</span><span><Check size={15} /> Add modules when you need them</span><span><Check size={15} /> Keep your event data together</span></div>
-          <Link className="text-link" href="/sign-up">Build your first event <ArrowRight size={14} /></Link>
+          <LandingAuthTrigger className="text-link" mode="sign-up">Build your first event <ArrowRight size={14} /></LandingAuthTrigger>
         </div>
       </section>
 
@@ -310,14 +313,49 @@ export default async function Home() {
 
       <section className="analytics-band" id="reports">
         <div className="analytics-copy"><div className="section-kicker">SEE THE SHAPE OF YOUR EVENT</div><h2>Make the next one<br /><span>even more you.</span></h2><p>Understand registrations and attendance with straightforward reporting, not another complicated spreadsheet.</p></div>
-        <div className="analytics-card">
-          <div className="analytics-card-head"><span>Event attendance</span><span className="analytics-select"><CalendarDays aria-hidden="true" size={14} /> Gather & Grow</span></div>
-          <div className="attendance-number">—<small>attendance data</small></div>
-          <div className="attendance-empty"><BarChart3 aria-hidden="true" size={20} /><span>Attendance updates as guests check in.</span></div>
-          <div className="analytics-divider" />
-          <div className="analytics-foot"><span><ArrowUpRight size={14} /> Live attendance updates</span><span>Event day · May 24</span></div>
+        <div className="analytics-card landing-report-preview" role="img" aria-label="Sample Reports and analytics dashboard for Gather and Grow">
+          <div className="landing-report-header">
+            <div><span className="landing-report-eyebrow">INSIGHTS</span><h3>Reports &amp; analytics</h3></div>
+            <span className="landing-report-export"><ArrowDownRight aria-hidden="true" size={12} /> Export CSV</span>
+          </div>
+          <div className="landing-report-filters">
+            <span className="landing-report-filter"><CalendarDays aria-hidden="true" size={12} /> Gather &amp; Grow</span>
+            <span className="landing-report-filter"><Clock3 aria-hidden="true" size={12} /> Last 7 days</span>
+            <span className="landing-report-sample-label">SAMPLE</span>
+          </div>
+          <div className="landing-report-stats">
+            <div className="landing-report-stat stat-total-attendees"><span>Total registrations</span><StatisticCircle locale={locale} value={128} total={128} /><small>Across this event</small></div>
+            <div className="landing-report-stat stat-checked-in"><span>Checked in</span><StatisticCircle locale={locale} value={84} total={128} /><small>Guests arrived</small></div>
+            <div className="landing-report-stat stat-not-checked-in"><span>Not checked in</span><StatisticCircle locale={locale} value={44} total={128} /><small>Awaiting arrival</small></div>
+            <div className="landing-report-stat stat-attendance-rate"><span>Attendance rate</span><StatisticCircle locale={locale} value={66} total={100} percentage /><small>Of registrations</small></div>
+          </div>
+          <div className="landing-report-grid">
+            <div className="landing-report-panel">
+              <div className="landing-report-panel-heading"><div><h4>Registration trend</h4><p>Daily registrations</p></div><BarChart3 aria-hidden="true" size={13} /></div>
+              <div className="landing-report-chart" aria-hidden="true">
+                <div><span>14</span><i style={{ height: "50%" }} /><small>Mon</small></div>
+                <div><span>12</span><i style={{ height: "43%" }} /><small>Tue</small></div>
+                <div><span>19</span><i style={{ height: "68%" }} /><small>Wed</small></div>
+                <div><span>23</span><i style={{ height: "82%" }} /><small>Thu</small></div>
+                <div><span>17</span><i style={{ height: "61%" }} /><small>Fri</small></div>
+                <div><span>28</span><i style={{ height: "100%" }} /><small>Sat</small></div>
+                <div><span>15</span><i style={{ height: "54%" }} /><small>Sun</small></div>
+              </div>
+            </div>
+            <div className="landing-report-panel landing-report-attendance">
+              <div className="landing-report-panel-heading"><div><h4>Attendance</h4><p>Check-in progress</p></div></div>
+              <strong>66%</strong>
+              <p>84 of 128 registrations checked in</p>
+              <div className="landing-report-progress"><span /></div>
+              <div className="landing-report-legend"><span>Checked in <b>84</b></span><span>Not checked in <b>44</b></span></div>
+            </div>
+          </div>
+          <div className="landing-report-activity">
+            <div className="landing-report-panel-heading"><div><h4>Recent attendance activity</h4><p>Latest check-ins</p></div><ArrowUpRight aria-hidden="true" size={12} /></div>
+            <div className="landing-report-activity-row"><CheckCircle2 aria-hidden="true" size={14} /><span><strong>Guest checked in</strong><small>Gather &amp; Grow</small></span><time>10:42 AM</time></div>
+            <div className="landing-report-activity-row"><CheckCircle2 aria-hidden="true" size={14} /><span><strong>Guest checked in</strong><small>Gather &amp; Grow</small></span><time>10:38 AM</time></div>
+          </div>
         </div>
-        <span className="analytics-decoration deco-one">✳</span><span className="analytics-decoration deco-two">✳</span>
       </section>
 
       <section className="section pricing-section" id="pricing">
@@ -327,7 +365,7 @@ export default async function Home() {
           <p className="section-lead">Start with what you need. Move up when the events—and your ambitions—get bigger.</p>
         </div>
         <div className="pricing-card">
-          <div className="pricing-main"><span className="plan-tag">GOOD THINGS START HERE</span><h3>Free</h3><p>Everything you need to bring your first event together.</p><div className="price"><strong>₱0</strong><span>forever</span></div><Link className="button button-dark pricing-cta" href="/sign-up">Get started free <ArrowRight size={15} /></Link><small className="no-card">No credit card required</small></div>
+          <div className="pricing-main"><span className="plan-tag">GOOD THINGS START HERE</span><h3>Free</h3><p>Everything you need to bring your first event together.</p><div className="price"><strong>₱0</strong><span>forever</span></div><LandingAuthTrigger className="button button-dark pricing-cta" mode="sign-up">Get started free <ArrowRight size={15} /></LandingAuthTrigger><small className="no-card">No credit card required</small></div>
           <div className="pricing-includes"><span className="includes-title">A thoughtful start, with:</span><span><Check size={15} /> 1 active event</span><span><Check size={15} /> Up to 50 attendees per event</span><span><Check size={15} /> Guestlist essentials</span><span><Check size={15} /> QR tickets</span><span><Check size={15} /> Basic attendance tracking</span><div className="pricing-footnote"><CircleHelp size={15} /> More plans and configurable limits are coming as the platform grows.</div></div>
         </div>
       </section>
@@ -339,7 +377,7 @@ export default async function Home() {
 
       <div className="landing-end" id="get-started">
       <section className="final-cta">
-        <div className="cta-content"><span className="section-kicker">YOUR NEXT EVENT STARTS HERE</span><h2>Make room for<br />a better <em>gathering.</em></h2><p>Start with a free workspace. Bring your event details, your guestlist, and your team together.</p><Link className="button button-cream button-large" href="/sign-up">Create your free workspace <ArrowRight size={16} /></Link></div>
+        <div className="cta-content"><span className="section-kicker">YOUR NEXT EVENT STARTS HERE</span><h2>Make room for<br />a better <em>gathering.</em></h2><p>Start with a free workspace. Bring your event details, your guestlist, and your team together.</p><LandingAuthTrigger className="button button-cream button-large" mode="sign-up">Create your free workspace <ArrowRight size={16} /></LandingAuthTrigger></div>
       </section>
 
       <footer className="site-footer">
@@ -349,11 +387,12 @@ export default async function Home() {
           <div className="footer-col"><span>GUESTLIST</span><a href="#faq">About the platform</a><a href="#faq">FAQs</a><Link href="/login">Sign in</Link><Link href="/sign-up">Get started</Link></div>
           <div className="footer-note"><div className="footer-note-mark">✳</div><strong>Thoughtful events<br />start with thoughtful details.</strong><span>One guest at a time.</span></div>
         </div>
-        <div className="footer-bottom"><span>© {new Date().getFullYear()} Guestlist.</span><div><a href="#privacy" id="privacy">Privacy</a><span aria-hidden="true">|</span><a href="#terms" id="terms">Terms</a></div></div>
+        <div className="footer-bottom"><span>© {new Date().getFullYear()} Guestlist. All rights reserved.</span><div><Link href="/privacy">Privacy</Link><span aria-hidden="true">|</span><Link href="/terms">Terms</Link></div></div>
       </footer>
       </div>
       </LandingSections>
       </div>
+      </LandingAuthModal>
     </main>
   ), locale);
 }

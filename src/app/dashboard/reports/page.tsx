@@ -31,6 +31,10 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
   const category = categories.find((item) => item === params.category);
   const start = parseDate(params.from);
   const end = parseDate(params.to, true);
+  const now = new Date();
+  const trendStart = new Date(now);
+  trendStart.setUTCHours(0, 0, 0, 0);
+  trendStart.setUTCDate(trendStart.getUTCDate() - 6);
   const events = await prisma.event.findMany({
     where: { workspaceId: context.workspace.id, archivedAt: null },
     select: { id: true, name: true },
@@ -49,6 +53,13 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
         ...(end ? { lte: end } : {}),
       },
     } : {}),
+  };
+  const trendWhere = {
+    ...where,
+    registeredAt: {
+      gte: start && start > trendStart ? start : trendStart,
+      ...(end ? { lte: end } : {}),
+    },
   };
   const attendanceWhere = {
     workspaceId: context.workspace.id,
@@ -71,7 +82,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
     prisma.eventRegistration.count({ where }),
     prisma.attendanceLog.count({ where: attendanceWhere }),
     prisma.eventRegistration.findMany({
-      where,
+      where: trendWhere,
       select: { registeredAt: true },
       orderBy: { registeredAt: "desc" },
       take: 10000,
@@ -84,7 +95,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
     }),
   ]);
   const rate = totalRegistrations ? Math.round((checkedIn / totalRegistrations) * 100) : 0;
-  const days = registrationTrend(registrationsForTrend, locale, new Date());
+  const days = registrationTrend(registrationsForTrend, locale, now);
   const maximum = Math.max(...days.map((day) => day.count), 1);
   const exportParams = new URLSearchParams(Object.entries({
     event: params.event ?? "",

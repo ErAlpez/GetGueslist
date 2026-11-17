@@ -17,14 +17,22 @@ export async function GET() {
   const prisma = getPrisma();
   const activityWhere = {
     workspaceId: context.workspace.id,
-    action: "attendee.registered",
-    entityType: "registration",
+    OR: [
+      { action: "attendee.registered", entityType: "registration" },
+      { action: "attendee.checked_in", entityType: "attendance" },
+    ],
   };
   const initialActivity = await prisma.activityLog.findFirst({
     where: activityWhere,
-    select: { id: true, createdAt: true },
+    select: { createdAt: true },
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
   });
+  const initialCursorActivities = initialActivity
+    ? await prisma.activityLog.findMany({
+        where: { ...activityWhere, createdAt: initialActivity.createdAt },
+        select: { id: true },
+      })
+    : [];
   const encoder = new TextEncoder();
   let cancelled = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -32,7 +40,7 @@ export async function GET() {
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
       let cursorAt = initialActivity?.createdAt ?? new Date(0);
-      let idsAtCursor = new Set(initialActivity ? [initialActivity.id] : []);
+      let idsAtCursor = new Set(initialCursorActivities.map((activity) => activity.id));
       let lastHeartbeatAt = Date.now();
 
       controller.enqueue(encoder.encode("retry: 3000\n\nevent: sync\ndata: {}\n\n"));
@@ -41,16 +49,16 @@ export async function GET() {
         try {
           const recentActivity = await prisma.activityLog.findMany({
             where: { ...activityWhere, createdAt: { gte: cursorAt } },
-            select: { id: true, createdAt: true },
+            select: { id: true, action: true, createdAt: true },
             orderBy: [{ createdAt: "desc" }, { id: "desc" }],
             take: 100,
           });
           if (cancelled) return;
 
-          const newActivity = recentActivity.some((activity) =>
+          const newActivities = recentActivity.filter((activity) =>
             activity.createdAt > cursorAt || !idsAtCursor.has(activity.id),
           );
-          if (newActivity) {
+          if (newActivities.length) {
             const newestTimestamp = recentActivity[0]?.createdAt;
             if (newestTimestamp) {
               cursorAt = newestTimestamp;
@@ -60,7 +68,12 @@ export async function GET() {
                   .map((activity) => activity.id),
               );
             }
-            controller.enqueue(encoder.encode("event: registration\ndata: {}\n\n"));
+            if (newActivities.some((activity) => activity.action === "attendee.registered")) {
+              controller.enqueue(encoder.encode("event: registration\ndata: {}\n\n"));
+            }
+            if (newActivities.some((activity) => activity.action === "attendee.checked_in")) {
+              controller.enqueue(encoder.encode("event: check-in\ndata: {}\n\n"));
+            }
           } else if (Date.now() - lastHeartbeatAt >= heartbeatInterval) {
             controller.enqueue(encoder.encode(": keepalive\n\n"));
             lastHeartbeatAt = Date.now();

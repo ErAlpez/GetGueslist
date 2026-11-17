@@ -86,7 +86,12 @@ export async function getDashboardSummary(workspaceId: string) {
     }),
     prisma.eventRegistration.findMany({
       where: { event: { workspaceId } },
-      include: { attendee: true, event: { select: { name: true } } },
+      select: {
+        id: true,
+        registeredAt: true,
+        attendee: { select: { firstName: true, lastName: true } },
+        event: { select: { name: true } },
+      },
       orderBy: { registeredAt: "desc" },
       take: 5,
     }),

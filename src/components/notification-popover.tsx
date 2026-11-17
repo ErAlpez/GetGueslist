@@ -2,12 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Bell, Inbox, LoaderCircle, RefreshCw, UserRoundPlus, X } from "lucide-react";
+import { Bell, Check, Inbox, LoaderCircle, RefreshCw, UserRoundPlus, X } from "lucide-react";
 import { usePreferences } from "@/components/preferences-provider";
 import "./notification-popover.css";
 
-type RegistrationNotification = {
+type NotificationKind = "registration" | "check_in";
+
+type GuestNotification = {
   id: string;
+  kind: NotificationKind;
   attendeeName: string;
   eventId: string;
   eventName: string;
@@ -15,10 +18,11 @@ type RegistrationNotification = {
   seenAt: string | null;
 };
 
-function isRegistrationNotification(value: unknown): value is RegistrationNotification {
+function isGuestNotification(value: unknown): value is GuestNotification {
   if (typeof value !== "object" || value === null) return false;
   if (
     !("id" in value) ||
+    !("kind" in value) ||
     !("attendeeName" in value) ||
     !("eventId" in value) ||
     !("eventName" in value) ||
@@ -30,6 +34,7 @@ function isRegistrationNotification(value: unknown): value is RegistrationNotifi
 
   return (
     typeof value.id === "string" &&
+    (value.kind === "registration" || value.kind === "check_in") &&
     typeof value.attendeeName === "string" &&
     typeof value.eventId === "string" &&
     typeof value.eventName === "string" &&
@@ -39,13 +44,13 @@ function isRegistrationNotification(value: unknown): value is RegistrationNotifi
   );
 }
 
-function isNotificationResponse(value: unknown): value is { notifications: RegistrationNotification[] } {
+function isNotificationResponse(value: unknown): value is { notifications: GuestNotification[] } {
   return (
     typeof value === "object" &&
     value !== null &&
     "notifications" in value &&
     Array.isArray(value.notifications) &&
-    value.notifications.every(isRegistrationNotification)
+    value.notifications.every(isGuestNotification)
   );
 }
 
@@ -61,23 +66,75 @@ function isSeenResponse(value: unknown): value is { seen: { id: string; seenAt: 
 
 export function NotificationPopover() {
   const [open, setOpen] = useState(false);
-  const [notifications, setNotifications] = useState<RegistrationNotification[]>([]);
+  const [notifications, setNotifications] = useState<GuestNotification[]>([]);
   const [clock, setClock] = useState(() => Date.now());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [notificationPulse, setNotificationPulse] = useState(0);
   const [streamConnected, setStreamConnected] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const notificationsRef = useRef<RegistrationNotification[]>([]);
+  const notificationsRef = useRef<GuestNotification[]>([]);
+  const notificationsInitializedRef = useRef(false);
+  const audioContextRef = useRef<AudioContext | null>(null);
   const markingRef = useRef(new Set<string>());
   const mountedRef = useRef(false);
   const { locale, t } = usePreferences();
 
   useEffect(() => {
     mountedRef.current = true;
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+      const audioContext = audioContextRef.current;
+      if (audioContext && audioContext.state !== "closed") {
+        void audioContext.close().catch((audioError: unknown) => {
+          console.error("Could not close the notification audio context:", audioError);
+        });
+      }
+    };
   }, []);
+
+  useEffect(() => {
+    function unlockNotificationSound() {
+      const AudioContextConstructor = window.AudioContext;
+      if (!AudioContextConstructor) return;
+
+      const audioContext = audioContextRef.current ?? new AudioContextConstructor();
+      audioContextRef.current = audioContext;
+      if (audioContext.state === "suspended") {
+        void audioContext.resume().catch((audioError: unknown) => {
+          console.error("Could not enable dashboard notification sound:", audioError);
+        });
+      }
+    }
+
+    document.addEventListener("pointerdown", unlockNotificationSound);
+    document.addEventListener("keydown", unlockNotificationSound);
+    return () => {
+      document.removeEventListener("pointerdown", unlockNotificationSound);
+      document.removeEventListener("keydown", unlockNotificationSound);
+    };
+  }, []);
+
+  function playNotificationSound() {
+    const audioContext = audioContextRef.current;
+    if (!audioContext || audioContext.state !== "running") return;
+
+    const now = audioContext.currentTime;
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(784, now);
+    oscillator.frequency.setValueAtTime(988, now + 0.1);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.06, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.24);
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+    oscillator.start(now);
+    oscillator.stop(now + 0.25);
+  }
 
   useEffect(() => {
     let active = true;
@@ -95,14 +152,22 @@ export function NotificationPopover() {
 
         if (!active) return;
         const previous = new Map(notificationsRef.current.map((notification) => [notification.id, notification.seenAt]));
+        const hasNewNotification = notificationsInitializedRef.current && payload.notifications.some(
+          (notification) => !previous.has(notification.id),
+        );
         const updated = payload.notifications.map((notification) => ({
           ...notification,
           seenAt: notification.seenAt ?? previous.get(notification.id) ?? null,
         }));
         notificationsRef.current = updated;
+        notificationsInitializedRef.current = true;
         setNotifications(updated);
         setClock(Date.now());
         setError("");
+        if (hasNewNotification) {
+          setNotificationPulse((current) => current + 1);
+          playNotificationSound();
+        }
       } catch {
         if (active) setError(t("Could not load notifications."));
       } finally {
@@ -172,11 +237,15 @@ export function NotificationPopover() {
   useEffect(() => {
     const source = new EventSource("/api/notifications/stream");
     const refresh = () => setRefreshKey((current) => current + 1);
-    const handleRegistration = refresh;
+    const refreshDashboard = () => {
+      refresh();
+      window.dispatchEvent(new Event("guestlist:activity"));
+    };
     const handleStreamError = () => setError(t("Live notification updates are temporarily unavailable."));
 
     source.addEventListener("sync", refresh);
-    source.addEventListener("registration", handleRegistration);
+    source.addEventListener("registration", refreshDashboard);
+    source.addEventListener("check-in", refreshDashboard);
     source.addEventListener("stream-error", handleStreamError);
     source.onopen = () => setStreamConnected(true);
     source.onerror = () => setStreamConnected(false);
@@ -247,7 +316,12 @@ export function NotificationPopover() {
         title={t("Notifications")}
         type="button"
       >
-        <Bell aria-hidden="true" size={16} />
+        <Bell
+          aria-hidden="true"
+          className={notificationPulse > 0 ? "notification-bell-notifying" : undefined}
+          key={notificationPulse}
+          size={16}
+        />
         {unreadCount > 0 && (
           <span aria-hidden="true" className="notification-badge">
             {unreadCount > 9 ? "9+" : unreadCount}
@@ -264,7 +338,6 @@ export function NotificationPopover() {
           <div className="notification-panel-heading">
             <div>
               <h2>{t("Notifications")}</h2>
-              <p>{t("New guest registrations")}</p>
             </div>
             <button
               aria-label={t("Close notifications")}
@@ -298,12 +371,15 @@ export function NotificationPopover() {
                     href={`/dashboard/events/${encodeURIComponent(notification.eventId)}`}
                   >
                     <span className="notification-item-icon">
-                      <UserRoundPlus aria-hidden="true" size={16} />
+                      {notification.kind === "check_in"
+                        ? <Check aria-hidden="true" size={16} />
+                        : <UserRoundPlus aria-hidden="true" size={16} />}
                     </span>
                     <span className="notification-item-copy">
-                      <strong>{t("New guest registration")}</strong>
-                      <span>
-                        {notification.attendeeName} {t("registered for")} {notification.eventName}
+                      <strong>{t(notification.kind === "check_in" ? "Check-in" : "New guest registration")}</strong>
+                      <span>{notification.kind === "check_in"
+                        ? `${notification.attendeeName} · ${notification.eventName}`
+                        : `${notification.attendeeName} ${t("registered for")} ${notification.eventName}`}
                       </span>
                       <time dateTime={notification.createdAt}>
                         {new Intl.DateTimeFormat(locale, {

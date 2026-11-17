@@ -1,40 +1,57 @@
 import Link from "next/link";
-import { ArrowRight, QrCode, Ticket } from "lucide-react";
+import { ArrowLeft, ArrowRight, QrCode } from "lucide-react";
 import { DownloadButton } from "@/components/download-button";
-import { TicketQr } from "@/components/ticket-qr";
 import { createTicketToken } from "@/lib/tickets";
 import { getPrisma } from "@/lib/prisma";
 import { getPreferences } from "@/lib/preferences";
 import { localizeNode } from "@/lib/localization";
 import { requireWorkspaceContext } from "@/lib/workspace";
+import { AnimatedMetric } from "@/components/animated-metric";
 import "./tickets.css";
 
 type TicketsPageProps = {
-  searchParams: Promise<{ event?: string; issued?: string }>;
+  searchParams: Promise<{ event?: string; issued?: string; page?: string }>;
 };
+
+const pageSize = 20;
 
 export default async function TicketsPage({ searchParams }: TicketsPageProps) {
   const { locale } = await getPreferences();
   const context = await requireWorkspaceContext();
-  const { event: eventId, issued } = await searchParams;
+  const { event: eventId, issued, page: pageParam } = await searchParams;
+  const requestedPage = Number(pageParam ?? 1);
+  const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
   const prisma = getPrisma();
-  const events = await prisma.event.findMany({
-    where: { workspaceId: context.workspace.id, archivedAt: null },
-    select: { id: true, name: true },
-    orderBy: { startsAt: "desc" },
-  });
+  const [events, allGuestCount] = await Promise.all([
+    prisma.event.findMany({
+      where: { workspaceId: context.workspace.id, archivedAt: null },
+      select: {
+        id: true,
+        name: true,
+        _count: { select: { registrations: true } },
+      },
+      orderBy: { startsAt: "desc" },
+    }),
+    prisma.eventRegistration.count({
+      where: { event: { workspaceId: context.workspace.id } },
+    }),
+  ]);
   const selectedEvent = eventId
     ? events.find((event) => event.id === eventId) ?? null
     : null;
-  const tickets = await prisma.ticket.findMany({
-    where: {
-      registration: {
-        event: {
-          workspaceId: context.workspace.id,
-          ...(eventId ? { id: selectedEvent?.id ?? "__no_event__" } : {}),
-        },
+  const ticketWhere = {
+    registration: {
+      event: {
+        workspaceId: context.workspace.id,
+        ...(eventId ? { id: selectedEvent?.id ?? "__no_event__" } : {}),
       },
     },
+  };
+  const totalCount = await prisma.ticket.count({ where: ticketWhere });
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const tickets = await prisma.ticket.findMany({
+    where: ticketWhere,
     include: {
       registration: {
         include: {
@@ -44,11 +61,19 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
       },
     },
     orderBy: { createdAt: "desc" },
-    take: 100,
+    skip: (currentPage - 1) * pageSize,
+    take: pageSize,
   });
 
   const issuedTicket = issued ? tickets.find((ticket) => ticket.id === issued) : undefined;
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
+
+  function ticketsHref(nextPage?: number) {
+    const search = new URLSearchParams();
+    if (eventId) search.set("event", eventId);
+    if (nextPage !== undefined) search.set("page", String(nextPage));
+    const query = search.toString();
+    return query ? `/dashboard/tickets?${query}` : "/dashboard/tickets";
+  }
 
   return localizeNode((
     <div className="tickets-page">
@@ -58,33 +83,51 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
       </div>
       {issuedTicket && <p className="form-message form-success ticket-success">QR ticket created for {issuedTicket.registration.attendee.firstName} {issuedTicket.registration.attendee.lastName}.</p>}
       <nav aria-label="Tickets" className="ticket-filters">
-        <Link aria-current={!eventId ? "page" : undefined} className={!eventId ? "selected" : ""} href="/dashboard/tickets">All events</Link>
-        {events.map((event) => <Link aria-current={eventId === event.id ? "page" : undefined} className={eventId === event.id ? "selected" : ""} href={`/dashboard/tickets?event=${event.id}`} key={event.id}>{event.name}</Link>)}
+        <Link aria-current={!eventId ? "page" : undefined} className={!eventId ? "selected" : ""} href="/dashboard/tickets">
+          <span>All events</span><span className="ticket-filter-count">{allGuestCount}</span>
+        </Link>
+        {events.map((event) => (
+          <Link
+            aria-current={eventId === event.id ? "page" : undefined}
+            className={eventId === event.id ? "selected" : ""}
+            href={`/dashboard/tickets?event=${event.id}`}
+            key={event.id}
+          >
+            <span>{event.name}</span><span className="ticket-filter-count">{event._count.registrations}</span>
+          </Link>
+        ))}
       </nav>
       {tickets.length ? (
-        <div className="ticket-grid">
-          {tickets.map((ticket) => {
-            const token = createTicketToken(ticket.id);
-            const publicUrl = `${baseUrl}/t/${token}`;
-            const isIssued = ticket.id === issued;
-            return (
-              <article className={`ticket-card${isIssued ? " ticket-card-highlight" : ""}`} key={ticket.id}>
-                <div className="ticket-card-info">
-                  <span className={`status-pill status-${ticket.status.toLowerCase()}`}>{ticket.status.toLowerCase()}</span>
-                  <h2>{ticket.registration.attendee.firstName} {ticket.registration.attendee.lastName}</h2>
-                  <div className="ticket-card-meta">
-                    <p>{ticket.registration.event.name}</p>
-                    <span className="ticket-card-id">ID: {ticket.displayId}</span>
-                  </div>
-                  <Link className="ticket-open-link" href={`/t/${token}`} rel="noreferrer" target="_blank">Open digital ticket <ArrowRight size={13} /></Link>
-                </div>
-                <div className="ticket-card-code">
-                  <TicketQr size={94} value={publicUrl} />
-                </div>
-              </article>
-            );
-          })}
-        </div>
+        <>
+          <div className="guest-table-scroll">
+            <table aria-label="Tickets" className="guest-table ticket-table">
+              <thead><tr><th scope="col">Attendee</th><th scope="col">Status</th><th scope="col">Issued</th><th scope="col">Digital ticket</th></tr></thead>
+              <tbody>{tickets.map((ticket) => {
+                const token = createTicketToken(ticket.id);
+                const isIssued = ticket.id === issued;
+                return (
+                  <tr className={isIssued ? "ticket-row-highlight" : undefined} key={ticket.id}>
+                    <td>
+                      <span className="guest-name">{ticket.registration.attendee.firstName} {ticket.registration.attendee.lastName}</span>
+                      {ticket.registration.attendee.email && <span className="guest-email">{ticket.registration.attendee.email}</span>}
+                    </td>
+                    <td><span className={`status-pill status-${ticket.status.toLowerCase()}`}>{ticket.status.toLowerCase()}</span></td>
+                    <td>{new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(ticket.createdAt)}</td>
+                    <td><Link className="ticket-open-link" href={`/t/${token}`} rel="noreferrer" target="_blank">Open digital ticket <ArrowRight size={13} /></Link></td>
+                  </tr>
+                );
+              })}</tbody>
+            </table>
+          </div>
+          <div className="table-pagination">
+            <span><AnimatedMetric locale={locale} value={totalCount} /> {totalCount === 1 ? "ticket" : "tickets"}</span>
+            <div>
+              <Link aria-disabled={currentPage <= 1} className={currentPage <= 1 ? "disabled" : ""} href={ticketsHref(Math.max(1, currentPage - 1))}><ArrowLeft size={13} /> Previous</Link>
+              <span>Page {currentPage} of {totalPages}</span>
+              <Link aria-disabled={currentPage >= totalPages} className={currentPage >= totalPages ? "disabled" : ""} href={ticketsHref(Math.min(totalPages, currentPage + 1))}>Next <ArrowRight size={13} /></Link>
+            </div>
+          </div>
+        </>
       ) : (
         <section className="app-panel tickets-empty">
           <div className="empty-state">
@@ -96,7 +139,6 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
           </div>
         </section>
       )}
-      {tickets.length === 100 && <p className="ticket-limit-note"><Ticket size={13} /> Showing the latest 100 tickets. Filter by event to narrow the list.</p>}
     </div>
   ), locale);
 }

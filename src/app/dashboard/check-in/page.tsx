@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, ScanLine } from "lucide-react";
 import { CheckInScanner } from "@/components/check-in-scanner";
 import { CheckInEventSwitcher } from "@/components/check-in-event-switcher";
+import { PhoneScannerAccess } from "@/components/phone-scanner-access";
 import { RecentCheckIns } from "@/components/recent-check-ins";
 import { getPrisma } from "@/lib/prisma";
 import { getPreferences } from "@/lib/preferences";
@@ -35,6 +36,7 @@ export default async function CheckInPage({ searchParams }: CheckInPageProps) {
       })
     : [];
   const canCheckIn = ["OWNER", "ADMIN", "MANAGER", "CHECKIN"].includes(context.membership.role);
+  const canManagePhoneScanners = ["OWNER", "ADMIN"].includes(context.membership.role);
 
   return localizeNode((
     <div className="check-in-page">
@@ -47,7 +49,10 @@ export default async function CheckInPage({ searchParams }: CheckInPageProps) {
         <section className="app-panel"><div className="empty-state"><span className="empty-state-icon"><ScanLine size={20} /></span><strong>No event ready for check-in</strong><p>Create an event and add guests to prepare tickets for scanning.</p><Link className="text-link" href="/dashboard/events/new">Create an event <ArrowRight size={14} /></Link></div></section>
       ) : canCheckIn ? (
         <>
-          <CheckInScanner eventId={selectedEvent.id} />
+          <CheckInScanner
+            eventId={selectedEvent.id}
+            phoneScannerAccess={canManagePhoneScanners ? <PhoneScannerAccess eventId={selectedEvent.id} /> : undefined}
+          />
           <RecentCheckIns
             key={selectedEvent.id}
             locale={locale}

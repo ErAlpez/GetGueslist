@@ -86,19 +86,20 @@ enum AttendanceAction {
 }
 
 model user {
-  id              String            @id
-  name            String
-  email           String            @unique
-  emailVerified   Boolean           @default(false)
-  image           String?
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  sessions        session[]
-  accounts        account[]
-  ownedWorkspaces Workspace[]       @relation("WorkspaceOwner")
-  memberships     WorkspaceMember[]
-  attendanceLogs  AttendanceLog[]   @relation("AttendanceOperator")
-  notificationViews NotificationView[]
+  id                    String                @id
+  name                  String
+  email                 String                @unique
+  emailVerified         Boolean               @default(false)
+  image                 String?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  sessions              session[]
+  accounts              account[]
+  ownedWorkspaces       Workspace[]           @relation("WorkspaceOwner")
+  memberships           WorkspaceMember[]
+  attendanceLogs        AttendanceLog[]       @relation("AttendanceOperator")
+  notificationViews     NotificationView[]
+  mobileCheckinAccesses MobileCheckinAccess[] @relation("MobileCheckinAccessCreator")
 
   @@map("users")
 }
@@ -151,27 +152,28 @@ model verification {
 }
 
 model Workspace {
-  id            String            @id @default(cuid())
-  name          String
-  slug          String            @unique
-  logoUrl       String?
-  contactEmail  String?
-  contactPhone  String?
-  organizationType String?
-  address       String?
-  timezone      String            @default("Asia/Manila")
-  ownerId       String
-  owner         user              @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Restrict)
-  members       WorkspaceMember[]
-  subscription  Subscription?
-  events        Event[]
-  attendees     Attendee[]
-  attendanceLogs AttendanceLog[]
-  activityLogs  ActivityLog[]
-  invitations   WorkspaceInvitation[]
-  checkinDevices CheckinDevice[]
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
+  id                    String                @id @default(cuid())
+  name                  String
+  slug                  String                @unique
+  logoUrl               String?
+  contactEmail          String?
+  contactPhone          String?
+  organizationType      String?
+  address               String?
+  timezone              String                @default("Asia/Manila")
+  ownerId               String
+  owner                 user                  @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  members               WorkspaceMember[]
+  subscription          Subscription?
+  events                Event[]
+  attendees             Attendee[]
+  attendanceLogs        AttendanceLog[]
+  activityLogs          ActivityLog[]
+  invitations           WorkspaceInvitation[]
+  checkinDevices        CheckinDevice[]
+  mobileCheckinAccesses MobileCheckinAccess[]
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
 
   @@index([ownerId])
 }
@@ -222,38 +224,38 @@ model WorkspaceInvitation {
 }
 
 model Plan {
-  id                   String         @id @default(cuid())
-  code                 String         @unique
-  name                 String
-  description          String?
-  monthlyPriceCents    Int?
-  yearlyPriceCents     Int?
-  activeEventLimit     Int?
+  id                    String         @id @default(cuid())
+  code                  String         @unique
+  name                  String
+  description           String?
+  monthlyPriceCents     Int?
+  yearlyPriceCents      Int?
+  activeEventLimit      Int?
   attendeePerEventLimit Int?
-  features             Json
-  isActive             Boolean        @default(true)
-  subscriptions        Subscription[]
-  createdAt            DateTime       @default(now())
-  updatedAt            DateTime       @updatedAt
+  features              Json
+  isActive              Boolean        @default(true)
+  subscriptions         Subscription[]
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
 }
 
 model Subscription {
-  id                  String             @id @default(cuid())
-  workspaceId         String             @unique
-  planId              String
-  status              SubscriptionStatus @default(ACTIVE)
-  billingPeriodStart  DateTime            @default(now())
-  billingPeriodEnd    DateTime?
-  renewalDate         DateTime?
-  provider            String              @default("manual")
-  providerCustomerId  String?
-  providerSubscriptionId String?           @unique
-  workspace           Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  plan                Plan                @relation(fields: [planId], references: [id], onDelete: Restrict)
-  invoices            SubscriptionInvoice[]
-  paymentMethods      BillingPaymentMethod[]
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
+  id                     String                 @id @default(cuid())
+  workspaceId            String                 @unique
+  planId                 String
+  status                 SubscriptionStatus     @default(ACTIVE)
+  billingPeriodStart     DateTime               @default(now())
+  billingPeriodEnd       DateTime?
+  renewalDate            DateTime?
+  provider               String                 @default("manual")
+  providerCustomerId     String?
+  providerSubscriptionId String?                @unique
+  workspace              Workspace              @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  plan                   Plan                   @relation(fields: [planId], references: [id], onDelete: Restrict)
+  invoices               SubscriptionInvoice[]
+  paymentMethods         BillingPaymentMethod[]
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
 
   @@index([planId, status])
 }
@@ -273,53 +275,54 @@ model SubscriptionInvoice {
 }
 
 model BillingPaymentMethod {
-  id                       String       @id @default(cuid())
-  subscriptionId           String
-  providerPaymentMethodId  String       @unique
-  brand                    String?
-  last4                    String?
-  expirationMonth          Int?
-  expirationYear           Int?
-  isDefault                Boolean      @default(false)
-  subscription             Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
-  createdAt                DateTime     @default(now())
+  id                      String       @id @default(cuid())
+  subscriptionId          String
+  providerPaymentMethodId String       @unique
+  brand                   String?
+  last4                   String?
+  expirationMonth         Int?
+  expirationYear          Int?
+  isDefault               Boolean      @default(false)
+  subscription            Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  createdAt               DateTime     @default(now())
 
   @@index([subscriptionId, isDefault])
 }
 
 model Event {
-  id                   String          @id @default(cuid())
-  workspaceId          String
-  name                 String
-  slug                 String
-  description          String          @default("")
-  category             String
-  type                 String
-  format               EventFormat
-  visibility           EventVisibility @default(PRIVATE)
-  status               EventStatus     @default(DRAFT)
-  startsAt             DateTime
-  endsAt               DateTime
-  timezone             String          @default("Asia/Manila")
-  venue                String?
-  address              String?
-  capacity             Int?
-  registrationDeadline DateTime?
-  organizerName        String?
-  contactEmail         String?
-  contactPhone         String?
-  coverImageUrl        String?
-  workspace            Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  settings             EventSettings?
-  modules              EventModule[]
-  registrations        EventRegistration[]
-  ticketTypes          TicketType[]
-  registrationForm     RegistrationForm?
-  attendanceLogs       AttendanceLog[]
-  checkinDevices       CheckinDevice[]
-  createdAt            DateTime        @default(now())
-  updatedAt            DateTime        @updatedAt
-  archivedAt           DateTime?
+  id                    String                @id @default(cuid())
+  workspaceId           String
+  name                  String
+  slug                  String
+  description           String                @default("")
+  category              String
+  type                  String
+  format                EventFormat
+  visibility            EventVisibility       @default(PRIVATE)
+  status                EventStatus           @default(DRAFT)
+  startsAt              DateTime
+  endsAt                DateTime
+  timezone              String                @default("Asia/Manila")
+  venue                 String?
+  address               String?
+  capacity              Int?
+  registrationDeadline  DateTime?
+  organizerName         String?
+  contactEmail          String?
+  contactPhone          String?
+  coverImageUrl         String?
+  workspace             Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  settings              EventSettings?
+  modules               EventModule[]
+  registrations         EventRegistration[]
+  ticketTypes           TicketType[]
+  registrationForm      RegistrationForm?
+  attendanceLogs        AttendanceLog[]
+  checkinDevices        CheckinDevice[]
+  mobileCheckinAccesses MobileCheckinAccess[]
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  archivedAt            DateTime?
 
   @@unique([workspaceId, slug])
   @@index([workspaceId, status, startsAt])
@@ -327,14 +330,14 @@ model Event {
 }
 
 model EventSettings {
-  id                 String   @id @default(cuid())
-  eventId            String   @unique
-  allowRegistration  Boolean  @default(true)
-  allowWaitlist      Boolean  @default(false)
-  requireApproval    Boolean  @default(false)
-  customBranding     Json?
-  event              Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  updatedAt          DateTime @updatedAt
+  id                String   @id @default(cuid())
+  eventId           String   @unique
+  allowRegistration Boolean  @default(true)
+  allowWaitlist     Boolean  @default(false)
+  requireApproval   Boolean  @default(false)
+  customBranding    Json?
+  event             Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  updatedAt         DateTime @updatedAt
 }
 
 model EventModule {
@@ -352,42 +355,42 @@ model EventModule {
 }
 
 model Attendee {
-  id             String                @id @default(cuid())
-  workspaceId    String
-  firstName      String
-  lastName       String
-  email          String?
-  phone          String?
-  company        String?
-  position       String?
-  internalNotes  String?
-  workspace      Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  registrations  EventRegistration[]
-  createdAt      DateTime              @default(now())
-  updatedAt      DateTime              @updatedAt
+  id            String              @id @default(cuid())
+  workspaceId   String
+  firstName     String
+  lastName      String
+  email         String?
+  phone         String?
+  company       String?
+  position      String?
+  internalNotes String?
+  workspace     Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  registrations EventRegistration[]
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
 
   @@unique([workspaceId, email])
   @@index([workspaceId, lastName, firstName])
 }
 
 model EventRegistration {
-  id                String              @id @default(cuid())
-  eventId           String
-  attendeeId        String
-  category          AttendeeCategory    @default(GENERAL)
-  age               Int?
-  gender            String?
-  rsvpStatus        RSVPStatus          @default(PENDING)
-  paymentStatus     PaymentStatus       @default(NOT_REQUIRED)
-  registrationSource String             @default("manual")
-  registeredAt      DateTime            @default(now())
-  ticketTypeId      String?
-  event             Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  attendee          Attendee            @relation(fields: [attendeeId], references: [id], onDelete: Cascade)
-  ticketType        TicketType?         @relation(fields: [ticketTypeId], references: [id], onDelete: SetNull)
-  ticket            Ticket?
-  answers           RegistrationAnswer[]
-  attendanceLogs    AttendanceLog[]
+  id                 String               @id @default(cuid())
+  eventId            String
+  attendeeId         String
+  category           AttendeeCategory     @default(GENERAL)
+  age                Int?
+  gender             String?
+  rsvpStatus         RSVPStatus           @default(PENDING)
+  paymentStatus      PaymentStatus        @default(NOT_REQUIRED)
+  registrationSource String               @default("manual")
+  registeredAt       DateTime             @default(now())
+  ticketTypeId       String?
+  event              Event                @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  attendee           Attendee             @relation(fields: [attendeeId], references: [id], onDelete: Cascade)
+  ticketType         TicketType?          @relation(fields: [ticketTypeId], references: [id], onDelete: SetNull)
+  ticket             Ticket?
+  answers            RegistrationAnswer[]
+  attendanceLogs     AttendanceLog[]
 
   @@unique([eventId, attendeeId])
   @@index([eventId, registeredAt])
@@ -424,7 +427,7 @@ model TicketDisplayIdReservation {
 }
 
 model AttendanceLog {
-  id             String           @id @default(cuid())
+  id             String            @id @default(cuid())
   workspaceId    String
   eventId        String
   registrationId String
@@ -433,12 +436,12 @@ model AttendanceLog {
   method         String
   deviceId       String?
   operatorId     String?
-  workspace      Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  event          Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  workspace      Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  event          Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
   registration   EventRegistration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
-  ticket         Ticket?          @relation(fields: [ticketId], references: [id], onDelete: SetNull)
-  operator       user?            @relation("AttendanceOperator", fields: [operatorId], references: [id], onDelete: SetNull)
-  createdAt      DateTime         @default(now())
+  ticket         Ticket?           @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+  operator       user?             @relation("AttendanceOperator", fields: [operatorId], references: [id], onDelete: SetNull)
+  createdAt      DateTime          @default(now())
 
   @@unique([ticketId, action])
   @@index([workspaceId, eventId, createdAt])
@@ -460,6 +463,29 @@ model CheckinDevice {
   @@index([eventId])
 }
 
+model MobileCheckinAccess {
+  id               String    @id @default(cuid())
+  workspaceId      String
+  eventId          String
+  createdById      String
+  deviceName       String
+  pairingTokenHash String    @unique
+  pairingExpiresAt DateTime
+  pairedAt         DateTime?
+  sessionTokenHash String?   @unique
+  sessionExpiresAt DateTime?
+  revokedAt        DateTime?
+  lastSeenAt       DateTime?
+  createdAt        DateTime  @default(now())
+  workspace        Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  event            Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdBy        user      @relation("MobileCheckinAccessCreator", fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, eventId, revokedAt])
+  @@index([pairingExpiresAt])
+  @@index([sessionExpiresAt])
+}
+
 model RegistrationForm {
   id        String                 @id @default(cuid())
   eventId   String                 @unique
@@ -471,41 +497,41 @@ model RegistrationForm {
 }
 
 model RegistrationQuestion {
-  id           String                 @id @default(cuid())
-  formId       String
-  label        String
-  type         String
-  required     Boolean                @default(false)
-  position     Int
-  options      Json?
-  form         RegistrationForm       @relation(fields: [formId], references: [id], onDelete: Cascade)
-  answers      RegistrationAnswer[]
+  id       String               @id @default(cuid())
+  formId   String
+  label    String
+  type     String
+  required Boolean              @default(false)
+  position Int
+  options  Json?
+  form     RegistrationForm     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  answers  RegistrationAnswer[]
 
   @@index([formId, position])
 }
 
 model RegistrationAnswer {
-  id             String              @id @default(cuid())
+  id             String               @id @default(cuid())
   registrationId String
   questionId     String
   value          Json
-  registration   EventRegistration   @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  registration   EventRegistration    @relation(fields: [registrationId], references: [id], onDelete: Cascade)
   question       RegistrationQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@unique([registrationId, questionId])
 }
 
 model ActivityLog {
-  id          String    @id @default(cuid())
+  id          String             @id @default(cuid())
   workspaceId String
   actorId     String?
   action      String
   entityType  String
   entityId    String
   metadata    Json?
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspace   Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   seenBy      NotificationView[]
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime           @default(now())
 
   @@index([workspaceId, createdAt])
   @@index([entityType, entityId])

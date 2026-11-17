@@ -7,7 +7,9 @@ import {
   CheckCircle2,
   CircleDashed,
   Clock3,
+  Gift,
   Plus,
+  Sparkles,
   UsersRound,
 } from "lucide-react";
 import { getDashboardSummary, requireWorkspaceContext } from "@/lib/workspace";
@@ -27,6 +29,7 @@ export default async function DashboardPage() {
   const context = await requireWorkspaceContext();
   const summary = await getDashboardSummary(context.workspace.id);
   const plan = summary.subscription?.plan;
+  const PlanIcon = !plan || plan.code === "FREE" ? Gift : Sparkles;
   const activeEventLimit = plan?.activeEventLimit;
   const usagePercent = activeEventLimit
     ? Math.min(Math.round((summary.activeEvents / activeEventLimit) * 100), 100)
@@ -114,7 +117,7 @@ export default async function DashboardPage() {
 
         <section className="app-panel usage-panel">
           <div className="panel-heading-row"><div><h2>Your plan</h2><p>Usage for the current plan.</p></div><Link className="panel-action" href="/dashboard/billing">Manage <ArrowRight size={14} /></Link></div>
-          <div className="plan-summary"><span className="plan-summary-mark">✳</span><span><strong>{plan?.name ?? "Free"} plan</strong><small>{summary.subscription?.status.toLowerCase().replace("_", " ") ?? "No subscription"}</small></span></div>
+          <div className="plan-summary"><span className="plan-summary-mark"><PlanIcon aria-hidden="true" size={18} /></span><span><strong>{plan?.name ?? "Free"} plan</strong><small>{summary.subscription?.status.toLowerCase().replace("_", " ") ?? "No subscription"}</small></span></div>
           <div className="usage-item"><div><span>Active events</span><strong><AnimatedMetric locale={locale} value={summary.activeEvents} /> <small>/ {activeEventLimit ?? "Unlimited"}</small></strong></div><div className="usage-bar"><span style={{ width: `${usagePercent}%` }} /></div></div>
           <div className="usage-item"><div><span>Attendee limit per event</span><strong>{plan?.attendeePerEventLimit != null ? <AnimatedMetric locale={locale} value={plan.attendeePerEventLimit} /> : "Unlimited"}</strong></div></div>
           <div className="usage-footer"><span>Plan limits are checked when creating events.</span><Link href="/dashboard/billing">View plans <ArrowRight size={13} /></Link></div>

@@ -2,6 +2,11 @@
   transition: transform .18s ease;
 }
 
+.app-shell .notification-trigger .notification-bell-notifying {
+  animation: notification-bell-ring .65s ease-in-out;
+  transform-origin: 50% 18%;
+}
+
 .app-shell .notification-item.is-highlighted,
 .app-shell .notification-item.is-highlighted:hover {
   background: #f3f7f2;
@@ -9,7 +14,7 @@
 
 html[data-theme="dark"] .app-shell .notification-item.is-highlighted,
 html[data-theme="dark"] .app-shell .notification-item.is-highlighted:hover {
-  background: #222425;
+  background: #303333;
 }
 
 html[data-theme="dark"] .app-shell .notification-item.is-highlighted .notification-item-copy strong {
@@ -26,4 +31,10 @@ html[data-theme="dark"] .app-shell .notification-item.is-highlighted .notificati
 
 html[data-theme="dark"] .app-shell .notification-item:not(.is-highlighted):hover {
   background: #303333;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell .notification-trigger .notification-bell-notifying {
+    animation: none;
+  }
 }

@@ -5,6 +5,10 @@ import { getWorkspaceContext } from "@/lib/workspace";
 
 const notificationLimit = 20;
 const notificationRetentionMs = 30 * 24 * 60 * 60 * 1000;
+const notificationActivityFilters = [
+  { action: "attendee.registered", entityType: "registration" },
+  { action: "attendee.checked_in", entityType: "attendance" },
+];
 
 export async function GET() {
   const context = await getWorkspaceContext();
@@ -19,13 +23,13 @@ export async function GET() {
   const activity = await prisma.activityLog.findMany({
     where: {
       workspaceId: context.workspace.id,
-      action: "attendee.registered",
-      entityType: "registration",
+      OR: notificationActivityFilters,
       createdAt: { gt: new Date(Date.now() - notificationRetentionMs) },
     },
     select: {
       id: true,
       entityId: true,
+      action: true,
       createdAt: true,
       seenBy: { where: { userId: context.user.id }, select: { seenAt: true }, take: 1 },
     },
@@ -60,6 +64,7 @@ export async function GET() {
 
     return [{
       id: item.id,
+      kind: item.action === "attendee.checked_in" ? "check_in" : "registration",
       attendeeName: `${registration.attendee.firstName} ${registration.attendee.lastName}`,
       eventId: registration.eventId,
       eventName: registration.event.name,
@@ -102,8 +107,7 @@ export async function POST(request: Request) {
       where: {
         id: { in: ids },
         workspaceId: context.workspace.id,
-        action: "attendee.registered",
-        entityType: "registration",
+        OR: notificationActivityFilters,
       },
       select: { id: true },
     });

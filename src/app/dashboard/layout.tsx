@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Search } from "lucide-react";
 import { AccountMenu } from "@/components/account-menu";
 import { AppSidebar } from "@/components/app-sidebar";
+import { DashboardActivityRefresh } from "@/components/dashboard-activity-refresh";
 import { DashboardMotion } from "@/components/dashboard-motion";
 import { NotificationPopover } from "@/components/notification-popover";
 import { PreferenceControls } from "@/components/preference-controls";
@@ -20,6 +21,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   return (
     <div className="app-shell" lang={locale}>
       <DashboardMotion />
+      <DashboardActivityRefresh />
       <AppSidebar />
       <div className="app-main">
         <header className="app-topbar">

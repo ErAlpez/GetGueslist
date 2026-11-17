@@ -23,7 +23,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const direction = locale === "ar" ? "rtl" : "ltr";
 
   return (
-    <html className="h-full antialiased" data-theme={theme} dir={direction} lang={locale}>
+    <html className="h-full antialiased" data-theme={theme} dir={direction} lang={locale} suppressHydrationWarning>
       <body className={`${arabic.variable} ${outfit.variable} min-h-full`}>
         <PreferencesProvider initialLocale={locale} initialTheme={theme}>
           {children}

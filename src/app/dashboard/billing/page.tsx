@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, CreditCard, ExternalLink, ReceiptText, ShieldCheck } from "lucide-react";
+import { ArrowRight, CreditCard, ExternalLink, Gift, ReceiptText, ShieldCheck, Sparkles } from "lucide-react";
 import { getPrisma } from "@/lib/prisma";
 import { getDashboardSummary, requireWorkspaceContext } from "@/lib/workspace";
 import { getPreferences } from "@/lib/preferences";
@@ -29,6 +29,7 @@ export default async function BillingPage() {
     }),
   ]);
   const eventLimit = subscription?.plan.activeEventLimit;
+  const PlanIcon = subscription?.plan.code === "FREE" ? Gift : Sparkles;
   const usagePercent = eventLimit
     ? Math.min(Math.round((summary.activeEvents / eventLimit) * 100), 100)
     : 0;
@@ -39,7 +40,7 @@ export default async function BillingPage() {
       <div className="billing-grid">
         <section className="app-panel current-plan-panel">
           <div className="panel-heading-row"><div><h2>Current plan</h2><p>Your workspace subscription.</p></div><span className="status-pill status-active">{subscription?.status.toLowerCase().replaceAll("_", " ") ?? "no plan"}</span></div>
-          <div className="current-plan-name"><span className="plan-summary-mark">✳</span><span><strong>{subscription?.plan.name ?? "No plan assigned"}</strong><small>{money(subscription?.plan.monthlyPriceCents ?? null, locale)} / month</small></span></div>
+          <div className="current-plan-name"><span className="plan-summary-mark"><PlanIcon aria-hidden="true" size={21} /></span><span><strong>{subscription?.plan.name ?? "No plan assigned"}</strong><small>{money(subscription?.plan.monthlyPriceCents ?? null, locale)} / month</small></span></div>
           <div className="billing-usage">
             <div className="billing-usage-heading"><span>Active events</span><strong><AnimatedMetric locale={locale} value={summary.activeEvents} /> <small>/ {eventLimit ?? "Unlimited"}</small></strong></div>
             <div className="usage-bar"><span style={{ width: `${usagePercent}%` }} /></div>

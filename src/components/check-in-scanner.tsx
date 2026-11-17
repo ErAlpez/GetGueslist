@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Html5QrcodeScanner } from "html5-qrcode";
 import { AlertTriangle, ArrowRight, LoaderCircle, Search, ScanLine, X } from "lucide-react";
@@ -44,7 +45,24 @@ function extractToken(value: string) {
   return value.trim();
 }
 
-export function CheckInScanner({ eventId }: { eventId: string }) {
+function createDeviceId() {
+  if (typeof window.crypto.randomUUID === "function") return window.crypto.randomUUID();
+
+  const bytes = window.crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+export function CheckInScanner({
+  eventId,
+  phoneScannerAccess,
+}: {
+  eventId: string;
+  phoneScannerAccess?: ReactNode;
+}) {
   const { locale } = usePreferences();
   const router = useRouter();
   const [result, setResult] = useState<CheckInResult | null>(null);
@@ -56,7 +74,7 @@ export function CheckInScanner({ eventId }: { eventId: string }) {
   const deviceIdRef = useRef("browser-scanner");
 
   useEffect(() => {
-    deviceIdRef.current = window.crypto.randomUUID();
+    deviceIdRef.current = createDeviceId();
   }, []);
 
   const checkIn = useCallback(async (rawValue: string) => {
@@ -173,7 +191,8 @@ export function CheckInScanner({ eventId }: { eventId: string }) {
   const currentSearch = searchResult?.eventId === eventId && searchResult.query === query ? searchResult : null;
 
   return localizeNode((
-    <div className="check-in-workspace">
+    <div className={`check-in-workspace${phoneScannerAccess ? " check-in-workspace-with-phone-access" : ""}`}>
+      {phoneScannerAccess}
       <div className="scanner-panel app-panel">
         <div className="panel-heading-row"><div><h2>Scan a ticket</h2><p>Allow camera access to scan a guest’s QR ticket.</p></div><ScanLine size={16} /></div>
         <div className="scanner-frame"><div id="guestlist-qr-reader" /></div>

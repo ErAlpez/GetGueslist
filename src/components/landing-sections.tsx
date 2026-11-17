@@ -1,16 +1,16 @@
 "use client";
 
 import { Children, useEffect, useRef, useState, useSyncExternalStore, type MouseEvent, type ReactNode } from "react";
+import { landingNavigationItems } from "@/lib/landing-navigation";
 
-const sectionIds = ["home", "features", "solutions", "how-it-works", "modules", "check-in", "reports", "pricing", "faq", "get-started"];
+const sectionIds = landingNavigationItems.map(({ id }) => id);
 const subscribe = () => () => {};
 const clientSnapshot = () => true;
 const serverSnapshot = () => false;
 
 function sectionIndex(hash: string) {
   const id = hash.replace(/^#/, "");
-  if (id === "privacy" || id === "terms") return sectionIds.length - 1;
-  const index = sectionIds.indexOf(id);
+  const index = landingNavigationItems.findIndex((item) => item.id === id);
   return index < 0 ? 0 : index;
 }
 
@@ -46,7 +46,7 @@ export function LandingSections({ children, labels }: { children: ReactNode; lab
     const href = link?.getAttribute("href");
     if (!href?.startsWith("#")) return;
     const id = href.slice(1);
-    if (!sectionIds.includes(id) && id !== "privacy" && id !== "terms") return;
+    if (!landingNavigationItems.some((item) => item.id === id)) return;
     event.preventDefault();
     const next = sectionIndex(href);
     if (window.location.hash !== href) window.history.pushState(null, "", href);
@@ -76,7 +76,7 @@ export function LandingSections({ children, labels }: { children: ReactNode; lab
         ))}
       </div>
       <nav aria-label="Main navigation" className="landing-navigation">
-        {sectionIds.map((id, index) => (
+        {landingNavigationItems.map(({ id }, index) => (
           <a aria-current={index === active ? "page" : undefined} href={`#${id}`} key={id}>{labels[index]}</a>
         ))}
       </nav>

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { ArrowLeft, ArrowRight, LoaderCircle, LockKeyhole } from "lucide-react";
+import { ArrowLeft, ArrowRight, LoaderCircle, LockKeyhole, Sparkles } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { usePreferences } from "@/components/preferences-provider";
 import { localizeNode } from "@/lib/localization";
@@ -14,6 +14,8 @@ type AuthFormProps = {
   mode: AuthMode;
   token?: string;
   authError?: string;
+  onModeChange?: (mode: "sign-in" | "sign-up") => void;
+  showDemoAccount?: boolean;
 };
 
 const headings: Record<AuthMode, { title: string; description: string }> = {
@@ -35,13 +37,14 @@ const headings: Record<AuthMode, { title: string; description: string }> = {
   },
 };
 
-export function AuthForm({ mode, token, authError }: AuthFormProps) {
+export function AuthForm({ mode, token, authError, onModeChange, showDemoAccount = false }: AuthFormProps) {
   const router = useRouter();
   const { locale, t } = usePreferences();
   const [message, setMessage] = useState(authError ?? "");
   const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const isSignUp = mode === "sign-up";
+  const isPrimaryAuth = mode === "sign-in" || isSignUp;
   const isReset = mode === "reset-password";
   const isForgot = mode === "forgot-password";
   const { title, description } = headings[mode];
@@ -139,83 +142,111 @@ export function AuthForm({ mode, token, authError }: AuthFormProps) {
   }
 
   return localizeNode((
-    <div className="auth-card">
-      <Link aria-label="Guestlist home" className="brand brand-dark" href="/">
-        <span className="brand-mark"><span /></span>
-        <span><span>G</span><span>uestlist</span></span>
-      </Link>
-      <div className="auth-heading">
-        <div className="auth-icon"><LockKeyhole size={19} /></div>
-        <h1>{t(title)}</h1>
-        <p>{t(description)}</p>
-      </div>
-      <form className="auth-form" onSubmit={handleSubmit}>
-        {isSignUp && (
-          <label>
-            {t("Full name")}
-            <input autoComplete="name" name="name" placeholder="Alex Morgan" required />
-          </label>
-        )}
-        {!isReset && (
-          <label>
-            {t("Email address")}
-            <input autoComplete="email" name="email" placeholder="you@company.com" required type="email" />
-          </label>
-        )}
-        {!isForgot && (
-          <label>
-            {t("Password")}
-            <input
-              autoComplete={isSignUp ? "new-password" : "current-password"}
-              minLength={8}
-              name="password"
-              placeholder="At least 8 characters"
-              required
-              type="password"
-            />
-          </label>
-        )}
-        {(isSignUp || isReset) && (
-          <label>
-            {t("Confirm password")}
-            <input
-              autoComplete="new-password"
-              minLength={8}
-              name="confirmPassword"
-              placeholder="Enter your password again"
-              required
-              type="password"
-            />
-          </label>
-        )}
-        {mode === "sign-in" && (
-          <div className="auth-inline-link">
-            <Link href="/forgot-password">{t("Forgot password?")}</Link>
-          </div>
-        )}
-        {message && <p aria-live="polite" className="form-message form-error">{message}</p>}
-        {success && <p aria-live="polite" className="form-message form-success">{success}</p>}
-        <button className="button button-dark auth-submit" disabled={submitting || (isReset && !token)} type="submit">
-          {submitting ? <LoaderCircle className="spin" size={17} /> : null}
-          {submitting ? t("Please wait") : isSignUp ? t("Create free account") : isForgot ? t("Send reset link") : isReset ? t("Update password") : t("Sign in")}
-          {!submitting && <ArrowRight size={17} />}
-        </button>
-        {mode === "sign-in" && process.env.NODE_ENV === "development" && (
-          <button className="button button-light demo-sign-in" disabled={submitting} onClick={signInToDemo} type="button">
-            {t("Use demo account")}
+    <div className={`auth-card${isPrimaryAuth ? ` auth-card--framed${isSignUp ? " is-sign-up" : ""}` : ""}`}>
+      <section className="auth-form-panel">
+        <Link aria-label="Guestlist home" className="brand brand-dark" href="/">
+          <span className="brand-mark"><span /></span>
+          <span><span>G</span><span>uestlist</span></span>
+        </Link>
+        <div className="auth-heading">
+          <div className="auth-icon"><LockKeyhole size={19} /></div>
+          <h1>{t(title)}</h1>
+          <p>{t(description)}</p>
+        </div>
+        <form className="auth-form" onSubmit={handleSubmit}>
+          {isSignUp && (
+            <label>
+              {t("Full name")}
+              <input autoComplete="name" name="name" placeholder="Alex Morgan" required />
+            </label>
+          )}
+          {!isReset && (
+            <label>
+              {t("Email address")}
+              <input autoComplete="email" name="email" placeholder="you@company.com" required type="email" />
+            </label>
+          )}
+          {!isForgot && (
+            <label>
+              {t("Password")}
+              <input
+                autoComplete={isSignUp ? "new-password" : "current-password"}
+                minLength={8}
+                name="password"
+                placeholder="At least 8 characters"
+                required
+                type="password"
+              />
+            </label>
+          )}
+          {(isSignUp || isReset) && (
+            <label>
+              {t("Confirm password")}
+              <input
+                autoComplete="new-password"
+                minLength={8}
+                name="confirmPassword"
+                placeholder="Enter your password again"
+                required
+                type="password"
+              />
+            </label>
+          )}
+          {mode === "sign-in" && (
+            <div className="auth-inline-link">
+              <Link href="/forgot-password">{t("Forgot password?")}</Link>
+            </div>
+          )}
+          {message && <p aria-live="polite" className="form-message form-error">{message}</p>}
+          {success && <p aria-live="polite" className="form-message form-success">{success}</p>}
+          <button className="button button-dark auth-submit" disabled={submitting || (isReset && !token)} type="submit">
+            {submitting ? <LoaderCircle className="spin" size={17} /> : null}
+            {submitting ? t("Please wait") : isSignUp ? t("Create free account") : isForgot ? t("Send reset link") : isReset ? t("Update password") : t("Sign in")}
+            {!submitting && <ArrowRight size={17} />}
           </button>
-        )}
-      </form>
-      <p className="auth-switch">
-        {isSignUp ? (
-          <>{t("Already have an account?")} <Link href="/login">{t("Sign in")}</Link></>
-        ) : isForgot || isReset ? (
-          <Link className="back-link" href="/login"><ArrowLeft size={15} /> {t("Back to sign in")}</Link>
-        ) : (
-          <>{t("New to Guestlist?")} <Link href="/sign-up">{t("Create an account")}</Link></>
-        )}
-      </p>
-      <p className="auth-legal">{t("By continuing, you agree to our")} <Link href="/#terms">{t("Terms")}</Link> {t("and")} <Link href="/#privacy">{t("Privacy Policy")}</Link>.</p>
+          {mode === "sign-in" && showDemoAccount && process.env.NODE_ENV === "development" && (
+            <button className="button button-light demo-sign-in" disabled={submitting} onClick={signInToDemo} type="button">
+              {t("Use demo account")}
+            </button>
+          )}
+        </form>
+        {isForgot || isReset ? (
+          <p className="auth-switch">
+            <Link className="back-link" href="/login"><ArrowLeft size={15} /> {t("Back to sign in")}</Link>
+          </p>
+        ) : null}
+        <p className="auth-legal">{t("By continuing, you agree to our")} <Link href="/terms">{t("Terms")}</Link> {t("and")} <Link href="/privacy">{t("Privacy Policy")}</Link>.</p>
+      </section>
+      {isPrimaryAuth && (
+        <aside className="auth-welcome-panel">
+          <div aria-hidden="true" className="auth-welcome-orbit auth-welcome-orbit-one" />
+          <div aria-hidden="true" className="auth-welcome-orbit auth-welcome-orbit-two" />
+          <div className="auth-welcome-content">
+            <span aria-hidden="true" className="auth-welcome-icon"><Sparkles size={20} /></span>
+            <p className="auth-welcome-eyebrow">{isSignUp ? t("WELCOME BACK") : t("A CALMER WAY TO RUN EVENTS")}</p>
+            <h2>{isSignUp ? t("Good to see you again.") : t("Hello, friend!")}</h2>
+            <p className="auth-welcome-description">
+              {isSignUp
+                ? t("Sign in to pick up where your next event left off.")
+                : t("Bring your guests, tickets, and event details together in one welcoming workspace.")}
+            </p>
+            {onModeChange ? (
+              <button
+                aria-label={t(isSignUp ? "Switch to sign in" : "Switch to sign up")}
+                className="auth-welcome-link"
+                onClick={() => onModeChange(isSignUp ? "sign-in" : "sign-up")}
+                type="button"
+              >
+                {isSignUp ? t("Sign in") : t("Create your account")} <ArrowRight aria-hidden="true" size={16} />
+              </button>
+            ) : (
+              <Link className="auth-welcome-link" href={isSignUp ? "/login" : "/sign-up"}>
+                {isSignUp ? t("Sign in") : t("Create your account")} <ArrowRight aria-hidden="true" size={16} />
+              </Link>
+            )}
+          </div>
+        </aside>
+      )}
     </div>
   ), locale);
 }
