@@ -62,12 +62,19 @@ function harness(initialHash = "") {
       previousDependencies[index] = dependencies;
     },
   };
-  const localRequire = (name) => name === "react" ? react : require(name);
+  const labels = ["Home", "Features", "Solutions", "How it works", "Modules", "Check-in", "Reports", "Pricing", "Reviews", "FAQ", "Get started"];
+  const ids = ["home", "features", "solutions", "how-it-works", "modules", "check-in", "reports", "pricing", "reviews", "faq", "get-started"];
+  const localRequire = (name) => {
+    if (name === "react") return react;
+    if (name === "@/lib/landing-navigation") {
+      return { landingNavigationItems: ids.map((id, index) => ({ id, label: labels[index] })) };
+    }
+    return require(name);
+  };
   const loaded = { exports: {} };
   new Function("require", "module", "exports", "window", "Element", output)(
     localRequire, loaded, loaded.exports, window, Element,
   );
-  const labels = ["Home", "Features", "Solutions", "How it works", "Modules", "Check-in", "Reports", "Pricing", "FAQ", "Get started"];
   const children = labels.map((label) => React.createElement("section", { key: label }, label));
 
   function render() {
@@ -100,16 +107,16 @@ test("deep links and browser history select one accessible slide", () => {
   const h = harness("#faq");
   h.render();
   let view = h.render();
-  assert.equal(view.links[8].props["aria-current"], "page");
+  assert.equal(view.links[9].props["aria-current"], "page");
   assert.equal(view.slides.filter((slide) => !slide.props.inert).length, 1);
   assert.equal(view.slides[7].props["data-position"], "before");
-  assert.equal(view.slides[9].props["data-position"], "after");
+  assert.equal(view.slides[10].props["data-position"], "after");
 
   h.window.location.hash = "#solutions";
   h.listeners.get("popstate")();
   view = h.render();
   assert.equal(view.links[2].props["aria-current"], "page");
-  assert.equal(view.slides[8].props["aria-hidden"], true);
+  assert.equal(view.slides[9].props["aria-hidden"], true);
 });
 
 test("in-page links update the section and focus, while modified clicks remain native", () => {

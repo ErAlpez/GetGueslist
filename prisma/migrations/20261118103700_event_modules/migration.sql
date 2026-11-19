@@ -1,0 +1,5 @@
+ALTER TABLE "EventRegistration"
+  ADD COLUMN "mealChoice" TEXT,
+  ADD COLUMN "sessionIds" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];
+
+ALTER TYPE "RSVPStatus" ADD VALUE IF NOT EXISTS 'MAYBE';

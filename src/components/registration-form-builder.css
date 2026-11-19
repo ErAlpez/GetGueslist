@@ -1,6 +1,6 @@
 .app-shell .registration-builder-columns {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
   align-items: start;
   gap: 20px;
 }
@@ -9,7 +9,16 @@
   min-width: 0;
 }
 
-.app-shell .registration-builder-columns .event-logo-form {
+.app-shell .registration-builder-left {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 20px;
+  container-type: inline-size;
+}
+
+.app-shell .registration-builder-left .registration-share-panel,
+.app-shell .registration-builder-left .event-logo-form {
   margin-bottom: 0;
 }
 
@@ -19,6 +28,25 @@
 
 .app-shell .registration-builder-columns .registration-builder-actions {
   flex-wrap: wrap;
+}
+
+@container (max-width: 560px) {
+  .app-shell .registration-builder-left .registration-share-panel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .app-shell .registration-builder-left .registration-share-controls input {
+    width: auto;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+}
+
+@media (max-width: 1000px) {
+  .app-shell .registration-builder-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .app-shell .registration-question-editor {

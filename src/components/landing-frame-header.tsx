@@ -12,7 +12,7 @@ export function LandingFrameHeader({ locale, session }: { locale: Locale; sessio
   return (
     <header className="site-header">
       <div className="header-inner">
-        <span className="landing-frame-mark">GUESTLIST</span>
+        <span className="landing-frame-mark">VENUGUESTPASS</span>
         <div className={`header-actions${session ? " header-actions-authenticated" : ""}`}>
           <LanguageControl />
           <ThemeToggle />

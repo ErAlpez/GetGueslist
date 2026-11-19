@@ -11,16 +11,13 @@ function getTrustedOrigins(baseURL: string) {
   const origins = new Set([parsedBaseURL.origin]);
   const loopbackHosts = ["localhost", "127.0.0.1", "[::1]"];
 
-  if (
-    process.env.NODE_ENV === "development"
-    && parsedBaseURL.protocol === "http:"
-    && loopbackHosts.includes(parsedBaseURL.hostname)
-  ) {
-    loopbackHosts.forEach((hostname) => {
-      const localURL = new URL(parsedBaseURL);
-      localURL.hostname = hostname;
-      origins.add(localURL.origin);
-    });
+  if (process.env.NODE_ENV === "development") {
+    const port = parsedBaseURL.port || process.env.PORT || "3000";
+    for (const protocol of ["http:", "https:"]) {
+      for (const hostname of loopbackHosts) {
+        origins.add(new URL(`${protocol}//${hostname}:${port}`).origin);
+      }
+    }
   }
 
   return [...origins];
@@ -31,7 +28,7 @@ function createAuth(secret: string) {
   const baseURL = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
 
   return betterAuth({
-    appName: "Guestlist",
+    appName: "VenuGuestPass",
     baseURL,
     secret,
     trustedOrigins: getTrustedOrigins(baseURL),
@@ -43,7 +40,7 @@ function createAuth(secret: string) {
           const { sendAuthEmail } = await import("@/lib/email");
           await sendAuthEmail({
             to: user.email,
-            subject: "Confirm your Guestlist email change",
+            subject: "Confirm your VenuGuestPass email change",
             url,
           });
         },
@@ -57,7 +54,7 @@ function createAuth(secret: string) {
         const { sendAuthEmail } = await import("@/lib/email");
         await sendAuthEmail({
           to: user.email,
-          subject: "Reset your Guestlist password",
+          subject: "Reset your VenuGuestPass password",
           url,
         });
       },
@@ -69,7 +66,7 @@ function createAuth(secret: string) {
         const { sendAuthEmail } = await import("@/lib/email");
         await sendAuthEmail({
           to: user.email,
-          subject: "Verify your Guestlist email",
+          subject: "Verify your VenuGuestPass email",
           url,
         });
       },
@@ -86,7 +83,17 @@ function createAuth(secret: string) {
                 description: "For getting started",
                 activeEventLimit: 1,
                 attendeePerEventLimit: 50,
-                features: ["basic_guestlist", "qr_tickets", "basic_attendance"],
+                features: [
+                  "public_registration",
+                  "basic_guestlist",
+                  "qr_tickets",
+                  "checkin_options",
+                  "basic_attendance",
+                  "registration_notifications",
+                  "live_raffle",
+                  "e_certificates",
+                  "event_checkpoints",
+                ],
               },
               update: {},
             });

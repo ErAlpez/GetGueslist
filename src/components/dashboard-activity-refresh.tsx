@@ -16,9 +16,9 @@ export function DashboardActivityRefresh() {
       }, 120);
     };
 
-    window.addEventListener("guestlist:activity", refresh);
+    window.addEventListener("venuguestpass:activity", refresh);
     return () => {
-      window.removeEventListener("guestlist:activity", refresh);
+      window.removeEventListener("venuguestpass:activity", refresh);
       if (timer !== undefined) window.clearTimeout(timer);
     };
   }, [router]);

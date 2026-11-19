@@ -6,7 +6,7 @@ import { CalendarGrid, initialCalendarMonth, useCalendarPopover } from "@/compon
 import { usePreferences } from "@/components/preferences-provider";
 import { parseDateParam } from "@/lib/date-range";
 
-export function GuestlistDateRange({ initialFrom, initialTo }: { initialFrom: string; initialTo: string }) {
+export function VenuGuestPassDateRange({ initialFrom, initialTo }: { initialFrom: string; initialTo: string }) {
   const { locale, t } = usePreferences();
   const [from, setFrom] = useState(initialFrom);
   const [to, setTo] = useState(initialTo);
@@ -37,7 +37,7 @@ export function GuestlistDateRange({ initialFrom, initialTo }: { initialFrom: st
   }
 
   return (
-    <div className="guestlist-date-range" ref={containerRef}>
+    <div className="venuguestpass-date-range" ref={containerRef}>
       <input name="from" type="hidden" value={from} />
       <input name="to" type="hidden" value={to} />
       <button
@@ -45,7 +45,7 @@ export function GuestlistDateRange({ initialFrom, initialTo }: { initialFrom: st
         aria-expanded={open}
         aria-haspopup="dialog"
         aria-label={`${t("Date range")}: ${label}`}
-        className="guestlist-date-range-trigger"
+        className="venuguestpass-date-range-trigger"
         onClick={() => setOpen((current) => !current)}
         ref={triggerRef}
         type="button"
@@ -54,9 +54,9 @@ export function GuestlistDateRange({ initialFrom, initialTo }: { initialFrom: st
         <span>{label}</span>
       </button>
       {open && (
-        <div aria-label={t("Choose registration date range")} className="guestlist-calendar" id={panelId} role="dialog">
+        <div aria-label={t("Choose registration date range")} className="venuguestpass-calendar" id={panelId} role="dialog">
           <CalendarGrid from={from} month={month} onMonthChange={setMonth} onSelect={selectDate} to={to} />
-          <div className="guestlist-calendar-footer">
+          <div className="venuguestpass-calendar-footer">
             <span>{from && !to ? t("Choose an end date") : t("Choose a start and end date")}</span>
             <button onClick={() => { setFrom(""); setTo(""); }} type="button">{t("Clear")}</button>
           </div>

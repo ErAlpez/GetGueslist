@@ -5,7 +5,15 @@
 }
 
 .app-content .reports-page .attendance-summary-caption {
-  margin-top: 4px;
+  margin-top: 12px;
+}
+
+.app-content .reports-page .attendance-rate-gate {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 18px;
+  line-height: 1.4;
 }
 
 .app-shell .reports-page .registration-chart {

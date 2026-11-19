@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#1f3a2f">
+    <title>Offline | VenuGuestPass</title>
+    <style>
+      :root { color-scheme: dark; font-family: system-ui, sans-serif; background: #202824; color: #eef4ef; }
+      body { display: grid; min-height: 100vh; margin: 0; place-items: center; padding: 24px; box-sizing: border-box; }
+      main { width: min(100%, 440px); text-align: center; }
+      img { width: 64px; height: 64px; object-fit: contain; }
+      h1 { margin: 20px 0 10px; font-size: 30px; }
+      p { color: #c1ccc4; line-height: 1.65; }
+      button { margin-top: 12px; padding: 12px 20px; border: 0; border-radius: 8px; color: #17362c; background: #e9f2eb; font: inherit; font-weight: 650; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img alt="" src="/venuguestpass-pwa-192.png">
+      <h1>You’re offline</h1>
+      <p>Reconnect to load workspace pages. The last attendee-list snapshot is stored locally on this device; other workspace data is not cached.</p>
+      <p>Check-in scans queued on this device will sync when you’re back online.</p>
+      <p><a href="/dashboard/attendees">Open offline attendee list</a></p>
+      <button id="retry" type="button">Try again</button>
+    </main>
+    <script>
+      document.getElementById("retry").addEventListener("click", () => location.reload());
+      window.addEventListener("online", () => location.replace("/"));
+    </script>
+  </body>
+</html>

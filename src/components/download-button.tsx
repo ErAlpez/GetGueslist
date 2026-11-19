@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Download, Square } from "lucide-react";
 import { usePreferences } from "@/components/preferences-provider";
+import { downloadResource } from "@/lib/api";
 
 class DownloadError extends Error {}
 
@@ -10,10 +11,16 @@ export function DownloadButton({
   href,
   label,
   useFormFilters = false,
+  contentType = "text/csv",
+  filename = "attendees-export.csv",
+  className,
 }: {
   href: string;
   label: string;
   useFormFilters?: boolean;
+  contentType?: string;
+  filename?: string;
+  className?: string;
 }) {
   const { t } = usePreferences();
   const [state, setState] = useState<"idle" | "loading" | "done">("idle");
@@ -56,19 +63,25 @@ export function DownloadButton({
         }
       }
 
-      const response = await fetch(url, { signal: controller.signal, cache: "no-store" });
+      const response = await downloadResource(url, { signal: controller.signal });
       if (!response.ok) {
         let message = `${t("Download failed.")} (${response.status})`;
-        if (response.headers.get("content-type")?.includes("application/json")) {
+        const responseType = response.headers.get("content-type")?.toLowerCase() ?? "";
+        if (responseType.includes("application/json")) {
           const payload: unknown = await response.json();
           if (typeof payload === "object" && payload !== null && "error" in payload && typeof payload.error === "string") {
             message = t(payload.error);
           }
+        } else {
+          const responseMessage = await response.text();
+          if (responseMessage.trim()) message = t(responseMessage.trim());
         }
         throw new DownloadError(message);
       }
-      if (!response.headers.get("content-type")?.toLowerCase().startsWith("text/csv")) {
-        throw new DownloadError(t("The server did not return a CSV file."));
+      const responseType = response.headers.get("content-type")?.toLowerCase() ?? "";
+      if (!responseType.startsWith(contentType.toLowerCase())) {
+        const fileType = contentType.split("/").at(-1)?.toUpperCase() ?? "file";
+        throw new DownloadError(t(`The server did not return a ${fileType} file.`));
       }
 
       const contentLength = Number(response.headers.get("content-length"));
@@ -93,11 +106,11 @@ export function DownloadButton({
       }
 
       if (controller.signal.aborted) return;
-      const objectUrl = URL.createObjectURL(new Blob(chunks, { type: "text/csv;charset=utf-8" }));
+      const objectUrl = URL.createObjectURL(new Blob(chunks, { type: responseType }));
       try {
         const link = document.createElement("a");
         link.href = objectUrl;
-        link.download = "guestlist-export.csv";
+        link.download = filename;
         document.body.append(link);
         try {
           link.click();
@@ -126,7 +139,7 @@ export function DownloadButton({
   }
 
   return (
-    <div className="download-action-wrap">
+    <div className={`download-action-wrap${className ? ` ${className}` : ""}`}>
       <button
         aria-label={state === "loading" ? t("Cancel download") : t(label)}
         className={`download-action is-${state}`}

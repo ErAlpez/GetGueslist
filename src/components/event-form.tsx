@@ -65,13 +65,13 @@ export function EventForm({ event }: { event?: { id: string; updatedAt: string; 
       <section className="form-section">
         <div className="form-section-heading"><span>02</span><div><h2>When & where</h2><p>Set the timing and location. You can update these later.</p></div></div>
         <div className="form-grid">
-          <EventDateTime initialValue={values.startsAt} label="Starts" name="startsAt" required />
-          <EventDateTime alignEnd initialValue={values.endsAt} label="Ends" name="endsAt" required />
+          <EventDateTime defaultTime="00:00" initialValue={values.startsAt} label="Starts" name="startsAt" required />
+          <EventDateTime defaultTime="23:59" initialValue={values.endsAt} label="Ends" name="endsAt" required />
           <label className="form-field">Timezone <select name="timezone" onChange={(e) => setValue("timezone", e.target.value)} value={values.timezone}>{!timezones.includes(values.timezone) && <option value={values.timezone}>{values.timezone}</option>}<option value="Asia/Manila">Asia/Manila (PHT)</option><option value="UTC">UTC</option><option value="America/Los_Angeles">America/Los_Angeles</option><option value="America/New_York">America/New_York</option><option value="Europe/London">Europe/London</option><option value="Asia/Singapore">Asia/Singapore</option></select></label>
           <label className="form-field">Venue <input name="venue" onChange={(e) => setValue("venue", e.target.value)} placeholder="Venue name or online" value={values.venue} /></label>
           <label className="form-field form-field-wide">Address <input name="address" onChange={(e) => setValue("address", e.target.value)} placeholder="Street address or virtual event link" value={values.address} /></label>
           <label className="form-field">Capacity <input min="1" name="capacity" onChange={(e) => setValue("capacity", e.target.value)} placeholder="No limit" type="number" value={values.capacity} /></label>
-          <EventDateTime alignEnd initialValue={values.registrationDeadline} label="Registration deadline" name="registrationDeadline" />
+          <EventDateTime defaultTime="23:59" initialValue={values.registrationDeadline} label="Registration deadline" name="registrationDeadline" />
         </div>
       </section>
 

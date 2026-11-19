@@ -1,0 +1,907 @@
+.super-admin-plans-page {
+  display: grid;
+  gap: 20px;
+}
+
+.super-admin-analytics-section {
+  display: grid;
+  gap: 12px;
+}
+
+.super-admin-health-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.super-admin-health-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.super-admin-health-metric {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+}
+
+.super-admin-health-metric > span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.super-admin-health-metric > strong {
+  color: var(--ink);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -.5px;
+  overflow-wrap: anywhere;
+}
+
+.super-admin-health-metric > strong.is-low {
+  color: #a34a44;
+}
+
+.super-admin-health-metric > small {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.super-admin-health-trend {
+  display: grid;
+  gap: 12px;
+}
+
+.super-admin-health-trend .panel-heading-row h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.super-admin-health-bars {
+  display: grid;
+  height: 118px;
+  grid-template-columns: repeat(24, minmax(0, 1fr));
+  align-items: end;
+  gap: 4px;
+  padding: 8px 0 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.super-admin-health-bar {
+  display: flex;
+  height: 100%;
+  align-items: flex-end;
+  border-radius: 4px 4px 0 0;
+  background: color-mix(in srgb, var(--line) 32%, transparent);
+}
+
+.super-admin-health-bar i {
+  display: block;
+  width: 100%;
+  min-height: 3px;
+  border-radius: 4px 4px 0 0;
+  background: #4c9a70;
+}
+
+.super-admin-health-bar.is-low i {
+  background: #d08b43;
+}
+
+.super-admin-health-bar.is-empty i {
+  background: #9aa49c;
+}
+
+.super-admin-health-chart-axis {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.super-admin-health-empty {
+  margin: 0;
+  padding: 20px 0;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.super-admin-health-card {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+}
+
+.super-admin-health-card-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.super-admin-health-card-heading > div {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+}
+
+.super-admin-health-card-heading h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.super-admin-health-provider {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.super-admin-health-icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  place-items: center;
+  border-radius: 9px;
+  color: var(--green-dark);
+  background: #eaf3eb;
+}
+
+.super-admin-health-status {
+  justify-self: start;
+  padding: 4px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.super-admin-health-status.is-healthy {
+  color: #236449;
+  background: #e9f4ed;
+}
+
+.super-admin-health-status.is-attention {
+  color: #914641;
+  background: #f8ecea;
+}
+
+.super-admin-health-status.is-not-configured {
+  color: #80621f;
+  background: #fbf3e1;
+}
+
+.super-admin-health-status.is-unknown {
+  color: #596a5e;
+  background: #eef2ed;
+}
+
+.super-admin-health-card > p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.super-admin-health-card-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.super-admin-health-card-stats > span {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.super-admin-health-card-stats small {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.super-admin-health-card-stats strong {
+  color: var(--ink);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.super-admin-section-heading h2 {
+  margin: 0;
+}
+
+.super-admin-section-heading p {
+  margin-bottom: 0;
+}
+
+.super-admin-growth-cards .stat-card {
+  min-height: 188px;
+}
+
+.super-admin-growth-cards .stat-card-note {
+  align-items: flex-start;
+}
+
+.super-admin-sales-note {
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+.super-admin-operations-grid {
+  grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
+  margin-top: 0;
+}
+
+.super-admin-operations-stats {
+  grid-template-columns: minmax(0, 1fr);
+  margin-top: 0;
+}
+
+.super-admin-operations-stats .stat-card {
+  min-height: 188px;
+}
+
+.super-admin-people-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  margin-top: 0;
+}
+
+.super-admin-people-stats {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  margin-top: 0;
+}
+
+.super-admin-people-stats .stat-card {
+  min-height: 188px;
+}
+
+.super-admin-locations-panel {
+  min-height: 188px;
+}
+
+.super-admin-location-list {
+  margin-top: 13px;
+}
+
+.super-admin-people-grid .overview-activity-panel {
+  min-height: 188px;
+}
+
+.super-admin-reviews {
+  min-width: 0;
+  padding: 20px;
+}
+
+.super-admin-review-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 14px 0;
+}
+
+.super-admin-review-filters a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 11px;
+  text-decoration: none;
+}
+
+.super-admin-review-filters a.is-active {
+  border-color: var(--green-dark);
+  color: var(--green-dark);
+  background: #eaf3eb;
+}
+
+.super-admin-review-filters a span {
+  font-variant-numeric: tabular-nums;
+}
+
+.super-admin-review-list {
+  display: grid;
+  gap: 9px;
+}
+
+.super-admin-review-card {
+  display: grid;
+  min-width: 0;
+  gap: 9px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+}
+
+.super-admin-review-heading {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.super-admin-review-heading > div {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.super-admin-review-heading strong {
+  font-size: 13px;
+}
+
+.super-admin-review-heading small {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.super-admin-review-status {
+  flex: 0 0 auto;
+  padding: 4px 7px;
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--dashboard-inset, #f3f5f2);
+  font-size: 9px;
+  font-weight: 650;
+  text-transform: capitalize;
+}
+
+.super-admin-review-status.status-approved {
+  color: #236449;
+  background: #e9f4ed;
+}
+
+.super-admin-review-status.status-hidden {
+  color: #8a4a4a;
+  background: #f8eeee;
+}
+
+.super-admin-review-rating {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: #c4853a;
+  font-size: 15px;
+}
+
+.super-admin-review-rating span {
+  margin-left: 5px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.super-admin-review-message {
+  margin: 0;
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.super-admin-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-top: 9px;
+  border-top: 1px solid var(--line);
+}
+
+.super-admin-review-actions form {
+  margin: 0;
+}
+
+.super-admin-review-actions button {
+  min-height: 32px;
+  padding: 0 10px;
+  font-size: 10px;
+}
+
+.super-admin-review-actions > small {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.review-consent {
+  margin-right: auto;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.review-consent.is-granted {
+  color: var(--green-dark);
+}
+
+.super-admin-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--green-dark);
+  background: #eaf3eb;
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.super-admin-plan-catalog,
+.super-admin-workspaces {
+  min-width: 0;
+  padding: 20px;
+}
+
+.super-admin-create-plan,
+.super-admin-plan-item {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+}
+
+.super-admin-create-plan {
+  margin-top: 16px;
+}
+
+.super-admin-create-plan > summary,
+.super-admin-plan-item > summary {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 650;
+  list-style-position: inside;
+}
+
+.super-admin-plan-item > summary > span:first-child {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.super-admin-plan-item > summary small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 450;
+}
+
+.super-admin-existing-plans {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.super-admin-plan-form {
+  display: grid;
+  gap: 16px;
+  padding: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.super-admin-plan-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.super-admin-plan-fields > label {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.super-admin-plan-fields > label input:not([type="checkbox"]) {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--ink);
+  background: #fff;
+  font-size: 13px;
+}
+
+.super-admin-plan-fields > label input[readonly] {
+  opacity: .7;
+}
+
+.super-admin-plan-description,
+.super-admin-plan-active {
+  grid-column: 1 / -1;
+}
+
+.super-admin-plan-fields > label small {
+  font-size: 10px;
+  font-weight: 400;
+}
+
+.super-admin-plan-active {
+  display: flex !important;
+  align-items: center;
+  gap: 8px !important;
+}
+
+.super-admin-feature-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 14px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+
+.super-admin-feature-list legend {
+  padding: 0 5px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.super-admin-feature-list label {
+  display: grid;
+  grid-template-columns: 15px minmax(0, 1fr);
+  align-items: start;
+  gap: 3px 7px;
+  color: var(--ink);
+  font-size: 11px;
+}
+
+.super-admin-feature-list label input {
+  grid-row: span 2;
+  margin: 2px 0 0;
+}
+
+.super-admin-feature-list code {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 9px;
+  text-overflow: ellipsis;
+}
+
+.super-admin-plan-submit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.super-admin-plan-submit .form-message,
+.super-admin-plan-submit .super-admin-success {
+  margin: 0;
+}
+
+.super-admin-success {
+  color: var(--green-dark);
+  font-size: 12px;
+}
+
+.super-admin-feature-count {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.super-admin-search {
+  display: flex;
+  gap: 8px;
+  margin: 16px 0 12px;
+}
+
+.super-admin-search input,
+.super-admin-subscription-form select {
+  min-height: 36px;
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--ink);
+  background: #fff;
+  font-size: 12px;
+}
+
+.super-admin-search input {
+  width: min(100%, 360px);
+}
+
+.super-admin-workspace-list {
+  display: grid;
+  gap: 8px;
+}
+
+.super-admin-workspace-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, auto);
+  align-items: center;
+  gap: 16px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+
+.super-admin-workspace-info {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.super-admin-workspace-info strong {
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+
+.super-admin-workspace-info small {
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.super-admin-subscription-form {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(120px, .8fr) 36px;
+  align-items: center;
+  gap: 6px;
+}
+
+.super-admin-subscription-form select {
+  width: 100%;
+  min-width: 0;
+}
+
+.super-admin-subscription-form .button {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  place-items: center;
+}
+
+.super-admin-subscription-form .form-message,
+.super-admin-subscription-form .super-admin-success {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.super-admin-empty {
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.super-admin-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.super-admin-pagination a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--green-dark);
+  font-weight: 600;
+}
+
+html[data-theme="dark"] .super-admin-badge,
+html[data-theme="dark"] .super-admin-create-plan,
+html[data-theme="dark"] .super-admin-plan-item,
+html[data-theme="dark"] .super-admin-workspace-row,
+html[data-theme="dark"] .super-admin-health-card,
+html[data-theme="dark"] .super-admin-health-metric {
+  border-color: var(--dashboard-border);
+  background: var(--dashboard-surface);
+}
+
+html[data-theme="dark"] .super-admin-badge,
+html[data-theme="dark"] .super-admin-pagination a,
+html[data-theme="dark"] .super-admin-success {
+  color: var(--dashboard-accent);
+}
+
+html[data-theme="dark"] .super-admin-plan-form,
+html[data-theme="dark"] .super-admin-feature-list,
+html[data-theme="dark"] .super-admin-review-card,
+html[data-theme="dark"] .super-admin-review-actions {
+  border-color: var(--dashboard-border);
+}
+
+html[data-theme="dark"] .super-admin-plan-fields > label input:not([type="checkbox"]),
+html[data-theme="dark"] .super-admin-search input,
+html[data-theme="dark"] .super-admin-subscription-form select {
+  border-color: var(--dashboard-border);
+  color: var(--dashboard-text);
+  background: var(--dashboard-surface);
+}
+
+html[data-theme="dark"] .super-admin-feature-list legend,
+html[data-theme="dark"] .super-admin-feature-list label,
+html[data-theme="dark"] .super-admin-plan-item > summary,
+html[data-theme="dark"] .super-admin-plan-fields > label input:not([type="checkbox"]),
+html[data-theme="dark"] .super-admin-review-message {
+  color: var(--dashboard-text);
+}
+
+html[data-theme="dark"] .super-admin-health-card-heading h3 {
+  color: var(--dashboard-text);
+}
+
+html[data-theme="dark"] .super-admin-health-card > p,
+html[data-theme="dark"] .super-admin-health-provider,
+html[data-theme="dark"] .super-admin-health-card-stats small,
+html[data-theme="dark"] .super-admin-health-empty,
+html[data-theme="dark"] .super-admin-health-metric > span,
+html[data-theme="dark"] .super-admin-health-metric > small,
+html[data-theme="dark"] .super-admin-health-chart-axis {
+  color: var(--dashboard-muted);
+}
+
+html[data-theme="dark"] .super-admin-health-metric > strong,
+html[data-theme="dark"] .super-admin-health-card-stats strong,
+html[data-theme="dark"] .super-admin-health-trend .panel-heading-row h3 {
+  color: var(--dashboard-text);
+}
+
+html[data-theme="dark"] .super-admin-health-metric > strong.is-low {
+  color: #f0bbb4;
+}
+
+html[data-theme="dark"] .super-admin-health-icon {
+  color: var(--dashboard-accent);
+  background: color-mix(in srgb, var(--dashboard-accent) 15%, transparent);
+}
+
+html[data-theme="dark"] .super-admin-health-status.is-healthy {
+  color: #b7e5c5;
+  background: #243d2d;
+}
+
+html[data-theme="dark"] .super-admin-health-status.is-attention {
+  color: #f0bbb4;
+  background: #482d2b;
+}
+
+html[data-theme="dark"] .super-admin-health-status.is-not-configured {
+  color: #ead29a;
+  background: #443a25;
+}
+
+html[data-theme="dark"] .super-admin-health-status.is-unknown {
+  color: #c4d2c8;
+  background: #313a34;
+}
+
+html[data-theme="dark"] .super-admin-health-card-stats {
+  border-color: var(--dashboard-border);
+}
+
+html[data-theme="dark"] .super-admin-health-bars {
+  border-color: var(--dashboard-border);
+}
+
+html[data-theme="dark"] .super-admin-health-bar {
+  background: color-mix(in srgb, var(--dashboard-border) 50%, transparent);
+}
+
+html[data-theme="dark"] .super-admin-plan-item > summary small,
+html[data-theme="dark"] .super-admin-workspace-info small,
+html[data-theme="dark"] .super-admin-feature-list code,
+html[data-theme="dark"] .super-admin-empty,
+html[data-theme="dark"] .super-admin-pagination,
+html[data-theme="dark"] .super-admin-feature-count {
+  color: var(--dashboard-muted);
+}
+
+html[data-theme="dark"] .super-admin-review-filters a {
+  border-color: var(--dashboard-border);
+  color: var(--dashboard-muted);
+}
+
+html[data-theme="dark"] .super-admin-review-filters a.is-active {
+  border-color: #93c9a6;
+  color: #cdebd3;
+  background: #293d30;
+}
+
+html[data-theme="dark"] .review-consent.is-granted {
+  color: #a4d6b7;
+}
+
+@media (max-width: 900px) {
+  .super-admin-health-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .super-admin-health-overview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .super-admin-operations-grid,
+  .super-admin-people-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .super-admin-health-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .super-admin-growth-cards,
+  .super-admin-people-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .super-admin-operations-stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .super-admin-plan-catalog,
+  .super-admin-workspaces,
+  .super-admin-reviews {
+    padding: 14px;
+  }
+
+  .super-admin-workspace-row {
+    grid-template-columns: 1fr;
+  }
+
+  .super-admin-subscription-form {
+    grid-template-columns: minmax(0, 1fr) minmax(0, .8fr) 36px;
+  }
+}
+
+@media (max-width: 480px) {
+  .super-admin-health-overview-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .super-admin-health-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .super-admin-sales-note {
+    font-size: 9px;
+  }
+
+  .super-admin-plan-fields,
+  .super-admin-feature-list {
+    grid-template-columns: 1fr;
+  }
+
+  .super-admin-plan-description,
+  .super-admin-plan-active {
+    grid-column: auto;
+  }
+
+}

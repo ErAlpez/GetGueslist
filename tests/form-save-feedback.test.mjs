@@ -17,9 +17,14 @@ function harness(file, exportName, props) {
   const FormSaveSuccess = () => null;
   const react = {
     ...require("react"),
+    useRef(initial) {
+      const index = cursor++;
+      if (!(index in slots)) slots[index] = { current: initial };
+      return slots[index];
+    },
     useState(initial) {
       const index = cursor++;
-      if (!(index in slots)) slots[index] = initial;
+      if (!(index in slots)) slots[index] = typeof initial === "function" ? initial() : initial;
       return [slots[index], (value) => {
         slots[index] = typeof value === "function" ? value(slots[index]) : value;
       }];
@@ -72,6 +77,7 @@ const classIs = (name) => (node) => node.props?.className === name;
 test("registration save feedback stays beside save and clears when the questions change", () => {
   const h = harness("src/components/registration-form-builder.tsx", "RegistrationFormBuilder", {
     eventId: "event", registrationUrl: "https://example.test", logo: null, questions: [], canShareRegistration: false,
+    canCustomForms: true, canBranding: true,
   });
   let tree = h.render();
   const actions = find(tree, classIs("form-save-actions"));
@@ -91,6 +97,7 @@ test("registration save feedback stays beside save and clears when the questions
 test("custom questions can be added and existing answered questions stay locked", () => {
   const h = harness("src/components/registration-form-builder.tsx", "RegistrationFormBuilder", {
     eventId: "event", registrationUrl: "https://example.test", logo: null, canShareRegistration: false,
+    canCustomForms: true, canBranding: true,
     questions: [{ id: "saved", label: "Existing question", type: "SHORT_TEXT", required: false, options: [], locked: true }],
   });
   for (let index = 0; index < 2; index += 1) {

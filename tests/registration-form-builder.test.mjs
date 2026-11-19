@@ -50,6 +50,8 @@ function harness(initialQuestions) {
       logo: null,
       questions: initialQuestions,
       canShareRegistration: true,
+      canCustomForms: true,
+      canBranding: true,
     });
   };
 }

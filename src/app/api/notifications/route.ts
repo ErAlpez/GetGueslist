@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getPrisma } from "@/lib/prisma";
 import { getWorkspaceContext } from "@/lib/workspace";
+import { workspaceRoleCanAccessSection } from "@/lib/workspace-roles";
 
 const notificationLimit = 20;
 const notificationRetentionMs = 30 * 24 * 60 * 60 * 1000;
@@ -17,6 +18,9 @@ export async function GET() {
       { error: "Authentication required." },
       { status: 401, headers: { "Cache-Control": "private, no-store" } },
     );
+  }
+  if (!workspaceRoleCanAccessSection(context.membership.role, "overview")) {
+    return NextResponse.json({ error: "You don’t have permission to view notifications." }, { status: 403 });
   }
 
   const prisma = getPrisma();
@@ -87,6 +91,9 @@ export async function POST(request: Request) {
   const context = await getWorkspaceContext();
   if (!context) {
     return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+  }
+  if (!workspaceRoleCanAccessSection(context.membership.role, "overview")) {
+    return NextResponse.json({ error: "You don’t have permission to update notifications." }, { status: 403 });
   }
   if (request.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !== "application/json") {
     return NextResponse.json({ error: "JSON content required." }, { status: 415 });

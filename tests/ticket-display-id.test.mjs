@@ -50,7 +50,7 @@ test("manual check-in finds the display ID while preserving signed legacy tokens
 
 test("CSV export uses the display ID, not the underlying ticket ID", async () => {
   const route = loadTypeScript("src/app/api/guestlist/export/route.ts", {
-    "@/lib/workspace": { getWorkspaceContext: async () => ({ workspace: { id: "workspace-1" } }) },
+    "@/lib/workspace": { getWorkspaceContext: async () => ({ workspace: { id: "workspace-1" }, membership: { role: "OWNER" }, subscription: { plan: { features: ["csv_exports", "workspace_exports", "checkin_activity"] } } }) },
     "@/lib/prisma": { getPrisma: () => ({ eventRegistration: { findMany: async () => [registration] } }) },
     "@/lib/date-range": loadTypeScript("src/lib/date-range.ts"),
   });
@@ -103,11 +103,22 @@ test("dashboard ticket card labels the display ID with a colon", async () => {
     "@/lib/tickets": { createTicketToken: () => "signed-token" },
     "@/lib/prisma": { getPrisma: () => ({
       event: { findMany: async () => [] },
-      ticket: { findMany: async () => [{ ...ticket, registration }] },
+      eventRegistration: { count: async () => 1 },
+      ticket: {
+        count: async () => 1,
+        findMany: async () => [{
+          ...ticket,
+          createdAt: new Date("2026-12-01T00:00:00Z"),
+          registration: {
+            ...registration,
+            checkpointClaims: [],
+          },
+        }],
+      },
     }) },
     "@/lib/preferences": { getPreferences: async () => ({ locale: "en" }) },
     "@/lib/localization": { localizeNode: (node) => node },
-    "@/lib/workspace": { requireWorkspaceContext: async () => ({ workspace: { id: "workspace-1" } }) },
+    "@/lib/workspace": { requireWorkspaceSection: async () => ({ workspace: { id: "workspace-1" }, membership: { role: "OWNER" }, subscription: { plan: { features: ["csv_exports", "workspace_exports", "checkin_activity"] } } }) },
   });
   const html = renderToStaticMarkup(await page.default({ searchParams: Promise.resolve({}) }));
   assert.ok(html.replace(/<[^>]*>/g, "").includes(`ID: ${ticket.displayId}`));

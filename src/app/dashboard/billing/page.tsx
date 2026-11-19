@@ -1,9 +1,11 @@
 import Link from "next/link";
-import { ArrowRight, CreditCard, ExternalLink, Gift, ReceiptText, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, Check, CreditCard, ExternalLink, Gift, ReceiptText, ShieldCheck, Sparkles } from "lucide-react";
 import { getPrisma } from "@/lib/prisma";
-import { getDashboardSummary, requireWorkspaceContext } from "@/lib/workspace";
+import { requireWorkspaceSection } from "@/lib/workspace";
 import { getPreferences } from "@/lib/preferences";
 import { localizeNode } from "@/lib/localization";
+import { getPlanFeatureLabels } from "@/lib/plan-features";
+import { PlanPrice, PlanPricingPeriod } from "@/components/plan-pricing-period";
 import { AnimatedMetric } from "@/components/animated-metric";
 import "./billing.css";
 
@@ -14,10 +16,16 @@ const money = (cents: number | null, locale: string, currency = "PHP") => {
 
 export default async function BillingPage() {
   const { locale } = await getPreferences();
-  const context = await requireWorkspaceContext();
+  const context = await requireWorkspaceSection("billing");
   const prisma = getPrisma();
-  const [summary, plans, subscription] = await Promise.all([
-    getDashboardSummary(context.workspace.id),
+  const [activeEvents, plans, subscription] = await Promise.all([
+    prisma.event.count({
+      where: {
+        workspaceId: context.workspace.id,
+        archivedAt: null,
+        status: { in: ["PUBLISHED", "REGISTRATION_OPEN", "ONGOING"] },
+      },
+    }),
     prisma.plan.findMany({ where: { isActive: true }, orderBy: { monthlyPriceCents: "asc" } }),
     prisma.subscription.findUnique({
       where: { workspaceId: context.workspace.id },
@@ -30,9 +38,11 @@ export default async function BillingPage() {
   ]);
   const eventLimit = subscription?.plan.activeEventLimit;
   const PlanIcon = subscription?.plan.code === "FREE" ? Gift : Sparkles;
-  const usagePercent = eventLimit
-    ? Math.min(Math.round((summary.activeEvents / eventLimit) * 100), 100)
-    : 0;
+  const usagePercent = eventLimit == null
+    ? null
+    : eventLimit === 0
+      ? 0
+      : Math.min(Math.round((activeEvents / eventLimit) * 100), 100);
 
   return localizeNode((
     <div className="billing-page">
@@ -42,8 +52,8 @@ export default async function BillingPage() {
           <div className="panel-heading-row"><div><h2>Current plan</h2><p>Your workspace subscription.</p></div><span className="status-pill status-active">{subscription?.status.toLowerCase().replaceAll("_", " ") ?? "no plan"}</span></div>
           <div className="current-plan-name"><span className="plan-summary-mark"><PlanIcon aria-hidden="true" size={21} /></span><span><strong>{subscription?.plan.name ?? "No plan assigned"}</strong><small>{money(subscription?.plan.monthlyPriceCents ?? null, locale)} / month</small></span></div>
           <div className="billing-usage">
-            <div className="billing-usage-heading"><span>Active events</span><strong><AnimatedMetric locale={locale} value={summary.activeEvents} /> <small>/ {eventLimit ?? "Unlimited"}</small></strong></div>
-            <div className="usage-bar"><span style={{ width: `${usagePercent}%` }} /></div>
+            <div className="billing-usage-heading"><span>Active events</span><strong><AnimatedMetric locale={locale} value={activeEvents} /> <small>/ {eventLimit ?? "Unlimited"}</small></strong></div>
+            {usagePercent !== null && <div className="usage-bar"><span style={{ width: `${usagePercent}%` }} /></div>}
             <div className="billing-usage-heading attendee-limit"><span>Attendee limit per event</span><strong>{subscription?.plan.attendeePerEventLimit != null ? <AnimatedMetric locale={locale} value={subscription.plan.attendeePerEventLimit} /> : "Unlimited"}</strong></div>
           </div>
           <div className="billing-period"><span>Billing period</span><strong>{subscription?.billingPeriodStart ? new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(subscription.billingPeriodStart) : "Not available"}{subscription?.billingPeriodEnd ? ` – ${new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(subscription.billingPeriodEnd)}` : ""}</strong></div>
@@ -55,24 +65,32 @@ export default async function BillingPage() {
           {subscription?.paymentMethods.length ? subscription.paymentMethods.map((method) => (
             <div className="payment-method-row" key={method.id}><span className="payment-method-icon"><CreditCard size={16} /></span><span><strong>{method.brand ?? "Card"} ending in {method.last4 ?? "••••"}</strong><small>{method.expirationMonth && method.expirationYear ? `Expires ${method.expirationMonth}/${method.expirationYear}` : "Saved payment method"}</small></span>{method.isDefault && <span className="default-method">Default</span>}</div>
           )) : <div className="billing-empty"><CreditCard size={18} /><span>No payment method on file.</span></div>}
-          <p className="provider-note">No payment provider is connected yet. Guest ticket payments and SaaS subscription billing remain separate.</p>
+          <p className="provider-note">No payment provider is connected yet. SaaS subscription billing is not active.</p>
         </section>
       </div>
 
       <section className="app-panel plan-options-panel">
-        <div className="panel-heading-row"><div><h2>Plans</h2><p>Plan names, prices, limits, and entitlements are stored in the database.</p></div></div>
-        <div className="plan-options-grid">
-          {plans.map((plan) => (
-            <article className={`plan-option${plan.id === subscription?.planId ? " current" : ""}`} key={plan.id}>
-              <span className="plan-option-tag">{plan.id === subscription?.planId ? "CURRENT PLAN" : plan.code}</span>
-              <h3>{plan.name}</h3>
-              <p>{plan.description}</p>
-              <strong className="plan-option-price">{money(plan.monthlyPriceCents, locale)}<small> / month</small></strong>
-              <span className="plan-option-limit">{plan.activeEventLimit ?? "Unlimited"} active events · {plan.attendeePerEventLimit?.toLocaleString() ?? "Unlimited"} attendees / event</span>
-              <button className="plan-upgrade-button" disabled type="button">{plan.id === subscription?.planId ? "Current plan" : "Provider not configured"} <ExternalLink size={12} /></button>
-            </article>
-          ))}
-        </div>
+        <PlanPricingPeriod
+          header={
+            <div className="panel-heading-row"><div><h2>Plans</h2><p>Compare plan limits and features. Annual billing includes two months free.</p></div></div>
+          }
+        >
+          <div className="plan-options-grid">
+            {plans.map((plan) => (
+              <article className={`plan-option${plan.id === subscription?.planId ? " current" : ""}`} key={plan.id}>
+                <span className="plan-option-tag">{plan.id === subscription?.planId ? "CURRENT PLAN" : plan.code}</span>
+                <h3>{plan.name}</h3>
+                <p>{plan.description}</p>
+                <PlanPrice className="plan-option-price-display" locale={locale} monthlyPriceCents={plan.monthlyPriceCents} />
+                <span className="plan-option-limit">{plan.activeEventLimit ?? "Unlimited"} active events · {plan.attendeePerEventLimit?.toLocaleString(locale) ?? "Unlimited"} attendees / event</span>
+                <ul className="plan-option-features">
+                  {getPlanFeatureLabels(plan.features).map((feature) => <li key={feature}><Check aria-hidden="true" size={13} />{feature}</li>)}
+                </ul>
+                <button className="plan-upgrade-button" disabled type="button">{plan.id === subscription?.planId ? "Current plan" : "Provider not configured"} <ExternalLink size={12} /></button>
+              </article>
+            ))}
+          </div>
+        </PlanPricingPeriod>
       </section>
 
       <section className="app-panel invoice-panel">

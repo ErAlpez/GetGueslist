@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import ts from "typescript";
+import { z } from "zod";
 
 const require = createRequire(import.meta.url);
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -71,11 +72,13 @@ function registrationHarness({ manual = false, existingAttendee = false, emailFa
     attendee: {
       findUnique: async () => existingAttendee ? { id: "attendee-1" } : null,
       create: async ({ data }) => { created.attendee = data; return { id: "attendee-1" }; },
+      update: async ({ data }) => { created.attendeeUpdate = data; return { id: "attendee-1" }; },
     },
     ticketType: { findFirst: async () => ({ id: "type-1", capacity: null }) },
     activityLog: { create: async ({ data }) => { created.activity = data; } },
+    ticket: { create: async ({ data }) => { created.ticket = data; return { id: data.id, displayId: "12345678" }; } },
   };
-  const action = load(manual ? "src/app/dashboard/guestlist/actions.ts" : "src/app/register/[eventId]/actions.ts", {
+  const action = load(manual ? "src/app/dashboard/attendees/actions.ts" : "src/app/register/[eventId]/actions.ts", {
     "next/navigation": { redirect: (url) => { throw new Error(`redirect:${url}`); } },
     "@/lib/prisma": { getPrisma: () => ({ $transaction: async (callback) => { const result = await callback(transaction); committed = true; return result; } }) },
     "@/lib/registration-form": {},
@@ -88,6 +91,40 @@ function registrationHarness({ manual = false, existingAttendee = false, emailFa
       sentEmails.push(email);
       if (emailFails) throw new Error("Delivery failed");
     } },
+    "@/lib/guest-registration": {
+      attendeeInput: z.object({
+        eventId: z.string(),
+        firstName: z.string(),
+        lastName: z.string(),
+        email: z.string(),
+        phone: z.string(),
+        age: details.registrationAge,
+        gender: details.registrationGender,
+        category: z.enum(categories.attendeeCategories),
+      }),
+      createGuestRegistration: async (input) => {
+        const registration = await transaction.eventRegistration.create({
+          data: {
+            eventId: input.eventId,
+            attendeeId: "attendee-1",
+            category: input.category,
+            age: input.age,
+            gender: input.gender,
+            rsvpStatus: "ACCEPTED",
+            registrationSource: "manual",
+          },
+        });
+        created.registration = {
+          age: input.age,
+          gender: input.gender,
+          category: input.category,
+          registrationSource: "manual",
+          ...registration,
+        };
+        return { ticketId: "ticket-token" };
+      },
+      rolesAllowedToRegister: new Set(["OWNER", "ADMIN", "MANAGER"]),
+    },
     "@/lib/workspace": { getWorkspaceContext: async () => ({ workspace: { id: "workspace-1" }, user: { id: "user-1" }, membership: { role: "MANAGER" } }) },
   })[manual ? "registerAttendeeAction" : "registerForEventAction"];
   return { action, created, sentEmails };
@@ -158,7 +195,7 @@ test("manual and public forms show optional age and gender fields", () => {
   const manualForm = load("src/components/attendee-form.tsx", {
     react,
     "next/link": { __esModule: true, default: ({ children, ...props }) => React.createElement("a", props, children) },
-    "@/app/dashboard/guestlist/actions": {},
+    "@/app/dashboard/attendees/actions": {},
     "@/components/preferences-provider": { usePreferences: () => ({ locale: "en" }) },
     "@/lib/localization": localization,
     "@/lib/attendee-categories": categories,
@@ -211,7 +248,7 @@ test("both registration paths accept blank fields and reject invalid ages and ge
 
 test("guestlist export includes the saved details without dropping legacy columns", async () => {
   const route = load("src/app/api/guestlist/export/route.ts", {
-    "@/lib/workspace": { getWorkspaceContext: async () => ({ workspace: { id: "workspace-1" } }) },
+    "@/lib/workspace": { getWorkspaceContext: async () => ({ workspace: { id: "workspace-1" }, membership: { role: "OWNER" }, subscription: { plan: { features: ["csv_exports", "workspace_exports", "checkin_activity"] } } }) },
     "@/lib/prisma": {
       getPrisma: () => ({
         eventRegistration: {

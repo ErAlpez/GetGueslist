@@ -109,10 +109,11 @@ export function EventLogoForm({ eventId, logo }: { eventId: string; logo: string
           <button className="button button-dark app-primary-button" disabled={!imageData || imageData === savedLogo || processing || pending} type="submit">
             {pending ? <LoaderCircle aria-hidden="true" className="spin" size={14} /> : <Save aria-hidden="true" size={14} />} {t("Save logo")}
           </button>
-          <ConfirmButton className="button button-light event-logo-remove" disabled={!savedLogo || processing || pending}
+          <ConfirmButton aria-label={t("Remove logo")} className="button button-light event-logo-remove"
+            disabled={!savedLogo || processing || pending} title={t("Remove logo")}
             message="Remove this event logo?"
             name="removeLogo" onClick={() => { setImageData(""); setClientError(""); }} type="submit" value="true">
-            <Trash2 aria-hidden="true" size={14} /> {t("Remove logo")}
+            <Trash2 aria-hidden="true" size={14} />
           </ConfirmButton>
           {showFeedback && !pending && state.success && <FormSaveSuccess message={t(state.success)} />}
         </div>

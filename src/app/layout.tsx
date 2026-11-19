@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Noto_Sans_Arabic, Outfit } from "next/font/google";
 import { MotionEnhancements } from "@/components/motion-enhancements";
+import { PwaRuntime } from "@/components/pwa-runtime";
+import { WebsiteAnalyticsTracker } from "@/components/website-analytics-tracker";
+import { AnalyticsConsent } from "@/components/analytics-consent";
 import { PreferencesProvider } from "@/components/preferences-provider";
 import { getPreferences } from "@/lib/preferences";
 import "./globals.css";
@@ -10,8 +13,8 @@ const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit", display: 
 
 export const metadata: Metadata = {
   title: {
-    default: "Guestlist — Every guest. Every event. Under control.",
-    template: "%s | Guestlist",
+    default: "VenuGuestPass — Every guest. Every event. Under control.",
+    template: "%s | VenuGuestPass",
   },
   description:
     "Manage registrations, invitations, guestlists, tickets, and attendance in one powerful event management workspace.",
@@ -24,8 +27,11 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
 
   return (
     <html className="h-full antialiased" data-theme={theme} dir={direction} lang={locale} suppressHydrationWarning>
-      <body className={`${arabic.variable} ${outfit.variable} min-h-full`}>
+      <body className={`${arabic.variable} ${outfit.variable} min-h-full`} suppressHydrationWarning>
         <PreferencesProvider initialLocale={locale} initialTheme={theme}>
+          <PwaRuntime />
+          <WebsiteAnalyticsTracker />
+          <AnalyticsConsent />
           {children}
           <MotionEnhancements />
         </PreferencesProvider>

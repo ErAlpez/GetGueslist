@@ -12,7 +12,7 @@ export default async function ResetPasswordPage({ searchParams }: ResetPasswordP
 
   return localizeNode((
     <main className="auth-page">
-      <Link className="auth-back" href="/">← Back to Guestlist</Link>
+      <Link className="auth-back" href="/">← Back to VenuGuestPass</Link>
       <AuthForm
         authError={params.error ? "This password reset link is invalid or expired. Request a new link." : undefined}
         mode="reset-password"

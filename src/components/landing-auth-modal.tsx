@@ -83,7 +83,7 @@ export function LandingAuthModal({
       {children}
       {!authenticated && (
         <dialog
-          aria-label="Sign in or create a Guestlist account"
+          aria-label="Sign in or create a VenuGuestPass account"
           className="landing-auth-dialog"
           onClick={(event) => {
             if (event.target === event.currentTarget) {

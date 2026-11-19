@@ -7,6 +7,7 @@ import {
   isSameOriginRequest,
   mobileCheckinPairingLifetimeMs,
 } from "@/lib/mobile-checkin";
+import { workspaceRoleHasPermission } from "@/lib/workspace-roles";
 
 const createPairingSchema = z.object({
   eventId: z.string().min(1).max(191),
@@ -17,15 +18,11 @@ const revokeSchema = z.object({
   accessId: z.string().min(1).max(191),
 });
 
-function isAccessManager(role: string) {
-  return role === "OWNER" || role === "ADMIN";
-}
-
 export async function GET(request: Request) {
   const context = await getWorkspaceContext();
   if (!context) return Response.json({ error: "Authentication required." }, { status: 401 });
-  if (!isAccessManager(context.membership.role)) {
-    return Response.json({ error: "Only workspace owners and admins can manage phone scanners." }, { status: 403 });
+  if (!workspaceRoleHasPermission(context.membership.role, "checkin.pair_device")) {
+    return Response.json({ error: "You don’t have permission to pair a check-in phone." }, { status: 403 });
   }
 
   const eventId = new URL(request.url).searchParams.get("eventId")?.trim() ?? "";
@@ -36,6 +33,7 @@ export async function GET(request: Request) {
     where: {
       workspaceId: context.workspace.id,
       eventId,
+      ...(!workspaceRoleHasPermission(context.membership.role, "workspace.manage") && { createdById: context.user.id }),
       revokedAt: null,
       OR: [
         { sessionExpiresAt: { gt: now } },
@@ -64,8 +62,8 @@ export async function POST(request: Request) {
 
   const context = await getWorkspaceContext();
   if (!context) return Response.json({ error: "Authentication required." }, { status: 401 });
-  if (!isAccessManager(context.membership.role)) {
-    return Response.json({ error: "Only workspace owners and admins can manage phone scanners." }, { status: 403 });
+  if (!workspaceRoleHasPermission(context.membership.role, "checkin.pair_device")) {
+    return Response.json({ error: "You don’t have permission to pair a check-in phone." }, { status: 403 });
   }
 
   let body: unknown;
@@ -116,8 +114,8 @@ export async function DELETE(request: Request) {
 
   const context = await getWorkspaceContext();
   if (!context) return Response.json({ error: "Authentication required." }, { status: 401 });
-  if (!isAccessManager(context.membership.role)) {
-    return Response.json({ error: "Only workspace owners and admins can manage phone scanners." }, { status: 403 });
+  if (!workspaceRoleHasPermission(context.membership.role, "workspace.manage")) {
+    return Response.json({ error: "Only workspace owners and admins can revoke phone scanner access." }, { status: 403 });
   }
 
   let body: unknown;

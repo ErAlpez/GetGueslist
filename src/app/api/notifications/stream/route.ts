@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { getPrisma } from "@/lib/prisma";
 import { getWorkspaceContext } from "@/lib/workspace";
+import { workspaceRoleCanAccessSection } from "@/lib/workspace-roles";
 
-const pollInterval = 2_000;
+const pollInterval = 5_000;
 const heartbeatInterval = 15_000;
 
 export async function GET() {
@@ -12,6 +13,9 @@ export async function GET() {
       { error: "Authentication required." },
       { status: 401, headers: { "Cache-Control": "private, no-store" } },
     );
+  }
+  if (!workspaceRoleCanAccessSection(context.membership.role, "overview")) {
+    return NextResponse.json({ error: "You don’t have permission to view notifications." }, { status: 403 });
   }
 
   const prisma = getPrisma();

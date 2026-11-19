@@ -41,7 +41,7 @@ function harness() {
   };
 }
 
-const log = (id) => ({ id, name: `Guest ${id}`, method: "QR", time: "1:00 PM" });
+const log = (id) => ({ id, name: `Guest ${id}`, method: "QR", checkpointClaims: [], time: "1:00 PM" });
 
 test("highlights newly arrived rows, not existing rows, across refreshes", () => {
   const render = harness();

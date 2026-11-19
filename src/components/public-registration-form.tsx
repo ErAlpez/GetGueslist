@@ -11,10 +11,16 @@ const initialState: PublicRegistrationState = {};
 
 export function PublicRegistrationForm({
   eventId,
-  questions,
+  questions = [],
+  rsvp = null,
+  mealOptions = [],
+  sessions = [],
 }: {
   eventId: string;
-  questions: RegistrationFormQuestion[];
+  questions?: RegistrationFormQuestion[];
+  rsvp?: { allowMaybe: boolean } | null;
+  mealOptions?: string[];
+  sessions?: Array<{ id: string; name: string; startsAt?: string }>;
 }) {
   const { t } = usePreferences();
   const [state, formAction, pending] = useActionState(registerForEventAction, initialState);
@@ -60,6 +66,37 @@ export function PublicRegistrationForm({
           {attendeeCategories.map((category) => <option key={category} value={category}>{t(attendeeCategoryLabels[category])}</option>)}
         </select>
       </label>
+      {rsvp && (
+        <label className="public-registration-field">
+          RSVP
+          <select defaultValue="PENDING" name="rsvpStatus" required>
+            <option value="PENDING">Pending</option>
+            <option value="ACCEPTED">Attending</option>
+            <option value="DECLINED">Not attending</option>
+            {rsvp.allowMaybe && <option value="MAYBE">Maybe</option>}
+          </select>
+        </label>
+      )}
+      {mealOptions.length > 0 && (
+        <label className="public-registration-field">
+          Meal preference
+          <select defaultValue="" name="mealChoice" required>
+            <option disabled value="">Choose a meal</option>
+            {mealOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+          </select>
+        </label>
+      )}
+      {sessions.length > 0 && (
+        <fieldset className="public-registration-field public-registration-sessions">
+          <legend>Sessions</legend>
+          {sessions.map((session) => (
+            <label key={session.id}>
+              <input name="sessionId" type="checkbox" value={session.id} />
+              <span>{session.name}{session.startsAt ? ` — ${session.startsAt}` : ""}</span>
+            </label>
+          ))}
+        </fieldset>
+      )}
       {questions.map((question) => {
         const name = `question_${question.id}`;
         if (question.type === "CHECKBOX") {

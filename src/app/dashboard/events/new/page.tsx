@@ -3,8 +3,10 @@ import { ChevronRight } from "lucide-react";
 import { EventForm } from "@/components/event-form";
 import { getPreferences } from "@/lib/preferences";
 import { localizeNode } from "@/lib/localization";
+import { requireWorkspacePermission } from "@/lib/workspace";
 
 export default async function NewEventPage() {
+  await requireWorkspacePermission("events.manage", "/dashboard/events");
   const { locale } = await getPreferences();
   return localizeNode((
     <div className="event-editor-page">

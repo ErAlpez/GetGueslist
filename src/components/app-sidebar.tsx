@@ -2,12 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { WorkspaceRole } from "@prisma/client";
 import {
   BarChart3,
   CalendarDays,
   CircleHelp,
   CreditCard,
+  Files,
   LayoutDashboard,
+  LockKeyhole,
   PanelLeftClose,
   PanelLeftOpen,
   ScanLine,
@@ -16,31 +19,46 @@ import {
   UsersRound,
 } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
+import { BrandMark } from "@/components/brand-mark";
 import { usePreferences } from "@/components/preferences-provider";
 import { FeedbackDialog } from "@/components/feedback-dialog";
+import { workspaceRoleCanAccessSection } from "@/lib/workspace-roles";
 import "./app-sidebar.css";
 
 const navigation = [
-  { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
-  { label: "My events", href: "/dashboard/events", icon: CalendarDays },
-  { label: "Guestlist", href: "/dashboard/guestlist", icon: UsersRound },
-  { label: "Tickets", href: "/dashboard/tickets", icon: Ticket },
-  { label: "Check-in", href: "/dashboard/check-in", icon: ScanLine },
-  { label: "Reports & analytics", href: "/dashboard/reports", icon: BarChart3 },
-];
+  { label: "Overview", href: "/dashboard", section: "overview", icon: LayoutDashboard },
+  { label: "My events", href: "/dashboard/events", section: "events", icon: CalendarDays },
+  { label: "Attendees", href: "/dashboard/attendees", section: "attendees", icon: UsersRound },
+  { label: "Tickets", href: "/dashboard/tickets", section: "tickets", icon: Ticket },
+  { label: "Check-in", href: "/dashboard/check-in", section: "check-in", icon: ScanLine },
+  { label: "Reports & analytics", href: "/dashboard/reports", section: "reports", icon: BarChart3 },
+] as const;
 
 const workspaceNavigation = [
-  { label: "Subscription & billing", href: "/dashboard/billing", icon: CreditCard },
-  { label: "Settings", href: "/dashboard/settings", icon: Settings2 },
-];
+  { label: "Workspace files", href: "/dashboard/files", section: "files", icon: Files },
+  { label: "Subscription & billing", href: "/dashboard/billing", section: "billing", icon: CreditCard },
+  { label: "Settings", href: "/dashboard/settings", section: "settings", icon: Settings2 },
+] as const;
 
-export function AppSidebar() {
+export function AppSidebar({
+  canContactSupport,
+  isSuperAdmin,
+  isWorkspaceOwner,
+  workspaceRole,
+}: {
+  canContactSupport: boolean;
+  isSuperAdmin: boolean;
+  isWorkspaceOwner: boolean;
+  workspaceRole: WorkspaceRole;
+}) {
   const pathname = usePathname();
   const { t } = usePreferences();
   const [collapsed, setCollapsed] = useState(false);
   const navRef = useRef<HTMLElement>(null);
   const indicatorRef = useRef<HTMLSpanElement>(null);
   const collapseLabel = t(collapsed ? "Expand sidebar" : "Collapse sidebar");
+  const visibleNavigation = navigation.filter(({ section }) => workspaceRoleCanAccessSection(workspaceRole, section));
+  const visibleWorkspaceNavigation = workspaceNavigation.filter(({ section }) => workspaceRoleCanAccessSection(workspaceRole, section));
 
   useLayoutEffect(() => {
     const nav = navRef.current;
@@ -78,8 +96,8 @@ export function AppSidebar() {
   return (
     <aside className={`app-sidebar${collapsed ? " is-collapsed" : ""}`}>
       <div className="sidebar-brand-row">
-        <Link aria-label="Guestlist home" className="app-brand" data-tooltip={collapsed ? t("Guestlist home") : undefined} href="/dashboard">
-          <span className="brand-mark"><span /></span><span className="app-brand-name">Guestlist</span>
+        <Link aria-label="VenuGuestPass home" className="app-brand" data-tooltip={collapsed ? t("VenuGuestPass home") : undefined} href="/dashboard">
+          <BrandMark /><span className="app-brand-name">VenuGuestPass</span>
         </Link>
         <button
           aria-expanded={!collapsed}
@@ -94,25 +112,53 @@ export function AppSidebar() {
       </div>
       <nav aria-label="Workspace navigation" className="app-nav" ref={navRef}>
         <span aria-hidden="true" className="app-nav-indicator" ref={indicatorRef} />
-        <span className="app-nav-label">{t("WORKSPACE")}</span>
-        {navigation.map(({ label, href, icon: Icon }) => {
-          const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(`${href}/`));
-          return (
-            <Link aria-current={active ? "page" : undefined} aria-label={t(label)} className={`app-nav-link${active ? " active" : ""}`} data-tooltip={collapsed ? t(label) : undefined} href={href} key={href}>
-              <Icon size={16} strokeWidth={1.8} /><span>{t(label)}</span>
+        {visibleNavigation.length > 0 && (
+          <>
+            <span className="app-nav-label">{t("WORKSPACE")}</span>
+            {visibleNavigation.map(({ label, href, icon: Icon }) => {
+              const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(`${href}/`));
+              return (
+                <Link aria-current={active ? "page" : undefined} aria-label={t(label)} className={`app-nav-link${active ? " active" : ""}`} data-tooltip={collapsed ? t(label) : undefined} href={href} key={href}>
+                  <Icon size={16} strokeWidth={1.8} /><span>{t(label)}</span>
+                </Link>
+              );
+            })}
+          </>
+        )}
+        {visibleWorkspaceNavigation.length > 0 && (
+          <>
+            <span className="app-nav-label app-nav-label-spaced">{t("MANAGE")}</span>
+            {visibleWorkspaceNavigation.map(({ label, href, icon: Icon }) => {
+              const active = pathname === href;
+              return <Link aria-current={active ? "page" : undefined} aria-label={t(label)} className={`app-nav-link${active ? " active" : ""}`} data-tooltip={collapsed ? t(label) : undefined} href={href} key={href}><Icon size={16} strokeWidth={1.8} /><span>{t(label)}</span></Link>;
+            })}
+          </>
+        )}
+        {isSuperAdmin && (
+          <>
+            <span className="app-nav-label app-nav-label-spaced">{t("PLATFORM")}</span>
+            <Link
+              aria-current={pathname.startsWith("/dashboard/admin/plans") ? "page" : undefined}
+              aria-label={t("Plan management")}
+              className={`app-nav-link${pathname.startsWith("/dashboard/admin/plans") ? " active" : ""}`}
+              data-tooltip={collapsed ? t("Plan management") : undefined}
+              href="/dashboard/admin/plans"
+            >
+              <LockKeyhole size={16} strokeWidth={1.8} /><span>{t("Plan management")}</span>
             </Link>
-          );
-        })}
-        <span className="app-nav-label app-nav-label-spaced">{t("MANAGE")}</span>
-        {workspaceNavigation.map(({ label, href, icon: Icon }) => {
-          const active = pathname === href;
-          return <Link aria-current={active ? "page" : undefined} aria-label={t(label)} className={`app-nav-link${active ? " active" : ""}`} data-tooltip={collapsed ? t(label) : undefined} href={href} key={href}><Icon size={16} strokeWidth={1.8} /><span>{t(label)}</span></Link>;
-        })}
-        <FeedbackDialog collapsed={collapsed} />
+          </>
+        )}
+        <FeedbackDialog collapsed={collapsed} isWorkspaceOwner={isWorkspaceOwner} />
       </nav>
       <div className="sidebar-bottom">
-        <div className="plan-nudge" data-tooltip={collapsed ? t("Need a hand?") : undefined}><span className="plan-nudge-icon"><CircleHelp size={15} /></span><strong>{t("Need a hand?")}</strong><p>{t("We’re here to help you get your event going.")}</p><a href="mailto:hello@guestlist.app">{t("Contact support")} <span>↗</span></a></div>
-        <div className="sidebar-footer">Guestlist <span>{t("Phase 1 preview")}</span></div>
+        <div className="plan-nudge" data-tooltip={collapsed ? t("Need a hand?") : undefined}>
+          <span className="plan-nudge-icon"><CircleHelp size={15} /></span><strong>{t("Need a hand?")}</strong>
+          <p>{canContactSupport ? t("We’re here to help you get your event going.") : t("Email support is available on Max.")}</p>
+          {canContactSupport
+            ? <a href="mailto:hello@guestlist.app">{t("Contact support")} <span>↗</span></a>
+            : <span className="plan-nudge-locked">{t("Max plan")}</span>}
+        </div>
+        <div className="sidebar-footer">VenuGuestPass <span>{t("Phase 1 preview")}</span></div>
       </div>
     </aside>
   );

@@ -7,6 +7,7 @@ export const landingNavigationItems = [
   { id: "check-in", label: "Check-in" },
   { id: "reports", label: "Reports" },
   { id: "pricing", label: "Pricing" },
+  { id: "reviews", label: "Reviews" },
   { id: "faq", label: "FAQ" },
   { id: "get-started", label: "Get started" },
 ] as const;

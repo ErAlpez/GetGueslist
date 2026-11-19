@@ -1,4 +1,12 @@
+.public-ticket-page {
+  font-family: var(--font-outfit), var(--font-arabic), Arial, Helvetica, sans-serif;
+}
+
 .public-ticket .public-ticket-guest p {
+  font-size: 14px !important;
+}
+
+.public-ticket-help {
   font-size: 14px !important;
 }
 
@@ -17,4 +25,55 @@ html[data-theme="light"] .public-ticket-email-error {
   border-color: #dfc494;
   color: #704b16;
   background: #fff6e3;
+}
+
+.public-ticket-certificate.download-action-wrap {
+  width: max-content;
+  max-width: 100%;
+  margin: 14px auto 0;
+}
+
+.public-ticket-nfc {
+  display: flex;
+  max-width: 220px;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.public-ticket-nfc > small {
+  color: #78857c;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.public-ticket-nfc > button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  color: #fff;
+  background: #277b68;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.public-ticket-nfc > button:disabled {
+  cursor: wait;
+  opacity: .8;
+}
+
+.public-ticket-nfc .public-ticket-nfc-status.success {
+  color: #34764d;
+}
+
+.public-ticket-nfc .public-ticket-nfc-status.error {
+  color: #a35248;
 }

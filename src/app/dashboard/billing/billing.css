@@ -218,15 +218,43 @@
   margin-top: 18px;
 }
 
+.app-shell .billing-page .plan-pricing-period-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.app-shell .billing-page .plan-pricing-period-header .panel-heading-row {
+  min-width: 0;
+  flex: 1 1 260px;
+  margin-bottom: 0;
+}
+
+.app-shell .billing-page .plan-pricing-period-header .plan-pricing-toggle {
+  width: max-content;
+  max-width: 100%;
+  flex: 0 0 auto;
+  margin: 0 0 0 auto;
+}
+
+.app-shell .billing-page .plan-pricing-period-header .plan-pricing-toggle .plan-pricing-save {
+  font-size: 9px !important;
+}
+
 .app-shell .billing-page .plan-options-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
   margin-top: 0;
 }
 
 .app-shell .billing-page .plan-option {
+  display: flex;
   min-width: 0;
   min-height: 230px;
+  flex-direction: column;
   padding: 18px;
   border: 1px solid var(--billing-border);
   border-radius: 14px;
@@ -255,30 +283,59 @@
 }
 
 .app-shell .billing-page .plan-option > p {
-  min-height: 38px;
-  margin-top: 7px;
+  min-height: 22px;
+  margin-top: 5px;
   color: var(--billing-muted);
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
 
-.app-shell .billing-page .plan-option-price {
-  margin-top: 16px;
+.app-shell .billing-page .plan-option-price-display {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  margin-top: 5px;
+}
+
+.app-shell .billing-page .plan-option-price-display strong {
   color: var(--billing-text);
   font-size: 18px !important;
   overflow-wrap: anywhere;
 }
 
-.app-shell .billing-page .plan-option-price small {
+.app-shell .billing-page .plan-option-price-display span {
   color: var(--billing-muted);
-  font-weight: 500;
+  font-size: 11px;
 }
 
 .app-shell .billing-page .plan-option-limit {
-  margin-top: 9px;
-  margin-bottom: 20px;
+  margin-top: 12px;
   color: var(--billing-muted);
+  font-size: 14px;
   line-height: 1.55;
+}
+
+.app-shell .billing-page .plan-option-features {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 20px;
+  padding: 0;
+  color: var(--billing-muted);
+  font-size: 14px;
+  list-style: none;
+}
+
+.app-shell .billing-page .plan-option-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  line-height: 1.45;
+}
+
+.app-shell .billing-page .plan-option-features svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: var(--billing-accent);
 }
 
 .app-shell .billing-page .plan-upgrade-button {

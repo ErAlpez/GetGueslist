@@ -1,4 +1,7 @@
+const LOCAL_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 const LOCAL_DATE_TIME = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/;
+const ALL_DAY_START_TIME = "00:00";
+const ALL_DAY_END_TIME = "23:59";
 
 export function formatEventDate(date: Date, timeZone: string, locale: string, includeYear = true) {
   return new Intl.DateTimeFormat(locale, {
@@ -12,12 +15,30 @@ export function formatEventDate(date: Date, timeZone: string, locale: string, in
   ).join("");
 }
 
+function formatEventDateTime(date: Date, timeZone: string, locale: string, includeYear: boolean, defaultTime: string) {
+  const localTime = new Intl.DateTimeFormat("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+    timeZone,
+  }).format(date);
+  const formattedDate = formatEventDate(date, timeZone, locale, includeYear);
+  if (localTime === defaultTime) return formattedDate;
+
+  const formattedTime = new Intl.DateTimeFormat(locale, {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone,
+  }).format(date);
+  return `${formattedDate}, ${formattedTime}`;
+}
+
 export function formatEventDateRange(startsAt: Date, endsAt: Date, timeZone: string, locale: string) {
   const yearFormatter = new Intl.DateTimeFormat(locale, { year: "numeric", timeZone });
   const sameYear = yearFormatter.format(startsAt) === yearFormatter.format(endsAt);
   return {
-    start: formatEventDate(startsAt, timeZone, locale, !sameYear),
-    end: formatEventDate(endsAt, timeZone, locale),
+    start: formatEventDateTime(startsAt, timeZone, locale, !sameYear, ALL_DAY_START_TIME),
+    end: formatEventDateTime(endsAt, timeZone, locale, true, ALL_DAY_END_TIME),
   };
 }
 
@@ -40,11 +61,22 @@ export function utcToLocalDateTime(date: Date, timeZone: string) {
 }
 
 export function localDateTimeToUtc(value: string, timeZone: string) {
-  const match = LOCAL_DATE_TIME.exec(value);
-  if (!match) throw new Error("Enter a valid date and time.");
+  const dateOnlyMatch = LOCAL_DATE.exec(value);
+  const dateTimeMatch = LOCAL_DATE_TIME.exec(value);
+  if (!dateOnlyMatch && !dateTimeMatch) throw new Error("Enter a valid date and time.");
 
+  const match = dateTimeMatch ?? dateOnlyMatch;
+  if (!match) throw new Error("Enter a valid date and time.");
   const target = match.slice(1).map(Number);
-  const [year, month, day, hour, minute] = target;
+  const [year, month, day, hour = 0, minute = 0] = target;
+  if (
+    month < 1 ||
+    month > 12 ||
+    day < 1 ||
+    day > new Date(Date.UTC(year, month, 0)).getUTCDate()
+  ) {
+    throw new Error("Enter valid event dates.");
+  }
   const desiredAsUtc = Date.UTC(year, month - 1, day, hour, minute);
   let candidate = desiredAsUtc;
   const formatter = new Intl.DateTimeFormat("en-US", {

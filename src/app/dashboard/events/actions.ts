@@ -7,11 +7,24 @@ import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 import { localDateTimeToUtc, utcToLocalDateTime } from "@/lib/datetime";
-import { exclusiveDateEnd, parseDateParam } from "@/lib/date-range";
+import { getAutomatedFollowupScheduledAt } from "@/lib/automated-followup-schedule";
+import {
+  detectEventAttachmentContentType,
+  maxEventAttachmentBytes,
+  maxEventAttachmentsPerEvent,
+  normalizeEventAttachmentFileName,
+} from "@/lib/event-attachment";
+import {
+  deleteSupabaseObject,
+  downloadSupabaseObject,
+  uploadSupabaseObject,
+} from "@/lib/supabase-storage";
 import { eventLogoPrefix, maxEventLogoDataLength } from "@/lib/event-logo";
 import { getPrisma } from "@/lib/prisma";
 import { readRegistrationQuestionOptions, registrationQuestionTypes } from "@/lib/registration-form";
 import { getWorkspaceContext } from "@/lib/workspace";
+import { workspaceRoleHasPermission } from "@/lib/workspace-roles";
+import { workspaceHasFeature } from "@/lib/plan-features";
 
 export type EventFormState = {
   error?: string;
@@ -22,10 +35,25 @@ export type RegistrationFormState = {
   success?: string;
 };
 
+export type EventCheckpointState = {
+  error?: "invalid" | "duplicate" | "capacity" | "missing";
+  success?: boolean;
+};
+
 export type EventLogoState = {
   error?: string;
   success?: string;
   logo?: string | null;
+};
+
+export type EventAttachmentActionState = {
+  error?: string;
+  success?: string;
+};
+
+export type EventModuleState = {
+  error?: string;
+  success?: string;
 };
 
 const registrationQuestionInput = z.object({
@@ -43,8 +71,8 @@ const eventInput = z.object({
   type: z.string().trim().min(1, "Choose an event type.").max(80),
   format: z.enum(["PHYSICAL", "VIRTUAL", "HYBRID"]),
   visibility: z.enum(["PUBLIC", "PRIVATE", "INVITE_ONLY"]),
-  startsAt: z.string().min(1, "Choose a start date."),
-  endsAt: z.string().min(1, "Choose an end date."),
+  startsAt: z.string().min(1, "Choose a start date and time."),
+  endsAt: z.string().min(1, "Choose an end date and time."),
   timezone: z.string().min(1, "Choose a timezone."),
   venue: z.string().trim().max(180),
   address: z.string().trim().max(500),
@@ -55,7 +83,11 @@ const eventInput = z.object({
   contactPhone: z.string().trim().max(40),
 });
 
-const permittedRoles = new Set(["OWNER", "ADMIN", "MANAGER"]);
+const checkpointInput = z.object({
+  name: z.string().trim().min(2, "Checkpoint names must have at least 2 characters.").max(80),
+  capacity: z.string().regex(/^\d*$/, "Capacity must be a positive whole number."),
+});
+
 const activeStatuses: EventStatus[] = ["PUBLISHED", "REGISTRATION_OPEN", "ONGOING"];
 const eventModules = [
   { key: "guest_registration", enabled: true },
@@ -99,39 +131,71 @@ function readEventDetails(
     return { error: "Capacity must be a positive whole number." } as const;
   }
 
-  const startDate = parseDateParam(input.startsAt);
-  const endDate = parseDateParam(input.endsAt);
-  const deadlineDate = input.registrationDeadline ? parseDateParam(input.registrationDeadline) : undefined;
-  if (!startDate || !endDate || (input.registrationDeadline && !deadlineDate)) {
-    return { error: "Enter valid event dates." } as const;
-  }
-  if (endDate < startDate) return { error: "The end date must be on or after the start date." } as const;
-  if (deadlineDate && deadlineDate > startDate) {
-    return { error: "The registration deadline must be on or before the start date." } as const;
-  }
-
   let startsAt: Date;
   let endsAt: Date;
   let registrationDeadline: Date | null = null;
   try {
-    const resolveDate = (value: string, date: Date, previous: Date | null | undefined, endOfDay: boolean) => {
-      if (previous && existing?.timezone === input.timezone && utcToLocalDateTime(previous, input.timezone).slice(0, 10) === value) {
-        return previous;
+    const resolveDateTime = (value: string, previous: Date | null | undefined) => {
+      const dateTimeValue = /^\d{4}-\d{2}-\d{2}$/.test(value)
+        ? `${value}T00:00`
+        : value;
+      if (previous && existing?.timezone === input.timezone) {
+        const previousLocal = utcToLocalDateTime(previous, input.timezone);
+        if (/^\d{4}-\d{2}-\d{2}$/.test(value)
+          ? previousLocal.slice(0, 10) === value
+          : previousLocal === value) {
+          return previous;
+        }
       }
-      const boundaryDate = endOfDay ? exclusiveDateEnd(date).toISOString().slice(0, 10) : value;
-      const boundary = localDateTimeToUtc(`${boundaryDate}T00:00`, input.timezone);
-      return endOfDay ? new Date(boundary.getTime() - 1) : boundary;
+      return localDateTimeToUtc(dateTimeValue, input.timezone);
     };
-    startsAt = resolveDate(input.startsAt, startDate, existing?.startsAt, false);
-    endsAt = resolveDate(input.endsAt, endDate, existing?.endsAt, true);
-    registrationDeadline = deadlineDate
-      ? resolveDate(input.registrationDeadline, deadlineDate, existing?.registrationDeadline, true)
+    startsAt = resolveDateTime(input.startsAt, existing?.startsAt);
+    endsAt = existing?.timezone === input.timezone
+      && /^\d{4}-\d{2}-\d{2}$/.test(input.endsAt)
+      && existing
+      && utcToLocalDateTime(existing.endsAt, input.timezone).slice(0, 10) === input.endsAt
+      ? existing.endsAt
+      : resolveDateTime(
+          /^\d{4}-\d{2}-\d{2}$/.test(input.endsAt) ? `${input.endsAt}T23:59` : input.endsAt,
+          existing?.endsAt,
+        );
+    if (/^\d{4}-\d{2}-\d{2}$/.test(input.endsAt) &&
+        !(existing?.timezone === input.timezone &&
+          existing &&
+          utcToLocalDateTime(existing.endsAt, input.timezone).slice(0, 10) === input.endsAt)) {
+      endsAt = new Date(endsAt.getTime() + 59_999);
+    }
+    registrationDeadline = input.registrationDeadline
+      ? existing?.timezone === input.timezone
+        && /^\d{4}-\d{2}-\d{2}$/.test(input.registrationDeadline)
+        && existing.registrationDeadline
+        && utcToLocalDateTime(existing.registrationDeadline, input.timezone).slice(0, 10) === input.registrationDeadline
+        ? existing.registrationDeadline
+        : resolveDateTime(
+            /^\d{4}-\d{2}-\d{2}$/.test(input.registrationDeadline)
+              ? `${input.registrationDeadline}T23:59`
+              : input.registrationDeadline,
+            existing?.registrationDeadline,
+          )
       : null;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(input.registrationDeadline) && registrationDeadline) {
+      const unchangedDeadline = existing?.timezone === input.timezone &&
+        existing.registrationDeadline &&
+        utcToLocalDateTime(existing.registrationDeadline, input.timezone).slice(0, 10) === input.registrationDeadline;
+      if (!unchangedDeadline) registrationDeadline = new Date(registrationDeadline.getTime() + 59_999);
+    }
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Enter valid event dates." } as const;
   }
 
   if (endsAt <= startsAt) return { error: "The end date must be after the start date." } as const;
+  if (registrationDeadline) {
+    const startDate = utcToLocalDateTime(startsAt, input.timezone).slice(0, 10);
+    const deadlineDate = utcToLocalDateTime(registrationDeadline, input.timezone).slice(0, 10);
+    if (deadlineDate > startDate) {
+      return { error: "The registration deadline must be on or before the start date." } as const;
+    }
+  }
 
   return { input, capacity, startsAt, endsAt, registrationDeadline } as const;
 }
@@ -142,7 +206,7 @@ export async function createEventAction(
 ): Promise<EventFormState> {
   const context = await getWorkspaceContext();
   if (!context) redirect("/login");
-  if (!permittedRoles.has(context.membership.role)) {
+  if (!workspaceRoleHasPermission(context.membership.role, "events.manage")) {
     return { error: "You don’t have permission to create events in this workspace." };
   }
 
@@ -230,7 +294,7 @@ export async function updateEventAction(
 ): Promise<EventFormState> {
   const context = await getWorkspaceContext();
   if (!context) redirect("/login");
-  if (!permittedRoles.has(context.membership.role)) {
+  if (!workspaceRoleHasPermission(context.membership.role, "events.manage")) {
     return { error: "You don’t have permission to edit events in this workspace." };
   }
 
@@ -271,6 +335,36 @@ export async function updateEventAction(
       },
     });
     if (!result.count) return false;
+    await transaction.automatedEmailDelivery.updateMany({
+      where: {
+        registration: { eventId: event.id },
+        kind: "PRE_EVENT_REMINDER",
+        status: { in: ["PENDING", "FAILED"] },
+      },
+      data: {
+        scheduledAt: getAutomatedFollowupScheduledAt("PRE_EVENT_REMINDER", startsAt, endsAt),
+        status: "PENDING",
+        attempts: 0,
+        nextAttemptAt: null,
+        lockedAt: null,
+        lastError: null,
+      },
+    });
+    await transaction.automatedEmailDelivery.updateMany({
+      where: {
+        registration: { eventId: event.id },
+        kind: "POST_EVENT_FOLLOWUP",
+        status: { in: ["PENDING", "FAILED"] },
+      },
+      data: {
+        scheduledAt: getAutomatedFollowupScheduledAt("POST_EVENT_FOLLOWUP", startsAt, endsAt),
+        status: "PENDING",
+        attempts: 0,
+        nextAttemptAt: null,
+        lockedAt: null,
+        lastError: null,
+      },
+    });
     await transaction.activityLog.create({
       data: {
         workspaceId: context.workspace.id,
@@ -284,7 +378,7 @@ export async function updateEventAction(
   });
 
   if (!updated) return { error: "This event has changed. Reload the page before saving your changes." };
-  for (const path of ["/dashboard", "/dashboard/events", "/dashboard/guestlist", "/dashboard/tickets", "/dashboard/check-in", "/dashboard/reports", `/dashboard/events/${event.id}`, `/register/${event.id}`]) {
+  for (const path of ["/dashboard", "/dashboard/events", "/dashboard/attendees", "/dashboard/tickets", "/dashboard/check-in", "/dashboard/reports", `/dashboard/events/${event.id}`, `/register/${event.id}`]) {
     revalidatePath(path);
   }
   redirect(`/dashboard/events/${event.id}?updated=1`);
@@ -293,7 +387,7 @@ export async function updateEventAction(
 async function getEventActionContext() {
   const context = await getWorkspaceContext();
   if (!context) redirect("/login");
-  if (!permittedRoles.has(context.membership.role)) {
+  if (!workspaceRoleHasPermission(context.membership.role, "events.manage")) {
     redirect("/dashboard/events?error=permission");
   }
   return context;
@@ -305,9 +399,27 @@ function getEventId(formData: FormData) {
   return eventId;
 }
 
+async function restoreEventAttachmentObjects(
+  attachments: Array<{ path: string; contentType: string; bytes: Uint8Array }>,
+) {
+  let failed = false;
+  for (const attachment of attachments) {
+    try {
+      await uploadSupabaseObject(attachment.path, attachment.bytes, attachment.contentType);
+    } catch (error) {
+      failed = true;
+      console.error("Event attachment restoration failed.", error);
+    }
+  }
+  if (failed) throw new Error("One or more event attachments could not be restored to Supabase Storage.");
+}
+
 export async function publishEventAction(formData: FormData) {
   const context = await getEventActionContext();
   const eventId = getEventId(formData);
+  if (!workspaceHasFeature(context.subscription, "event_lifecycle")) {
+    redirect(`/dashboard/events/${eventId}?error=plan_feature`);
+  }
   const prisma = getPrisma();
 
   const result = await prisma.$transaction(async (transaction) => {
@@ -417,6 +529,9 @@ export async function saveEventLogoAction(
   const context = await getEventActionContext();
   const eventId = getEventId(formData);
   const remove = formData.get("removeLogo") === "true";
+  if (!remove && !workspaceHasFeature(context.subscription, "event_branding")) {
+    return { error: "Event branding requires the Starter plan or higher." };
+  }
   let logo: string | null = null;
   if (!remove) {
     const raw = formData.get("imageData");
@@ -471,11 +586,205 @@ export async function saveEventLogoAction(
   return { success: remove ? "Event logo removed." : "Event logo saved.", logo };
 }
 
+export async function uploadEventAttachmentAction(
+  _previousState: EventAttachmentActionState,
+  formData: FormData,
+): Promise<EventAttachmentActionState> {
+  const context = await getEventActionContext();
+  const eventId = getEventId(formData);
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: "Choose a PDF or image to upload." };
+  }
+  if (file.size > maxEventAttachmentBytes) {
+    return { error: "Files can’t exceed 2 MB." };
+  }
+
+  const data = Buffer.from(await file.arrayBuffer());
+  const contentType = detectEventAttachmentContentType(data);
+  if (!contentType) {
+    return { error: "This file type isn’t allowed. Upload a PDF, JPEG, PNG, or WebP image." };
+  }
+  const fileName = normalizeEventAttachmentFileName(file.name, contentType);
+  const prisma = getPrisma();
+  const event = await prisma.event.findFirst({
+    where: { id: eventId, workspaceId: context.workspace.id, archivedAt: null },
+    select: { id: true },
+  });
+  if (!event) notFound();
+  const attachmentCount = await prisma.eventAttachment.count({ where: { eventId: event.id } });
+  if (attachmentCount >= maxEventAttachmentsPerEvent) {
+    return { error: "This event has reached its attachment limit." };
+  }
+
+  const attachmentId = randomUUID();
+  const storagePath = `workspaces/${context.workspace.id}/events/${event.id}/${attachmentId}/${fileName}`;
+  try {
+    await uploadSupabaseObject(storagePath, data, contentType);
+  } catch (error) {
+    console.error("Event attachment upload to Supabase Storage failed.", error);
+    return { error: "File storage is unavailable or not configured. Try again after checking Supabase Storage settings." };
+  }
+
+  let result: "NOT_FOUND" | "LIMIT_REACHED" | "SAVED";
+  try {
+    result = await prisma.$transaction(async (transaction) => {
+      const currentEvent = await transaction.event.findFirst({
+        where: { id: eventId, workspaceId: context.workspace.id, archivedAt: null },
+        select: { id: true },
+      });
+      if (!currentEvent) return "NOT_FOUND";
+
+      const currentAttachmentCount = await transaction.eventAttachment.count({ where: { eventId: currentEvent.id } });
+      if (currentAttachmentCount >= maxEventAttachmentsPerEvent) return "LIMIT_REACHED";
+
+      await transaction.eventAttachment.create({
+        data: {
+          id: attachmentId,
+          eventId: event.id,
+          uploadedById: context.user.id,
+          fileName,
+          contentType,
+          size: data.length,
+          storagePath,
+        },
+      });
+      await transaction.activityLog.create({
+        data: {
+          workspaceId: context.workspace.id,
+          actorId: context.user.id,
+          action: "event.attachment_uploaded",
+          entityType: "event",
+          entityId: event.id,
+        },
+      });
+      return "SAVED";
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  } catch (error) {
+    try {
+      await deleteSupabaseObject(storagePath);
+    } catch (cleanupError) {
+      console.error("Orphaned event attachment cleanup failed.", cleanupError);
+      throw new Error("The upload could not be saved and its storage cleanup failed.", { cause: error });
+    }
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
+      return { error: "Another file upload happened at the same time. Refresh and try again." };
+    }
+    throw error;
+  }
+
+  if (result !== "SAVED") {
+    try {
+      await deleteSupabaseObject(storagePath);
+    } catch (cleanupError) {
+      console.error("Orphaned event attachment cleanup failed.", cleanupError);
+      return { error: "The upload could not be saved or cleaned up. Contact support before retrying." };
+    }
+  }
+  if (result === "NOT_FOUND") notFound();
+  if (result === "LIMIT_REACHED") {
+    return { error: "This event has reached its attachment limit." };
+  }
+
+  revalidatePath(`/dashboard/events/${eventId}`);
+  revalidatePath("/dashboard/files");
+  return { success: "File uploaded." };
+}
+
+export async function deleteEventAttachmentAction(
+  _previousState: EventAttachmentActionState,
+  formData: FormData,
+): Promise<EventAttachmentActionState> {
+  const context = await getEventActionContext();
+  const eventId = getEventId(formData);
+  const attachmentId = formData.get("attachmentId");
+  if (typeof attachmentId !== "string" || !attachmentId) {
+    return { error: "Choose a file to delete." };
+  }
+
+  const prisma = getPrisma();
+  const attachment = await prisma.eventAttachment.findFirst({
+    where: {
+      id: attachmentId,
+      eventId,
+      event: { workspaceId: context.workspace.id, archivedAt: null },
+    },
+    select: { id: true, storagePath: true, contentType: true },
+  });
+  if (!attachment) return { error: "This file no longer exists. Refresh and try again." };
+
+  let backup: Uint8Array | null = null;
+  if (attachment.storagePath) {
+    try {
+      backup = await downloadSupabaseObject(attachment.storagePath);
+      await deleteSupabaseObject(attachment.storagePath);
+    } catch (error) {
+      console.error("Event attachment deletion from Supabase Storage failed.", error);
+      return { error: "The file could not be removed from storage. Try again later." };
+    }
+  }
+
+  let deleted: boolean;
+  try {
+    deleted = await prisma.$transaction(async (transaction) => {
+      const currentAttachment = await transaction.eventAttachment.findFirst({
+        where: {
+          id: attachment.id,
+          eventId,
+          event: { workspaceId: context.workspace.id, archivedAt: null },
+        },
+        select: { id: true },
+      });
+      if (!currentAttachment) return false;
+
+      await transaction.eventAttachment.delete({ where: { id: currentAttachment.id } });
+      await transaction.activityLog.create({
+        data: {
+          workspaceId: context.workspace.id,
+          actorId: context.user.id,
+          action: "event.attachment_deleted",
+          entityType: "event",
+          entityId: eventId,
+        },
+      });
+      return true;
+    });
+  } catch (error) {
+    if (backup && attachment.storagePath) {
+      try {
+        await uploadSupabaseObject(attachment.storagePath, backup, attachment.contentType);
+      } catch (restoreError) {
+        console.error("Event attachment restoration after failed deletion did not succeed.", restoreError);
+        throw new Error("The database deletion failed and the storage object could not be restored.", { cause: error });
+      }
+    }
+    throw error;
+  }
+  if (!deleted) {
+    if (backup && attachment.storagePath) {
+      try {
+        await uploadSupabaseObject(attachment.storagePath, backup, attachment.contentType);
+      } catch (restoreError) {
+        console.error("Event attachment restoration after concurrent deletion did not succeed.", restoreError);
+        throw new Error("The attachment disappeared during deletion and could not be restored.", { cause: restoreError });
+      }
+    }
+    return { error: "This file no longer exists. Refresh and try again." };
+  }
+
+  revalidatePath(`/dashboard/events/${eventId}`);
+  revalidatePath("/dashboard/files");
+  return { success: "File deleted." };
+}
+
 export async function saveRegistrationFormAction(
   _previousState: RegistrationFormState,
   formData: FormData,
 ): Promise<RegistrationFormState> {
   const context = await getEventActionContext();
+  if (!workspaceHasFeature(context.subscription, "custom_forms")) {
+    return { error: "Custom registration forms require the Starter plan or higher." };
+  }
   const eventId = getEventId(formData);
   const rawQuestions = formData.get("questions");
   if (typeof rawQuestions !== "string" || rawQuestions.length > 24_000) {
@@ -600,9 +909,300 @@ export async function saveRegistrationFormAction(
   return { success: "Registration form saved." };
 }
 
+const editableModuleKeys = new Set([
+  "invitations",
+  "rsvp",
+  "meals",
+  "sessions",
+  "nfc_check_in",
+]);
+
+export async function updateEventModuleAction(
+  _previousState: EventModuleState,
+  formData: FormData,
+): Promise<EventModuleState> {
+  const context = await getEventActionContext();
+  const eventId = getEventId(formData);
+  const key = String(formData.get("moduleKey") ?? "");
+  if (!editableModuleKeys.has(key)) return { error: "This event module is not configurable." };
+
+  const enabled = formData.get("enabled") === "true";
+  let settings: Prisma.InputJsonObject = {};
+  try {
+    const rawSettings = formData.get("settings");
+    if (typeof rawSettings === "string" && rawSettings.trim()) {
+      const parsed = JSON.parse(rawSettings);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        return { error: "The module settings could not be read." };
+      }
+      settings = parsed as Prisma.InputJsonObject;
+    }
+  } catch {
+    return { error: "The module settings could not be read." };
+  }
+
+  const prisma = getPrisma();
+  const event = await prisma.event.findFirst({
+    where: { id: eventId, workspaceId: context.workspace.id, archivedAt: null },
+    select: { id: true },
+  });
+  if (!event) notFound();
+
+  await prisma.$transaction([
+    prisma.eventModule.upsert({
+      where: { eventId_key: { eventId: event.id, key } },
+      create: { eventId: event.id, key, enabled, settings },
+      update: { enabled, settings },
+    }),
+    prisma.activityLog.create({
+      data: {
+        workspaceId: context.workspace.id,
+        actorId: context.user.id,
+        action: "event.module_updated",
+        entityType: "event_module",
+        entityId: event.id,
+        metadata: { module: key, enabled },
+      },
+    }),
+  ]);
+  revalidatePath(`/dashboard/events/${eventId}`);
+  return { success: `${key.replaceAll("_", " ")} module updated.` };
+}
+
+function getCheckpointInput(formData: FormData) {
+  const parsed = checkpointInput.safeParse({
+    name: formData.get("name"),
+    capacity: formData.get("capacity"),
+  });
+  if (!parsed.success) return null;
+
+  const capacity = parsed.data.capacity === "" ? null : Number(parsed.data.capacity);
+  if (capacity !== null && (!Number.isSafeInteger(capacity) || capacity < 1 || capacity > 100000)) return null;
+  return { name: parsed.data.name, capacity };
+}
+
+function revalidateCheckpointViews(eventId: string, eventSlug: string) {
+  revalidatePath(`/dashboard/events/${eventId}`);
+  revalidatePath(`/dashboard/events/${eventSlug}`);
+  revalidatePath("/dashboard/check-in");
+  revalidatePath("/check-in/mobile");
+}
+
+export async function createEventCheckpointAction(
+  _previousState: EventCheckpointState,
+  formData: FormData,
+): Promise<EventCheckpointState> {
+  const context = await getEventActionContext();
+  const eventId = getEventId(formData);
+  const input = getCheckpointInput(formData);
+  if (!input) return { error: "invalid" };
+
+  const prisma = getPrisma();
+  const event = await prisma.event.findFirst({
+    where: { id: eventId, workspaceId: context.workspace.id, archivedAt: null },
+    select: { id: true, slug: true },
+  });
+  if (!event) notFound();
+
+  try {
+    await prisma.$transaction(async (transaction) => {
+      const lastCheckpoint = await transaction.eventCheckpoint.aggregate({
+        where: { eventId: event.id },
+        _max: { sortOrder: true },
+      });
+      const checkpoint = await transaction.eventCheckpoint.create({
+        data: {
+          eventId: event.id,
+          name: input.name,
+          capacity: input.capacity,
+          sortOrder: (lastCheckpoint._max.sortOrder ?? -1) + 1,
+        },
+      });
+      await transaction.activityLog.create({
+        data: {
+          workspaceId: context.workspace.id,
+          actorId: context.user.id,
+          action: "event.checkpoint_created",
+          entityType: "event_checkpoint",
+          entityId: checkpoint.id,
+          metadata: { eventId, name: checkpoint.name, capacity: checkpoint.capacity },
+        },
+      });
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return { error: "duplicate" };
+    }
+    throw error;
+  }
+
+  revalidateCheckpointViews(eventId, event.slug);
+  return { success: true };
+}
+
+export async function updateEventCheckpointAction(
+  _previousState: EventCheckpointState,
+  formData: FormData,
+): Promise<EventCheckpointState> {
+  const context = await getEventActionContext();
+  const eventId = getEventId(formData);
+  const checkpointId = String(formData.get("checkpointId") ?? "");
+  const input = getCheckpointInput(formData);
+  if (!checkpointId || !input) return { error: "invalid" };
+
+  const prisma = getPrisma();
+  const checkpoint = await prisma.eventCheckpoint.findFirst({
+    where: {
+      id: checkpointId,
+      eventId,
+      event: { workspaceId: context.workspace.id, archivedAt: null },
+    },
+    select: { id: true, claimedCount: true, event: { select: { slug: true } } },
+  });
+  if (!checkpoint) notFound();
+  if (input.capacity !== null && input.capacity < checkpoint.claimedCount) {
+    return { error: "capacity" };
+  }
+
+  try {
+    const updated = await prisma.$transaction(async (transaction) => {
+      const result = await transaction.eventCheckpoint.updateMany({
+        where: {
+          id: checkpoint.id,
+          eventId,
+          ...(input.capacity === null ? {} : { claimedCount: { lte: input.capacity } }),
+        },
+        data: { name: input.name, capacity: input.capacity },
+      });
+      if (!result.count) return false;
+      await transaction.activityLog.create({
+        data: {
+          workspaceId: context.workspace.id,
+          actorId: context.user.id,
+          action: "event.checkpoint_updated",
+          entityType: "event_checkpoint",
+          entityId: checkpoint.id,
+          metadata: { eventId, name: input.name, capacity: input.capacity },
+        },
+      });
+      return true;
+    });
+    if (!updated) return { error: "capacity" };
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return { error: "duplicate" };
+    }
+    throw error;
+  }
+
+  revalidateCheckpointViews(eventId, checkpoint.event.slug);
+  return { success: true };
+}
+
+export async function deleteEventCheckpointAction(
+  _previousState: EventCheckpointState,
+  formData: FormData,
+): Promise<EventCheckpointState> {
+  const context = await getEventActionContext();
+  const eventId = getEventId(formData);
+  const checkpointId = String(formData.get("checkpointId") ?? "");
+  if (!checkpointId) return { error: "missing" };
+
+  const prisma = getPrisma();
+  const deleted = await prisma.$transaction(async (transaction) => {
+    const checkpoint = await transaction.eventCheckpoint.findFirst({
+      where: {
+        id: checkpointId,
+        eventId,
+        event: { workspaceId: context.workspace.id, archivedAt: null },
+      },
+      select: { id: true, name: true, claimedCount: true, event: { select: { slug: true } } },
+    });
+    if (!checkpoint) return null;
+
+    await transaction.eventCheckpoint.delete({ where: { id: checkpoint.id } });
+    await transaction.activityLog.create({
+      data: {
+        workspaceId: context.workspace.id,
+        actorId: context.user.id,
+        action: "event.checkpoint_deleted",
+        entityType: "event_checkpoint",
+        entityId: checkpoint.id,
+        metadata: { eventId, name: checkpoint.name, claimsDeleted: checkpoint.claimedCount },
+      },
+    });
+    return { eventSlug: checkpoint.event.slug };
+  });
+  if (!deleted) notFound();
+
+  revalidateCheckpointViews(eventId, deleted.eventSlug);
+  return { success: true };
+}
+
+export async function sendEventInvitationsAction(
+  _previousState: EventModuleState,
+  formData: FormData,
+): Promise<EventModuleState> {
+  const context = await getEventActionContext();
+  const eventId = getEventId(formData);
+  const recipients = String(formData.get("recipients") ?? "")
+    .split(/[\n,\s]+/)
+    .map((email) => email.trim().toLowerCase())
+    .filter((email) => z.email().safeParse(email).success);
+  if (!recipients.length) return { error: "Enter at least one valid guest email." };
+  const uniqueRecipients = [...new Set(recipients)].slice(0, 200);
+  const subject = String(formData.get("subject") ?? "").trim().slice(0, 160) || "You’re invited";
+  const message = String(formData.get("message") ?? "").trim().slice(0, 3000);
+
+  const prisma = getPrisma();
+  const event = await prisma.event.findFirst({
+    where: { id: eventId, workspaceId: context.workspace.id, archivedAt: null },
+    select: { id: true, name: true },
+  });
+  if (!event) notFound();
+
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
+  const registrationUrl = `${baseUrl.replace(/\/$/, "")}/register/${event.id}`;
+  const { sendAuthEmail } = await import("@/lib/email");
+  let sent = 0;
+  for (const recipient of uniqueRecipients) {
+    try {
+      await sendAuthEmail({
+        to: recipient,
+        subject: `${subject} — ${event.name}`,
+        url: registrationUrl,
+        message,
+      });
+      sent += 1;
+    } catch (error) {
+      console.error(`Event invitation email failed for ${recipient}:`, error);
+    }
+  }
+  if (!sent) return { error: "No invitations could be sent. Check email configuration." };
+
+  await prisma.eventModule.upsert({
+    where: { eventId_key: { eventId: event.id, key: "invitations" } },
+    create: {
+      eventId: event.id,
+      key: "invitations",
+      enabled: true,
+      settings: { recipients: uniqueRecipients, subject, message, sentAt: new Date().toISOString(), sent },
+    },
+    update: {
+      enabled: true,
+      settings: { recipients: uniqueRecipients, subject, message, sentAt: new Date().toISOString(), sent },
+    },
+  });
+  revalidatePath(`/dashboard/events/${eventId}`);
+  return { success: `Sent ${sent} event invitation${sent === 1 ? "" : "s"}.` };
+}
+
 export async function archiveEventAction(formData: FormData) {
   const context = await getEventActionContext();
   const eventId = getEventId(formData);
+  if (!workspaceHasFeature(context.subscription, "event_lifecycle")) {
+    redirect(`/dashboard/events/${eventId}?error=plan_feature`);
+  }
   const prisma = getPrisma();
   const event = await prisma.event.findFirst({
     where: { id: eventId, workspaceId: context.workspace.id, archivedAt: null },
@@ -632,30 +1232,76 @@ export async function deleteEventAction(formData: FormData) {
   const context = await getEventActionContext();
   const eventId = getEventId(formData);
   const prisma = getPrisma();
-  const result = await prisma.$transaction(async (transaction) => {
-    const event = await transaction.event.findFirst({
-      where: { id: eventId, workspaceId: context.workspace.id },
-      select: { id: true },
-    });
-    if (!event) return "NOT_FOUND";
+  const event = await prisma.event.findFirst({
+    where: { id: eventId, workspaceId: context.workspace.id },
+    select: {
+      id: true,
+      registrations: { take: 1, select: { id: true } },
+      attachments: { select: { storagePath: true, contentType: true } },
+    },
+  });
+  if (!event) notFound();
+  if (event.registrations.length > 0) redirect(`/dashboard/events/${eventId}?error=has_registrations`);
 
-    const deleted = await transaction.event.deleteMany({
-      where: { id: event.id, workspaceId: context.workspace.id, registrations: { none: {} } },
-    });
-    if (!deleted.count) return "HAS_REGISTRATIONS";
+  const removedObjects: Array<{ path: string; contentType: string; bytes: Uint8Array }> = [];
+  try {
+    for (const attachment of event.attachments) {
+      if (!attachment.storagePath) continue;
+      const bytes = await downloadSupabaseObject(attachment.storagePath);
+      await deleteSupabaseObject(attachment.storagePath);
+      removedObjects.push({
+        path: attachment.storagePath,
+        contentType: attachment.contentType,
+        bytes,
+      });
+    }
+  } catch (error) {
+    try {
+      await restoreEventAttachmentObjects(removedObjects);
+    } catch (restoreError) {
+      console.error("Event attachments could not be restored after storage cleanup failed.", restoreError);
+      throw new Error("Event deletion stopped, but some attachments could not be restored.", { cause: error });
+    }
+    console.error("Event attachments could not be removed from Supabase Storage.", error);
+    throw new Error("Event deletion stopped because its attachments could not be removed from storage.", { cause: error });
+  }
 
-    await transaction.activityLog.create({
-      data: {
-        workspaceId: context.workspace.id,
-        actorId: context.user.id,
-        action: "event.deleted",
-        entityType: "event",
-        entityId: event.id,
-      },
-    });
-    return "DELETED";
-  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  let result: "NOT_FOUND" | "HAS_REGISTRATIONS" | "DELETED";
+  try {
+    result = await prisma.$transaction(async (transaction) => {
+      const currentEvent = await transaction.event.findFirst({
+        where: { id: eventId, workspaceId: context.workspace.id },
+        select: { id: true },
+      });
+      if (!currentEvent) return "NOT_FOUND";
 
+      const deleted = await transaction.event.deleteMany({
+        where: { id: currentEvent.id, workspaceId: context.workspace.id, registrations: { none: {} } },
+      });
+      if (!deleted.count) return "HAS_REGISTRATIONS";
+
+      await transaction.activityLog.create({
+        data: {
+          workspaceId: context.workspace.id,
+          actorId: context.user.id,
+          action: "event.deleted",
+          entityType: "event",
+          entityId: currentEvent.id,
+        },
+      });
+      return "DELETED";
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  } catch (error) {
+    try {
+      await restoreEventAttachmentObjects(removedObjects);
+    } catch (restoreError) {
+      console.error("Event attachments could not be restored after the database deletion failed.", restoreError);
+      throw new Error("The event deletion failed and some attachments could not be restored.", { cause: error });
+    }
+    throw error;
+  }
+
+  if (result !== "DELETED") await restoreEventAttachmentObjects(removedObjects);
   if (result === "NOT_FOUND") notFound();
   if (result === "HAS_REGISTRATIONS") redirect(`/dashboard/events/${eventId}?error=has_registrations`);
   redirect("/dashboard/events?deleted=1");
@@ -664,6 +1310,9 @@ export async function deleteEventAction(formData: FormData) {
 export async function duplicateEventAction(formData: FormData) {
   const context = await getEventActionContext();
   const eventId = getEventId(formData);
+  if (!workspaceHasFeature(context.subscription, "event_lifecycle")) {
+    redirect(`/dashboard/events/${eventId}?error=plan_feature`);
+  }
   const prisma = getPrisma();
   const source = await prisma.event.findFirst({
     where: { id: eventId, workspaceId: context.workspace.id, archivedAt: null },

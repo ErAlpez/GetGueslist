@@ -7,7 +7,7 @@ export default async function ForgotPasswordPage() {
   const { locale } = await getPreferences();
   return localizeNode((
     <main className="auth-page">
-      <Link className="auth-back" href="/">← Back to Guestlist</Link>
+      <Link className="auth-back" href="/">← Back to VenuGuestPass</Link>
       <AuthForm mode="forgot-password" />
     </main>
   ), locale);

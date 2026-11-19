@@ -1,20 +1,14 @@
-"use server";
+import "server-only";
 
 import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
-import { redirect } from "next/navigation";
 import { z } from "zod";
-import { createTicketToken, hashTicketToken } from "@/lib/tickets";
-import { getPrisma } from "@/lib/prisma";
-import { getWorkspaceContext } from "@/lib/workspace";
 import { attendeeCategories } from "@/lib/attendee-categories";
 import { registrationAge, registrationGender } from "@/lib/registration-details";
+import { createTicketToken, hashTicketToken } from "@/lib/tickets";
+import { getPrisma } from "@/lib/prisma";
 
-export type AttendeeFormState = {
-  error?: string;
-};
-
-const attendeeInput = z.object({
+export const attendeeInput = z.object({
   eventId: z.string().min(1),
   firstName: z.string().trim().min(1, "Enter the guest’s first name.").max(100),
   lastName: z.string().trim().min(1, "Enter the guest’s last name.").max(100),
@@ -25,45 +19,41 @@ const attendeeInput = z.object({
   category: z.enum(attendeeCategories),
 });
 
-const rolesAllowedToRegister = new Set(["OWNER", "ADMIN", "MANAGER", "CHECKIN"]);
+export type AttendeeRegistrationInput = z.infer<typeof attendeeInput>;
+export type GuestRegistrationResult = { ticketId: string; alreadyProcessed?: boolean } | { error: string };
+export const rolesAllowedToRegister = new Set(["OWNER", "ADMIN", "MANAGER"]);
 
-export async function registerAttendeeAction(
-  _previousState: AttendeeFormState,
-  formData: FormData,
-): Promise<AttendeeFormState> {
-  const context = await getWorkspaceContext();
-  if (!context) redirect("/login");
-  if (!rolesAllowedToRegister.has(context.membership.role)) {
-    return { error: "You don’t have permission to add guests in this workspace." };
-  }
-
-  const parsed = attendeeInput.safeParse({
-    eventId: formData.get("eventId"),
-    firstName: formData.get("firstName"),
-    lastName: formData.get("lastName"),
-    email: formData.get("email"),
-    phone: formData.get("phone"),
-    age: formData.get("age") ?? "",
-    gender: formData.get("gender") ?? "",
-    category: formData.get("category"),
-  });
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the guest details and try again." };
-
-  const input = parsed.data;
-  const ticketId = randomUUID();
-  const ticketToken = createTicketToken(ticketId);
-  const ticketTokenHash = hashTicketToken(ticketToken);
+export async function createGuestRegistration(
+  input: AttendeeRegistrationInput,
+  workspaceId: string,
+  actorId: string,
+  offlineSyncId?: string,
+): Promise<GuestRegistrationResult> {
   const prisma = getPrisma();
+  const ticketId = randomUUID();
+  const ticketTokenHash = hashTicketToken(createTicketToken(ticketId));
 
   const result = await prisma.$transaction(async (transaction) => {
+    if (offlineSyncId) {
+      const previousSync = await transaction.eventRegistration.findUnique({
+        where: { offlineSyncId },
+        select: { eventId: true, ticket: { select: { id: true } } },
+      });
+      if (previousSync) {
+        return previousSync.eventId === input.eventId
+          ? { ticketId: previousSync.ticket?.id ?? "", alreadyProcessed: true }
+          : { error: "This offline change has already been used." };
+      }
+    }
+
     const event = await transaction.event.findFirst({
-      where: { id: input.eventId, workspaceId: context.workspace.id, archivedAt: null },
+      where: { id: input.eventId, workspaceId, archivedAt: null },
       select: { id: true, capacity: true },
     });
     if (!event) return { error: "This event isn’t available in your workspace." };
 
     const subscription = await transaction.subscription.findUnique({
-      where: { workspaceId: context.workspace.id },
+      where: { workspaceId },
       include: { plan: true },
     });
     if (!subscription) throw new Error("This workspace does not have a subscription plan.");
@@ -77,16 +67,25 @@ export async function registerAttendeeAction(
     }
 
     let attendee = await transaction.attendee.findUnique({
-      where: { workspaceId_email: { workspaceId: context.workspace.id, email: input.email } },
+      where: { workspaceId_email: { workspaceId, email: input.email } },
     });
     if (!attendee) {
       attendee = await transaction.attendee.create({
         data: {
-          workspaceId: context.workspace.id,
+          workspaceId,
           firstName: input.firstName,
           lastName: input.lastName,
           email: input.email,
           phone: input.phone || null,
+        },
+      });
+    } else {
+      await transaction.attendee.update({
+        where: { id: attendee.id },
+        data: {
+          firstName: attendee.firstName,
+          lastName: attendee.lastName,
+          phone: attendee.phone,
         },
       });
     }
@@ -110,6 +109,7 @@ export async function registerAttendeeAction(
 
     const registration = await transaction.eventRegistration.create({
       data: {
+        offlineSyncId: offlineSyncId ?? null,
         eventId: event.id,
         attendeeId: attendee.id,
         ticketTypeId: ticketType.id,
@@ -117,8 +117,9 @@ export async function registerAttendeeAction(
         age: input.age,
         gender: input.gender,
         rsvpStatus: "ACCEPTED",
-        paymentStatus: "NOT_REQUIRED",
-        registrationSource: input.category === "WALK_IN" ? "walk_in" : "manual",
+        registrationSource: offlineSyncId
+          ? "offline_sync"
+          : input.category === "WALK_IN" ? "walk_in" : "manual",
         ticket: {
           create: {
             id: ticketId,
@@ -131,17 +132,20 @@ export async function registerAttendeeAction(
 
     await transaction.activityLog.create({
       data: {
-        workspaceId: context.workspace.id,
-        actorId: context.user.id,
+        workspaceId,
+        actorId,
         action: "attendee.registered",
         entityType: "registration",
         entityId: registration.id,
-        metadata: { eventId: event.id, category: input.category },
+        metadata: {
+          eventId: event.id,
+          category: input.category,
+          ...(offlineSyncId ? { source: "offline_sync" } : {}),
+        },
       },
     });
     return { ticketId };
   }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
-  if ("error" in result) return { error: result.error };
-  redirect(`/dashboard/tickets?event=${input.eventId}&issued=${result.ticketId}`);
+  return result;
 }

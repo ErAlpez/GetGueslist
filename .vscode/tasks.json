@@ -2,7 +2,7 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"label": "Start Guestlist dev server",
+			"label": "Start VenuGuestPass dev server",
 			"type": "shell",
 			"command": "npm",
 			"args": [

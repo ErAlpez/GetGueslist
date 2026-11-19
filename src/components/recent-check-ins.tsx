@@ -5,7 +5,7 @@ import { CheckCircle2, Clock3 } from "lucide-react";
 import { localizeNode, type Locale } from "@/lib/localization";
 import "./recent-check-ins.css";
 
-type RecentLog = { id: string; name: string; method: string; time: string };
+type RecentLog = { id: string; name: string; method: string; checkpointClaims: string[]; time: string };
 
 export function RecentCheckIns({ logs, locale }: { logs: RecentLog[]; locale: Locale }) {
   const ids = logs.map((log) => log.id);
@@ -27,7 +27,7 @@ export function RecentCheckIns({ logs, locale }: { logs: RecentLog[]; locale: Lo
         <div className="recent-checkin-list">{logs.map((log) => (
           <div className={`recent-checkin-row${previous.highlighted.has(log.id) ? " recent-checkin-new" : ""}`} key={log.id}>
             <span aria-hidden="true" className="recent-checkin-icon"><CheckCircle2 size={18} /></span>
-            <span className="recent-checkin-copy"><strong>{log.name}</strong><small>{log.method} check-in</small></span>
+            <span className="recent-checkin-copy"><strong>{log.name}</strong><small>{log.method} check-in{log.checkpointClaims.length ? ` | ${log.checkpointClaims.join(", ")}` : ""}</small></span>
             <span className="recent-checkin-time"><Clock3 size={12} />{log.time}</span>
           </div>
         ))}</div>

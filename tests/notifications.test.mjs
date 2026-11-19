@@ -19,14 +19,19 @@ function harness(items) {
     { id: "a1", entityId: "registration-1", workspaceId: "workspace-1", action: "attendee.registered", entityType: "registration", createdAt: new Date("2030-01-01T12:00:00Z") },
     { id: "foreign", entityId: "registration-2", workspaceId: "workspace-2", action: "attendee.registered", entityType: "registration", createdAt: new Date("2030-01-01T12:00:00Z") },
   ];
-  let context = { user: { id: "user-1" }, workspace: { id: "workspace-1" } };
+  let context = { user: { id: "user-1" }, workspace: { id: "workspace-1" }, membership: { role: "OWNER" } };
   const key = (userId, id) => `${userId}:${id}`;
   const prisma = {
     activityLog: {
       findMany: async ({ where, select, orderBy, take }) => activity
-        .filter((item) => item.workspaceId === where.workspaceId && item.action === where.action && item.entityType === where.entityType && (!where.id || where.id.in.includes(item.id)) && (!where.createdAt || item.createdAt > where.createdAt.gt))
+        .filter((item) =>
+          item.workspaceId === where.workspaceId
+          && (!where.OR || where.OR.some((filter) => item.action === filter.action && item.entityType === filter.entityType))
+          && (!where.id || where.id.in.includes(item.id))
+          && (!where.createdAt || item.createdAt > where.createdAt.gt),
+        )
         .sort((a, b) => orderBy ? b.createdAt - a.createdAt || (a.id < b.id ? 1 : a.id > b.id ? -1 : 0) : 0)
-        .slice(0, take)
+        .slice(0, take ?? activity.length)
         .map((item) => ({
           ...item,
           seenBy: select.seenBy && views.has(key(select.seenBy.where.userId, item.id))
@@ -81,7 +86,7 @@ test("seen state persists per user and repeated views preserve the original time
   assert.deepEqual(await (await h.route.POST(request(["a1"]))).json(), first);
   data = await (await h.route.GET()).json();
   assert.equal(data.notifications[0].seenAt, first.seen[0].seenAt);
-  h.setContext({ user: { id: "user-2" }, workspace: { id: "workspace-1" } });
+  h.setContext({ user: { id: "user-2" }, workspace: { id: "workspace-1" }, membership: { role: "OWNER" } });
   assert.equal((await (await h.route.GET()).json()).notifications[0].seenAt, null);
 });
 

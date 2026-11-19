@@ -29,6 +29,12 @@ enum EventFormat {
   HYBRID
 }
 
+enum PlatformReviewStatus {
+  PENDING
+  APPROVED
+  HIDDEN
+}
+
 enum EventVisibility {
   PUBLIC
   PRIVATE
@@ -62,14 +68,7 @@ enum RSVPStatus {
   PENDING
   ACCEPTED
   DECLINED
-}
-
-enum PaymentStatus {
-  NOT_REQUIRED
-  PENDING
-  PAID
-  FAILED
-  REFUNDED
+  MAYBE
 }
 
 enum TicketStatus {
@@ -85,21 +84,41 @@ enum AttendanceAction {
   CHECK_OUT
 }
 
+enum AutomatedEmailKind {
+  PRE_EVENT_REMINDER
+  POST_EVENT_FOLLOWUP
+}
+
+enum AutomatedEmailStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+  SKIPPED
+}
+
 model user {
-  id                    String                @id
-  name                  String
-  email                 String                @unique
-  emailVerified         Boolean               @default(false)
-  image                 String?
-  createdAt             DateTime              @default(now())
-  updatedAt             DateTime              @updatedAt
-  sessions              session[]
-  accounts              account[]
-  ownedWorkspaces       Workspace[]           @relation("WorkspaceOwner")
-  memberships           WorkspaceMember[]
-  attendanceLogs        AttendanceLog[]       @relation("AttendanceOperator")
-  notificationViews     NotificationView[]
-  mobileCheckinAccesses MobileCheckinAccess[] @relation("MobileCheckinAccessCreator")
+  id                       String                @id
+  name                     String
+  email                    String                @unique
+  emailVerified            Boolean               @default(false)
+  image                    String?
+  createdAt                DateTime              @default(now())
+  updatedAt                DateTime              @updatedAt
+  sessions                 session[]
+  accounts                 account[]
+  ownedWorkspaces          Workspace[]           @relation("WorkspaceOwner")
+  memberships              WorkspaceMember[]
+  attendanceLogs           AttendanceLog[]       @relation("AttendanceOperator")
+  checkpointClaims         CheckpointClaim[]     @relation("CheckpointClaimOperator")
+  raffleDraws              RaffleDraw[]          @relation("RaffleDrawOperator")
+  notificationViews        NotificationView[]
+  mobileCheckinAccesses    MobileCheckinAccess[] @relation("MobileCheckinAccessCreator")
+  eventAttachments         EventAttachment[]     @relation("EventAttachmentUploader")
+  workspaceFiles           WorkspaceFile[]       @relation("WorkspaceFileUploader")
+  submittedPlatformReviews PlatformReview[]      @relation("PlatformReviewOwner")
+  moderatedPlatformReviews PlatformReview[]      @relation("PlatformReviewModerator")
+  superAdminAuditLogs      SuperAdminAuditLog[]
 
   @@map("users")
 }
@@ -169,9 +188,11 @@ model Workspace {
   attendees             Attendee[]
   attendanceLogs        AttendanceLog[]
   activityLogs          ActivityLog[]
+  platformReviews       PlatformReview[]
   invitations           WorkspaceInvitation[]
   checkinDevices        CheckinDevice[]
   mobileCheckinAccesses MobileCheckinAccess[]
+  files                 WorkspaceFile[]
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt
 
@@ -237,6 +258,74 @@ model Plan {
   subscriptions         Subscription[]
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
+}
+
+model SuperAdminAuditLog {
+  id        String   @id @default(cuid())
+  adminId   String
+  action    String
+  entityId  String
+  metadata  Json?
+  admin     user     @relation(fields: [adminId], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now())
+
+  @@index([entityId, createdAt])
+  @@index([adminId, createdAt])
+}
+
+model PlatformReview {
+  id                 String               @id @default(cuid())
+  ownerId            String?
+  workspaceId        String?
+  moderatedById      String?
+  authorName         String
+  workspaceName      String
+  rating             Int
+  message            String
+  publicationConsent Boolean              @default(false)
+  status             PlatformReviewStatus @default(PENDING)
+  createdAt          DateTime             @default(now())
+  moderatedAt        DateTime?
+  owner              user?                @relation("PlatformReviewOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  workspace          Workspace?           @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  moderatedBy        user?                @relation("PlatformReviewModerator", fields: [moderatedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([workspaceId, ownerId, createdAt])
+}
+
+model WebsiteDailyStat {
+  id          String   @id @default(cuid())
+  date        DateTime @db.Date
+  path        String
+  countryCode String   @default("XX")
+  views       Int      @default(0)
+  updatedAt   DateTime @updatedAt
+
+  @@unique([date, path, countryCode])
+  @@index([date])
+}
+
+model SystemHealthRun {
+  id        String               @id @default(cuid())
+  checkedAt DateTime             @default(now())
+  checks    SystemHealthSample[]
+
+  @@index([checkedAt])
+}
+
+model SystemHealthSample {
+  id        String          @id @default(cuid())
+  runId     String
+  service   String
+  status    String
+  label     String
+  latencyMs Int?
+  detail    String
+  run       SystemHealthRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, service])
+  @@index([service, runId])
 }
 
 model Subscription {
@@ -314,10 +403,14 @@ model Event {
   workspace             Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   settings              EventSettings?
   modules               EventModule[]
+  attachments           EventAttachment[]
   registrations         EventRegistration[]
   ticketTypes           TicketType[]
   registrationForm      RegistrationForm?
   attendanceLogs        AttendanceLog[]
+  checkpoints           EventCheckpoint[]
+  raffleDraws           RaffleDraw[]
+  feedback              EventFeedback[]
   checkinDevices        CheckinDevice[]
   mobileCheckinAccesses MobileCheckinAccess[]
   createdAt             DateTime              @default(now())
@@ -327,6 +420,39 @@ model Event {
   @@unique([workspaceId, slug])
   @@index([workspaceId, status, startsAt])
   @@index([workspaceId, createdAt])
+}
+
+model EventAttachment {
+  id           String   @id @default(cuid())
+  eventId      String
+  uploadedById String?
+  fileName     String
+  contentType  String
+  size         Int
+  data         Bytes?
+  storagePath  String?
+  event        Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  uploadedBy   user?    @relation("EventAttachmentUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+
+  @@index([eventId, createdAt])
+  @@index([uploadedById])
+}
+
+model WorkspaceFile {
+  id           String   @id @default(cuid())
+  workspaceId  String
+  uploadedById String?
+  fileName     String
+  contentType  String
+  size         Int
+  storagePath  String
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  uploadedBy   user?      @relation("WorkspaceFileUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+
+  @@index([workspaceId, createdAt])
+  @@index([uploadedById])
 }
 
 model EventSettings {
@@ -374,27 +500,66 @@ model Attendee {
 }
 
 model EventRegistration {
-  id                 String               @id @default(cuid())
+  id                 String                   @id @default(cuid())
+  offlineSyncId      String?                  @unique
   eventId            String
   attendeeId         String
-  category           AttendeeCategory     @default(GENERAL)
+  category           AttendeeCategory         @default(GENERAL)
   age                Int?
   gender             String?
-  rsvpStatus         RSVPStatus           @default(PENDING)
-  paymentStatus      PaymentStatus        @default(NOT_REQUIRED)
-  registrationSource String               @default("manual")
-  registeredAt       DateTime             @default(now())
+  mealChoice         String?
+  sessionIds         String[]                 @default([])
+  rsvpStatus         RSVPStatus               @default(PENDING)
+  registrationSource String                   @default("manual")
+  registeredAt       DateTime                 @default(now())
   ticketTypeId       String?
-  event              Event                @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  attendee           Attendee             @relation(fields: [attendeeId], references: [id], onDelete: Cascade)
-  ticketType         TicketType?          @relation(fields: [ticketTypeId], references: [id], onDelete: SetNull)
+  event              Event                    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  attendee           Attendee                 @relation(fields: [attendeeId], references: [id], onDelete: Cascade)
+  ticketType         TicketType?              @relation(fields: [ticketTypeId], references: [id], onDelete: SetNull)
   ticket             Ticket?
   answers            RegistrationAnswer[]
   attendanceLogs     AttendanceLog[]
+  checkpointClaims   CheckpointClaim[]
+  raffleDraws        RaffleDraw[]
+  automatedEmails    AutomatedEmailDelivery[]
+  feedback           EventFeedback?
 
   @@unique([eventId, attendeeId])
   @@index([eventId, registeredAt])
   @@index([eventId, category, rsvpStatus])
+}
+
+model AutomatedEmailDelivery {
+  id             String               @id @default(cuid())
+  registrationId String
+  kind           AutomatedEmailKind
+  status         AutomatedEmailStatus @default(PENDING)
+  scheduledAt    DateTime
+  attempts       Int                  @default(0)
+  nextAttemptAt  DateTime?
+  lockedAt       DateTime?
+  sentAt         DateTime?
+  lastError      String?
+  registration   EventRegistration    @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  @@unique([registrationId, kind])
+  @@index([status, scheduledAt])
+  @@index([status, nextAttemptAt])
+}
+
+model EventFeedback {
+  id             String            @id @default(cuid())
+  eventId        String
+  registrationId String            @unique
+  rating         Int
+  message        String?
+  event          Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  registration   EventRegistration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  submittedAt    DateTime          @default(now())
+
+  @@index([eventId, submittedAt])
 }
 
 model TicketType {
@@ -446,6 +611,51 @@ model AttendanceLog {
   @@unique([ticketId, action])
   @@index([workspaceId, eventId, createdAt])
   @@index([registrationId, createdAt])
+}
+
+model EventCheckpoint {
+  id           String            @id @default(cuid())
+  eventId      String
+  name         String
+  capacity     Int?
+  claimedCount Int               @default(0)
+  sortOrder    Int               @default(0)
+  event        Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  claims       CheckpointClaim[]
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@unique([eventId, name])
+  @@index([eventId, sortOrder])
+}
+
+model CheckpointClaim {
+  id             String            @id @default(cuid())
+  checkpointId   String
+  registrationId String
+  operatorId     String?
+  deviceId       String?
+  checkpoint     EventCheckpoint   @relation(fields: [checkpointId], references: [id], onDelete: Cascade)
+  registration   EventRegistration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  operator       user?             @relation("CheckpointClaimOperator", fields: [operatorId], references: [id], onDelete: SetNull)
+  createdAt      DateTime          @default(now())
+
+  @@unique([checkpointId, registrationId])
+  @@index([registrationId, createdAt])
+}
+
+model RaffleDraw {
+  id             String            @id @default(cuid())
+  eventId        String
+  registrationId String
+  operatorId     String?
+  event          Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  registration   EventRegistration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  operator       user?             @relation("RaffleDrawOperator", fields: [operatorId], references: [id], onDelete: SetNull)
+  createdAt      DateTime          @default(now())
+
+  @@unique([eventId, registrationId])
+  @@index([eventId, createdAt])
 }
 
 model CheckinDevice {

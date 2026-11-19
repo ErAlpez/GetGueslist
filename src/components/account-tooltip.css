@@ -107,6 +107,133 @@ html[data-theme="dark"] .site-header :is(.account-avatar, .account-popover-avata
   background: #24372b;
 }
 
+.account-workspaces {
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px 4px;
+}
+
+.account-workspace-label {
+  padding: 4px 6px;
+  color: #7b8580;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.account-workspace-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 0;
+  border-radius: 8px;
+  padding: 8px;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.account-workspace-button:hover,
+.account-workspace-button.active {
+  background: #edf6f0;
+}
+
+.account-workspace-button small {
+  color: #7b8580;
+  text-transform: capitalize;
+}
+
+.account-demo-control {
+  display: grid;
+  gap: 8px;
+  padding: 8px 10px 4px;
+}
+
+.account-demo-control > label {
+  color: #7b8580;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.account-demo-control-fields {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.account-demo-control-fields select {
+  min-width: 0;
+  height: 34px;
+  flex: 1;
+  padding: 0 8px;
+  border: 1px solid #e5ebe4;
+  border-radius: 8px;
+  color: #526057;
+  background: #fff;
+  font: inherit;
+  font-size: 11px;
+}
+
+.app-shell .account-demo-control-fields button {
+  display: flex;
+  width: auto;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  border: 1px solid #d5e9db;
+  color: #347b57;
+  background: #edf6f0;
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.app-shell .account-demo-control-fields button:hover {
+  color: #286747;
+  background: #e2f1e6;
+}
+
+.account-demo-control > small {
+  color: #7b8580;
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+html[data-theme="dark"] .account-workspace-button:hover,
+html[data-theme="dark"] .account-workspace-button.active {
+  background: #263e30;
+}
+
+html[data-theme="dark"] .app-shell .account-demo-control > label {
+  color: var(--dashboard-text);
+}
+
+html[data-theme="dark"] .app-shell .account-demo-control-fields select {
+  border-color: var(--dashboard-border);
+  color: var(--dashboard-text);
+  background: var(--dashboard-surface);
+}
+
+html[data-theme="dark"] .app-shell .account-demo-control-fields button {
+  border-color: #3c674c;
+  color: #a8ddba;
+  background: #263f30;
+}
+
+html[data-theme="dark"] .app-shell .account-demo-control-fields button:hover {
+  background: #2c4936;
+}
+
+html[data-theme="dark"] .app-shell .account-demo-control > small {
+  color: var(--dashboard-muted);
+}
+
 html[data-theme="dark"] .site-header .account-popover-link:hover {
   color: #a8ddba;
   background: #263e30;

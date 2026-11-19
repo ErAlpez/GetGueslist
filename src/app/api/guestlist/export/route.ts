@@ -2,6 +2,8 @@ import { AttendeeCategory } from "@prisma/client";
 import { getWorkspaceContext } from "@/lib/workspace";
 import { getPrisma } from "@/lib/prisma";
 import { exclusiveDateEnd, parseDateParam } from "@/lib/date-range";
+import { workspaceHasFeature } from "@/lib/plan-features";
+import { workspaceRoleCanAccessSection } from "@/lib/workspace-roles";
 
 function csvCell(value: unknown) {
   const text = String(value ?? "");
@@ -12,9 +14,22 @@ function csvCell(value: unknown) {
 export async function GET(request: Request) {
   const context = await getWorkspaceContext();
   if (!context) return Response.json({ error: "Authentication required." }, { status: 401 });
+  if (!workspaceRoleCanAccessSection(context.membership.role, "attendees")) {
+    return Response.json({ error: "You don’t have permission to export attendees." }, { status: 403 });
+  }
+  const canExportCsv = workspaceHasFeature(context.subscription, "csv_exports");
+  if (!canExportCsv) {
+    return Response.json({ error: "CSV exports require the Starter plan or higher." }, { status: 403 });
+  }
+  const canViewTicketStatus = workspaceHasFeature(context.subscription, "checkin_activity");
+  const canExportWorkspace = workspaceHasFeature(context.subscription, "workspace_exports");
 
   const url = new URL(request.url);
   const eventId = url.searchParams.get("event");
+  if (!eventId && !canExportWorkspace) {
+    return Response.json({ error: "Workspace-wide CSV exports require the Max plan." }, { status: 403 });
+  }
+
   const query = url.searchParams.get("q")?.trim() ?? "";
   const categories: AttendeeCategory[] = ["VIP", "SPEAKER", "SPONSOR", "ORGANIZER", "MEDIA", "GENERAL", "STAFF", "VOLUNTEER", "GUEST", "WALK_IN"];
   const category = categories.find((item) => item === url.searchParams.get("category"));
@@ -78,7 +93,12 @@ export async function GET(request: Request) {
   });
 
   const rows = [
-    ["First name", "Last name", "Email", "Phone", "Company", "Position", "Event", "Category", "Ticket ID", "Ticket status", "Registration date", "Check-in time", "Age", "Gender"],
+    [
+      "First name", "Last name", "Email", "Phone", "Company", "Position", "Event", "Category",
+      "RSVP", "Meal", "Sessions", "Ticket ID",
+      ...(canViewTicketStatus ? ["Ticket status"] : []),
+      "Registration date", "Check-in time", "Age", "Gender",
+    ],
     ...registrations.map((registration) => [
       registration.attendee.firstName,
       registration.attendee.lastName,
@@ -88,8 +108,11 @@ export async function GET(request: Request) {
       registration.attendee.position,
       registration.event.name,
       registration.category,
+      registration.rsvpStatus,
+      registration.mealChoice,
+      (registration.sessionIds ?? []).join("; "),
       registration.ticket?.displayId ?? "",
-      registration.ticket?.status ?? "",
+      ...(canViewTicketStatus ? [registration.ticket?.status ?? ""] : []),
       registration.registeredAt.toISOString(),
       registration.ticket?.attendanceLogs[0]?.createdAt.toISOString() ?? "",
       registration.age,
@@ -101,7 +124,7 @@ export async function GET(request: Request) {
   return new Response(`\uFEFF${csv}`, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": 'attachment; filename="guestlist-export.csv"',
+      "Content-Disposition": 'attachment; filename="attendees-export.csv"',
       "Cache-Control": "private, no-store",
     },
   });

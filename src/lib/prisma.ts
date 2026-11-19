@@ -8,7 +8,7 @@ const globalForPrisma = globalThis as typeof globalThis & {
 
 export function getPrisma() {
   if (!process.env.DATABASE_URL) {
-    throw new Error("DATABASE_URL is required to use Guestlist's database.");
+    throw new Error("DATABASE_URL is required to use VenuGuestPass's database.");
   }
 
   globalForPrisma.prisma ??= new PrismaClient();

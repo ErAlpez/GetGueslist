@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { CalendarDays, Clock3, MapPin } from "lucide-react";
+import { BrandMark } from "@/components/brand-mark";
 import { PublicRegistrationForm } from "@/components/public-registration-form";
 import { getPrisma } from "@/lib/prisma";
 import {
@@ -29,6 +30,7 @@ export default async function PublicRegistrationPage({ params }: PublicRegistrat
     where: { id: eventId, archivedAt: null },
     include: {
       settings: true,
+      modules: { where: { key: { in: ["rsvp", "meals", "sessions"] } } },
       registrationForm: {
         include: { questions: { orderBy: { position: "asc" } } },
       },
@@ -57,12 +59,41 @@ export default async function PublicRegistrationPage({ params }: PublicRegistrat
   const direction = locale === "ar" ? "rtl" : "ltr";
   const eventLogo = readEventLogo(event.settings?.customBranding);
   const eventDates = formatEventDateRange(event.startsAt, event.endsAt, event.timezone, locale);
+  const rsvpModule = (event.modules ?? []).find((module) => module.key === "rsvp");
+  const mealModule = (event.modules ?? []).find((module) => module.key === "meals");
+  const sessionModule = (event.modules ?? []).find((module) => module.key === "sessions");
+  const readObject = (value: unknown) => value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+  const mealSettings = readObject(mealModule?.settings);
+  const mealOptions = Array.isArray(mealSettings.options)
+    ? mealSettings.options.filter((option): option is string => typeof option === "string")
+    : [];
+  const sessionSettings = readObject(sessionModule?.settings);
+  let sessionOptions: Array<{ id: string; name: string; startsAt?: string }> = [];
+  try {
+    if (typeof sessionSettings.sessionsJson === "string") {
+      const parsed = JSON.parse(sessionSettings.sessionsJson);
+      if (Array.isArray(parsed)) {
+        sessionOptions = parsed.flatMap((session) => {
+          if (!session || typeof session !== "object") return [];
+          const value = session as Record<string, unknown>;
+          if (typeof value.name !== "string") return [];
+          return [{
+            id: typeof value.id === "string" ? value.id : value.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+            name: value.name,
+            startsAt: typeof value.startsAt === "string" ? value.startsAt : undefined,
+          }];
+        });
+      }
+    }
+  } catch {
+    sessionOptions = [];
+  }
 
   return localizeNode((
     <main className="public-registration-page" dir={direction} lang={locale}>
       <div className="public-registration-wrap">
         <Link className="public-registration-brand" href="/">
-          <span className="brand-mark"><span /></span><span><span>G</span><span>uestlist</span></span>
+          <BrandMark /><span>VenuGuestPass</span>
         </Link>
         <section className="public-registration-card">
           <div className="public-registration-heading">
@@ -98,7 +129,15 @@ export default async function PublicRegistrationPage({ params }: PublicRegistrat
                 <h2>Register for this event</h2>
                 <p>Complete the form to receive your ticket.</p>
               </div>
-              <PublicRegistrationForm eventId={event.id} questions={registrationQuestions} />
+              <PublicRegistrationForm
+                eventId={event.id}
+                mealOptions={mealModule?.enabled ? mealOptions : []}
+                questions={registrationQuestions}
+                rsvp={rsvpModule?.enabled ? {
+                  allowMaybe: readObject(rsvpModule.settings).allowMaybe !== false,
+                } : null}
+                sessions={sessionModule?.enabled ? sessionOptions : []}
+              />
             </>
           ) : (
             <p className="public-registration-closed" role="status">
@@ -108,7 +147,7 @@ export default async function PublicRegistrationPage({ params }: PublicRegistrat
             </p>
           )}
         </section>
-        <p className="public-registration-footer">Powered by <strong><span>G</span><span>uestlist</span></strong></p>
+        <p className="public-registration-footer">Powered by <strong>VenuGuestPass</strong></p>
       </div>
     </main>
   ), locale);

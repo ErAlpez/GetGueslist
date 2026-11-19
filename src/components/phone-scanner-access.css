@@ -1,14 +1,28 @@
-.phone-scanner-access {
-  margin-bottom: 12px;
-}
-
-.app-shell .check-in-workspace.check-in-workspace-with-phone-access {
-  grid-template-columns: minmax(0, .95fr) minmax(0, 1fr) minmax(0, .95fr);
-}
-
-.check-in-workspace-with-phone-access > .phone-scanner-access {
+.app-shell .phone-scanner-access-control {
   min-width: 0;
-  margin-bottom: 0;
+  max-width: 100%;
+}
+
+.app-shell .phone-scanner-access-control .language-trigger {
+  max-width: 100%;
+}
+
+.app-shell .phone-scanner-access-control .language-trigger-name {
+  display: block;
+  max-width: 170px;
+}
+
+.app-shell .phone-scanner-access-popover {
+  right: 0;
+  width: min(420px, calc(100vw - 24px));
+  max-height: min(80vh, 660px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.phone-scanner-access {
+  margin: 0;
+  padding: 14px;
 }
 
 .phone-scanner-access-heading,
@@ -235,22 +249,17 @@
   }
 }
 
-@media (max-width: 1100px) {
-  .app-shell .check-in-workspace.check-in-workspace-with-phone-access {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .check-in-workspace-with-phone-access > .phone-scanner-access {
-    grid-column: 1 / -1;
-  }
-}
-
 @media (max-width: 700px) {
-  .app-shell .check-in-workspace.check-in-workspace-with-phone-access {
-    grid-template-columns: minmax(0, 1fr);
+  .app-shell .phone-scanner-access-control .language-trigger-icon {
+    display: grid;
   }
 
-  .check-in-workspace-with-phone-access > .phone-scanner-access {
-    grid-column: auto;
+  .app-shell .phone-scanner-access-control .language-trigger-name {
+    display: none;
+  }
+
+  .app-shell .phone-scanner-access-popover {
+    right: auto;
+    left: 0;
   }
 }

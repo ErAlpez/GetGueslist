@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, LoaderCircle } from "lucide-react";
-import { registerAttendeeAction, type AttendeeFormState } from "@/app/dashboard/guestlist/actions";
+import { registerAttendeeAction, type AttendeeFormState } from "@/app/dashboard/attendees/actions";
 import { usePreferences } from "@/components/preferences-provider";
 import { localizeNode } from "@/lib/localization";
 import { attendeeCategories, attendeeCategoryLabels } from "@/lib/attendee-categories";
@@ -32,7 +32,7 @@ export function AttendeeForm({ eventId, eventName }: { eventId: string; eventNam
       </section>
       <p className="ticket-issue-note">A unique QR ticket will be created for this guest.</p>
       <div className="event-form-actions">
-        <Link className="form-cancel" href={`/dashboard/guestlist?event=${eventId}`}><ArrowLeft size={14} /> Back to guestlist</Link>
+        <Link className="form-cancel" href={`/dashboard/attendees?event=${eventId}`}><ArrowLeft size={14} /> Back to attendees</Link>
         <button className="button button-dark app-primary-button" disabled={pending} type="submit">{pending ? <LoaderCircle className="spin" size={14} /> : null} Add guest {!pending && <ArrowRight size={14} />}</button>
       </div>
     </form>

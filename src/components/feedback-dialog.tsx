@@ -9,7 +9,7 @@ import "./feedback-dialog.css";
 
 const initialState: FeedbackFormState = {};
 
-export function FeedbackDialog({ collapsed }: { collapsed: boolean }) {
+export function FeedbackDialog({ collapsed, isWorkspaceOwner }: { collapsed: boolean; isWorkspaceOwner: boolean }) {
   const { t } = usePreferences();
   const [open, setOpen] = useState(false);
   const portalRoot = typeof document === "undefined"
@@ -29,12 +29,12 @@ export function FeedbackDialog({ collapsed }: { collapsed: boolean }) {
         <MessageSquareText aria-hidden="true" size={16} strokeWidth={1.8} />
         <span>{t("Give Feedback")}</span>
       </button>
-      {open && portalRoot && createPortal(<FeedbackForm onClose={() => setOpen(false)} />, portalRoot)}
+      {open && portalRoot && createPortal(<FeedbackForm isWorkspaceOwner={isWorkspaceOwner} onClose={() => setOpen(false)} />, portalRoot)}
     </>
   );
 }
 
-function FeedbackForm({ onClose }: { onClose: () => void }) {
+function FeedbackForm({ isWorkspaceOwner, onClose }: { isWorkspaceOwner: boolean; onClose: () => void }) {
   const { t } = usePreferences();
   const [state, formAction, pending] = useActionState(submitFeedbackAction, initialState);
   const [rating, setRating] = useState(0);
@@ -57,6 +57,7 @@ function FeedbackForm({ onClose }: { onClose: () => void }) {
           <div className="feedback-success" role="status">
             <div className="feedback-success-mark">✓</div>
             <h2 id="feedback-dialog-title">{t("Thank you for your feedback.")}</h2>
+            {state.notificationError && <p>{t("Your feedback was saved, but the email notification could not be sent.")}</p>}
             <button className="button button-dark app-primary-button" onClick={onClose} type="button">{t("Close")}</button>
           </div>
         ) : (
@@ -90,6 +91,12 @@ function FeedbackForm({ onClose }: { onClose: () => void }) {
                 {t("Message")}
                 <textarea autoComplete="off" id="feedback-message" maxLength={2000} name="message" placeholder={t("Write your feedback here...")} required rows={5} />
               </label>
+              {isWorkspaceOwner && (
+                <label className="feedback-public-consent">
+                  <input name="publicationConsent" type="checkbox" />
+                  <span>{t("If I give this a 5-star rating, I agree that VenuGuestPass may publish my message with my name and workspace name on the homepage if it is approved.")}</span>
+                </label>
+              )}
               {state.error && <p className="feedback-error" role="alert">{t(state.error)}</p>}
               <button className="button button-dark app-primary-button feedback-submit" disabled={pending || !rating} type="submit">
                 {pending && <LoaderCircle aria-hidden="true" className="feedback-spinner" size={15} />}

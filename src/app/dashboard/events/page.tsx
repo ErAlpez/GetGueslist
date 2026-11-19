@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { ArrowRight, CalendarDays, Plus, Search } from "lucide-react";
 import { getPrisma } from "@/lib/prisma";
-import { requireWorkspaceContext } from "@/lib/workspace";
+import { requireWorkspaceSection } from "@/lib/workspace";
+import { workspaceRoleHasPermission } from "@/lib/workspace-roles";
 import { getPreferences } from "@/lib/preferences";
 import { localizeNode } from "@/lib/localization";
 import { AnimatedMetric } from "@/components/animated-metric";
@@ -12,11 +13,21 @@ type EventsPageProps = {
 
 export default async function EventsPage({ searchParams }: EventsPageProps) {
   const { locale } = await getPreferences();
-  const formatter = new Intl.DateTimeFormat(locale, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
-  const context = await requireWorkspaceContext();
+  const dateTimeFormatters = new Map<string, Intl.DateTimeFormat>();
+  const formatEventDateTime = (date: Date, timeZone: string) => {
+    let formatter = dateTimeFormatters.get(timeZone);
+    if (!formatter) {
+      formatter = new Intl.DateTimeFormat(locale, {
+        dateStyle: "medium",
+        timeStyle: "short",
+        timeZone,
+      });
+      dateTimeFormatters.set(timeZone, formatter);
+    }
+    return formatter.format(date);
+  };
+  const context = await requireWorkspaceSection("events");
+  const canManageEvents = workspaceRoleHasPermission(context.membership.role, "events.manage");
   const { q = "" } = await searchParams;
   const events = await getPrisma().event.findMany({
     where: {
@@ -32,7 +43,7 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
     <div className="events-page">
       <div className="page-heading-row">
         <div><div className="page-kicker">EVENT MANAGEMENT</div><h1>My events</h1><p>Manage events and the details that bring them together.</p></div>
-        <Link className="button button-dark app-primary-button" href="/dashboard/events/new"><Plus size={15} /> Create event</Link>
+        {canManageEvents && <Link className="button button-dark app-primary-button" href="/dashboard/events/new"><Plus size={15} /> Create event</Link>}
       </div>
       <section className="app-panel events-table-panel">
         <div className="events-toolbar">
@@ -46,7 +57,12 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
               <tbody>{events.map((event) => (
                 <tr key={event.id}>
                   <td><Link className="table-event-name" href={`/dashboard/events/${event.id}`}>{event.name}</Link><span className="table-event-sub">{event.category} · {event.format.toLowerCase()}</span></td>
-                  <td>{formatter.format(event.startsAt)}</td>
+                  <td>
+                    <div className="table-event-date-range">
+                      <div><strong><span>Starts</span>:</strong><span>{formatEventDateTime(event.startsAt, event.timezone)}</span></div>
+                      <div><strong><span>Ends</span>:</strong><span>{formatEventDateTime(event.endsAt, event.timezone)}</span></div>
+                    </div>
+                  </td>
                   <td>{event.venue || (event.format === "VIRTUAL" ? "Online" : "Not set")}</td>
                   <td><AnimatedMetric locale={locale} value={event._count.registrations} />{event.capacity ? <span className="table-capacity"> / {event.capacity}</span> : null}</td>
                   <td><span className={`status-pill status-${event.status.toLowerCase().replaceAll("_", "-")}`}>{event.status.toLowerCase().replaceAll("_", " ")}</span></td>
@@ -60,7 +76,7 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
             <span className="empty-state-icon"><CalendarDays size={20} /></span>
             <strong>{q ? "No events match that search" : "Your next event starts here"}</strong>
             <p>{q ? "Try a different event name." : "Create a draft, add your event details, and invite your first guests."}</p>
-            {!q && <Link className="button button-dark app-primary-button" href="/dashboard/events/new"><Plus size={14} /> Create event</Link>}
+            {!q && canManageEvents && <Link className="button button-dark app-primary-button" href="/dashboard/events/new"><Plus size={14} /> Create event</Link>}
           </div>
         )}
       </section>

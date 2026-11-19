@@ -1,0 +1,133 @@
+.live-raffle {
+  position: fixed;
+  z-index: 1200;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  color: #f5faf6;
+  background:
+    radial-gradient(ellipse at 50% 35%, rgba(35, 109, 81, .3), transparent 42%),
+    #101b17;
+}
+
+.live-raffle-topbar {
+  display: flex;
+  min-height: 66px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 0 4vw;
+  border-bottom: 1px solid rgba(224, 242, 228, .1);
+}
+
+.live-raffle-back,
+.live-raffle-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #b6c8bc;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.live-raffle-back:hover { color: white; }
+.live-raffle-event { overflow: hidden; color: #f4faf5; font-size: 13px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.live-raffle-brand { color: #d7c58c; letter-spacing: .04em; }
+
+.live-raffle-layout {
+  display: grid;
+  width: min(1120px, calc(100% - 48px));
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  align-items: center;
+  gap: clamp(32px, 6vw, 90px);
+  margin: 0 auto;
+  padding: 50px 0;
+}
+
+.live-raffle-stage { text-align: center; }
+.live-raffle-kicker { display: inline-flex; align-items: center; gap: 8px; color: #9dc7a8; font-size: 10px; font-weight: 500; letter-spacing: .18em; }
+.live-raffle-stage h1 { margin: 17px 0 8px; color: #f7fbf7; font-size: clamp(36px, 5vw, 60px); font-weight: 700; letter-spacing: -.055em; line-height: 1; }
+.live-raffle-description { max-width: 470px; margin: 0 auto; color: #9bab9f; font-size: 14px; line-height: 1.65; }
+
+.raffle-slot {
+  position: relative;
+  display: flex;
+  min-height: 220px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin: 36px auto 0;
+  padding: 30px 24px;
+  border: 1px solid rgba(221, 193, 113, .43);
+  border-radius: 20px;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.06), transparent 44%),
+    rgba(19, 38, 29, .82);
+  box-shadow: 0 22px 80px rgba(0, 0, 0, .28), inset 0 0 48px rgba(216, 185, 97, .035);
+}
+
+.raffle-slot::before,
+.raffle-slot::after { position: absolute; width: 100px; height: 100px; border: 1px solid rgba(226, 202, 130, .13); content: ""; transform: rotate(45deg); }
+.raffle-slot::before { top: -72px; left: -55px; }
+.raffle-slot::after { right: -55px; bottom: -72px; }
+.raffle-slot-label { position: relative; z-index: 1; color: #b8c5bb; font-size: 10px; font-weight: 650; letter-spacing: .14em; text-transform: uppercase; }
+.live-raffle .raffle-slot-name { position: relative; z-index: 1; margin-top: 16px; color: #f3d982; font-size: 58px !important; font-weight: 700; letter-spacing: -.035em; overflow-wrap: anywhere; }
+.raffle-slot.spinning .raffle-slot-name { animation: raffle-name-flash .18s linear infinite alternate; color: #fff3bb; filter: blur(.45px); }
+.raffle-slot.has-winner { border-color: rgba(243, 217, 130, .78); box-shadow: 0 0 46px rgba(214, 178, 73, .1), inset 0 0 60px rgba(216, 185, 97, .06); }
+.raffle-slot-glow { position: absolute; inset: auto 15% -100px; height: 130px; border-radius: 50%; background: rgba(200, 169, 79, .1); filter: blur(35px); }
+
+.live-raffle-controls { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 23px; }
+.live-raffle-draw { display: inline-flex; min-height: 48px; align-items: center; justify-content: center; gap: 10px; padding: 0 23px; border: 1px solid #e8d18c; border-radius: 999px; color: #20271d; background: linear-gradient(135deg, #f3dc98, #c7a957); box-shadow: 0 8px 26px rgba(207, 176, 90, .14); cursor: pointer; font-size: 12px; font-weight: 750; transition: transform .2s ease, box-shadow .2s ease; }
+.live-raffle-draw:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(207, 176, 90, .24); }
+.live-raffle-draw:disabled { cursor: not-allowed; opacity: .48; }
+.live-raffle-reset { display: inline-flex; min-height: 42px; align-items: center; gap: 7px; padding: 0 13px; border: 1px solid rgba(236, 243, 237, .16); border-radius: 999px; color: #b9c7bc; background: transparent; cursor: pointer; font-size: 11px; font-weight: 600; }
+.live-raffle-reset:hover:not(:disabled) { border-color: rgba(236, 243, 237, .4); color: white; }
+.live-raffle-reset:disabled { cursor: not-allowed; opacity: .5; }
+.live-raffle-error { margin: 13px 0 0; color: #ffb0a7; font-size: 12px; }
+.live-raffle-stats { display: flex; justify-content: center; gap: 26px; margin-top: 24px; color: #97a89b; font-size: 11px; }
+.live-raffle-stats span { display: inline-flex; align-items: center; gap: 7px; }
+.live-raffle-stats svg { color: #9dc7a8; }
+.live-raffle-stats strong { color: #f4f8f4; font-size: 13px; }
+
+.live-raffle-history { align-self: stretch; padding: 20px 19px; border: 1px solid rgba(223, 239, 226, .12); border-radius: 14px; background: rgba(255, 255, 255, .035); }
+.live-raffle-history-heading { display: flex; align-items: center; gap: 11px; padding-bottom: 17px; border-bottom: 1px solid rgba(223, 239, 226, .1); }
+.live-raffle-trophy { display: grid; width: 34px; height: 34px; place-items: center; border: 1px solid rgba(226, 202, 130, .25); border-radius: 10px; color: #e4ca80; background: rgba(226, 202, 130, .08); }
+.live-raffle-history-heading h2 { margin: 0; color: #f1f7f2; font-size: 14px; font-weight: 700; }
+.live-raffle-history-heading p { margin: 4px 0 0; color: #8fa095; font-size: 10px; }
+.live-raffle-history ol { display: flex; max-height: 48vh; flex-direction: column; gap: 5px; overflow-y: auto; margin: 9px 0 0; padding: 0; list-style: none; }
+.live-raffle-history li { display: flex; align-items: center; gap: 10px; padding: 9px 5px; border-bottom: 1px solid rgba(223, 239, 226, .07); }
+.raffle-winner-rank { display: grid; width: 25px; height: 25px; flex: 0 0 25px; place-items: center; border-radius: 50%; color: #e4ca80; background: rgba(226, 202, 130, .1); font-size: 10px; font-weight: 700; }
+.raffle-winner-copy { display: flex; min-width: 0; flex-direction: column; gap: 4px; }
+.raffle-winner-copy strong { overflow: hidden; color: #eaf1eb; font-size: 11px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.raffle-winner-copy small { color: #87988d; font-size: 9px; }
+.raffle-history-empty { display: flex; min-height: 145px; flex-direction: column; align-items: center; justify-content: center; gap: 9px; color: #6f8376; font-size: 11px; }
+.raffle-history-note { margin: 17px 0 0; color: #84968a; font-size: 10px; line-height: 1.65; }
+
+@keyframes raffle-name-flash { from { opacity: .55; transform: translateY(-3px); } to { opacity: 1; transform: translateY(3px); } }
+
+@media (max-width: 760px) {
+  .live-raffle-topbar { min-height: 58px; gap: 10px; padding: 0 16px; }
+  .live-raffle-brand { font-size: 0; }
+  .live-raffle-brand svg { width: 18px; height: 18px; }
+  .live-raffle-layout { width: min(560px, calc(100% - 28px)); grid-template-columns: 1fr; gap: 25px; align-content: start; padding: 35px 0; }
+  .live-raffle-stage h1 { font-size: 42px; }
+  .raffle-slot { min-height: 175px; margin-top: 26px; }
+  .live-raffle-history { padding: 16px; }
+  .live-raffle-history ol { max-height: 220px; }
+}
+
+@media (max-width: 420px) {
+  .live-raffle-event { max-width: 42vw; font-size: 11px; }
+  .live-raffle-back { font-size: 10px; }
+  .live-raffle-controls { flex-direction: column; }
+  .live-raffle-draw { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .raffle-slot.spinning .raffle-slot-name { animation: none; }
+  .live-raffle-draw { transition: none; }
+}

@@ -22,6 +22,9 @@ function loadTypeScript(file, mocks = {}) {
 
 const datetime = loadTypeScript("src/lib/datetime.ts");
 const dateRange = loadTypeScript("src/lib/date-range.ts");
+const followupSchedule = loadTypeScript("src/lib/automated-followup-schedule.ts");
+const eventAttachment = loadTypeScript("src/lib/event-attachment.ts");
+const workspaceRoles = loadTypeScript("src/lib/workspace-roles.ts");
 const event = {
   id: "event-1",
   workspaceId: "workspace-1",
@@ -59,11 +62,14 @@ function formData(overrides = {}) {
 }
 
 function createHarness({ role = "ADMIN", workspaceId = "workspace-1", updateCount = 1 } = {}) {
-  const calls = { lookups: [], updates: [], creates: [], logs: [], revalidated: [] };
+  const calls = { lookups: [], updates: [], creates: [], deliveryUpdates: [], logs: [], revalidated: [] };
   const transaction = {
     event: {
       updateMany: async (args) => { calls.updates.push(args); return { count: updateCount }; },
       create: async (args) => { calls.creates.push(args); return { id: event.id }; },
+    },
+    automatedEmailDelivery: {
+      updateMany: async (args) => { calls.deliveryUpdates.push(args); return { count: 0 }; },
     },
     subscription: { findUnique: async () => ({ plan: { activeEventLimit: null } }) },
     activityLog: {
@@ -88,10 +94,19 @@ function createHarness({ role = "ADMIN", workspaceId = "workspace-1", updateCoun
     },
     "@/lib/datetime": datetime,
     "@/lib/date-range": dateRange,
+    "@/lib/automated-followup-schedule": followupSchedule,
+    "@/lib/event-attachment": eventAttachment,
     "@/lib/event-logo": {},
+    "@/lib/supabase-storage": {
+      uploadSupabaseObject: async () => {},
+      downloadSupabaseObject: async () => new Uint8Array(),
+      deleteSupabaseObject: async () => {},
+    },
     "@/lib/prisma": { getPrisma: () => prisma },
+    "@/lib/plan-features": { workspaceHasFeature: () => true },
     "@/lib/registration-form": { registrationQuestionTypes: ["TEXT"] },
     "@/lib/workspace": { getWorkspaceContext: async () => ({ membership: { role }, workspace: { id: workspaceId }, user: { id: "user-1" } }) },
+    "@/lib/workspace-roles": workspaceRoles,
   });
   return {
     calls,
@@ -115,6 +130,8 @@ test("editing preserves exact unchanged timestamps, identity, and records", asyn
   assert.equal("slug" in data, false);
   assert.equal("registrations" in data, false);
   assert.equal(calls.logs[0].data.action, "event.updated");
+  assert.equal(calls.deliveryUpdates[0].data.scheduledAt.toISOString(), "2026-10-31T06:30:47.123Z");
+  assert.equal(calls.deliveryUpdates[1].data.scheduledAt.toISOString(), "2026-11-01T10:00:21.456Z");
   assert.ok(calls.revalidated.includes("/register/event-1"));
 });
 

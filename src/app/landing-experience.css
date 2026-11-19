@@ -414,6 +414,7 @@ html[data-theme="dark"] .landing-page .landing-navigation a[aria-current="page"]
 .landing-page .landing-experience:not([data-enhanced]):has(#check-in:target) .landing-navigation a[href="#check-in"],
 .landing-page .landing-experience:not([data-enhanced]):has(#reports:target) .landing-navigation a[href="#reports"],
 .landing-page .landing-experience:not([data-enhanced]):has(#pricing:target) .landing-navigation a[href="#pricing"],
+.landing-page .landing-experience:not([data-enhanced]):has(#reviews:target) .landing-navigation a[href="#reviews"],
 .landing-page .landing-experience:not([data-enhanced]):has(#faq:target) .landing-navigation a[href="#faq"],
 .landing-page .landing-experience:not([data-enhanced]):has(#get-started:target) .landing-navigation a[href="#get-started"] {
   color: #245c48;
@@ -433,6 +434,7 @@ html[data-theme="dark"] .landing-page .landing-experience:not([data-enhanced]):h
 html[data-theme="dark"] .landing-page .landing-experience:not([data-enhanced]):has(#check-in:target) .landing-navigation a[href="#check-in"],
 html[data-theme="dark"] .landing-page .landing-experience:not([data-enhanced]):has(#reports:target) .landing-navigation a[href="#reports"],
 html[data-theme="dark"] .landing-page .landing-experience:not([data-enhanced]):has(#pricing:target) .landing-navigation a[href="#pricing"],
+html[data-theme="dark"] .landing-page .landing-experience:not([data-enhanced]):has(#reviews:target) .landing-navigation a[href="#reviews"],
 html[data-theme="dark"] .landing-page .landing-experience:not([data-enhanced]):has(#faq:target) .landing-navigation a[href="#faq"],
 html[data-theme="dark"] .landing-page .landing-experience:not([data-enhanced]):has(#get-started:target) .landing-navigation a[href="#get-started"] {
   color: #d3efdc;
@@ -451,7 +453,8 @@ html[data-theme="dark"] .landing-page .landing-experience:not([data-enhanced]):h
 
 .landing-page .landing-slide > .trust-section,
 .landing-page .landing-slide > .steps-section,
-.landing-page .landing-slide > .pricing-section {
+.landing-page .landing-slide > .pricing-section,
+.landing-page .landing-slide > .reviews-section {
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -747,7 +750,7 @@ html[data-theme="dark"] .landing-page .module-copy h2 {
   transform: translate(-50%, -50%);
 }
 
-.landing-page .module-visual .chip-export-guestlist {
+.landing-page .module-visual .chip-export-venuguestpass {
   top: calc(50% + 225px);
   left: calc(50% - 66px);
   transform: translate(-50%, -50%);
@@ -1415,6 +1418,148 @@ html[data-theme="dark"] .landing-page .pricing-section .pricing-cta:hover {
   line-height: 1.45;
 }
 
+.landing-page .pricing-section .plan-pricing-toggle {
+  grid-column: 1 / -1;
+  justify-self: center;
+  margin: 20px auto 15px;
+}
+
+.landing-page .pricing-section .pricing-plan-grid {
+  display: grid;
+  width: min(1220px, 100%);
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 12px auto 0;
+}
+
+.landing-page .pricing-section .pricing-plan-card {
+  display: flex;
+  position: relative;
+  min-width: 0;
+  flex-direction: column;
+  padding: 38px 18px 18px;
+  border: 1px solid var(--pricing-border);
+  border-radius: 16px;
+  color: var(--pricing-copy);
+  background: var(--pricing-surface);
+  box-shadow: 0 12px 30px rgba(27, 55, 37, .06);
+}
+
+.landing-page .pricing-section .pricing-plan-card.is-popular {
+  border-color: var(--pricing-accent);
+  box-shadow: 0 14px 34px rgba(39, 123, 104, .14);
+}
+
+.landing-page .pricing-section .pricing-plan-badge {
+  position: absolute;
+  top: -10px;
+  left: 18px;
+  padding: 5px 8px;
+  border-radius: 99px;
+  color: var(--pricing-accent);
+  background: var(--pricing-highlight);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .06em;
+}
+
+.landing-page .pricing-section .pricing-plan-card h3 {
+  margin: 0;
+  color: var(--pricing-heading);
+  font-size: 32px;
+  font-weight: 600;
+}
+
+.landing-page .pricing-section .pricing-plan-card > p {
+  min-height: 22px;
+  margin: 6px 0 0;
+  color: var(--pricing-copy);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.landing-page .pricing-section .pricing-plan-monthly {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  margin-top: 14px;
+}
+
+.landing-page .pricing-section .pricing-plan-monthly strong {
+  color: var(--pricing-heading);
+  font-size: 48px;
+  line-height: 1;
+}
+
+.landing-page .pricing-section .pricing-plan-monthly span {
+  color: var(--pricing-muted);
+  font-size: 14px;
+}
+
+.landing-page .pricing-section .pricing-plan-limits {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 11px 0;
+  border-top: 1px solid var(--pricing-border);
+  border-bottom: 1px solid var(--pricing-border);
+  color: var(--pricing-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.landing-page .pricing-section .pricing-plan-limits strong {
+  color: var(--pricing-heading);
+}
+
+.landing-page .pricing-section .pricing-plan-features {
+  display: grid;
+  gap: 8px;
+  margin: 13px 0 18px;
+  padding: 0;
+  color: var(--pricing-copy);
+  font-size: 14px;
+  list-style: none;
+}
+
+.landing-page .pricing-section .pricing-plan-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  line-height: 1.4;
+}
+
+.landing-page .pricing-section .pricing-plan-features svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: var(--pricing-accent);
+}
+
+.landing-page .pricing-section .pricing-plan-cta {
+  width: 100%;
+  justify-content: center;
+  margin-top: auto;
+}
+
+.landing-page .pricing-section .pricing-plan-cta:disabled {
+  color: var(--pricing-muted);
+  background: var(--pricing-highlight);
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.landing-page .pricing-section .pricing-plan-note {
+  width: min(1220px, 100%);
+  margin: 12px auto 0;
+  color: var(--pricing-muted);
+  font-size: 10px;
+  line-height: 1.5;
+  text-align: center;
+}
+
 .landing-page .faq-section {
   --faq-surface: #fbfdfb;
   --faq-border: #dbe7dc;
@@ -1422,6 +1567,88 @@ html[data-theme="dark"] .landing-page .pricing-section .pricing-cta:hover {
   --faq-copy: #65796c;
   --faq-accent: #39816a;
   --faq-accent-surface: #edf5ed;
+}
+
+.landing-page .reviews-section {
+  --review-surface: #fbfdfb;
+  --review-border: #dbe7dc;
+  --review-copy: #586e60;
+  --review-title: #30483a;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(20px, 4vh, 36px);
+  background: var(--landing-section-background);
+}
+
+.landing-page .public-review-grid {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.landing-page .public-review-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 15px;
+  padding: clamp(17px, 2vw, 25px);
+  border: 1px solid var(--review-border);
+  border-radius: 18px;
+  background: var(--review-surface);
+  box-shadow: 0 12px 30px rgba(48, 72, 58, .05);
+}
+
+.landing-page .public-review-stars {
+  display: flex;
+  gap: 3px;
+  color: #c4853a;
+}
+
+.landing-page .public-review-card blockquote {
+  display: -webkit-box;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--review-title);
+  font-size: clamp(13px, 1.15vw, 16px);
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+}
+
+.landing-page .public-review-author {
+  display: grid;
+  gap: 3px;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--review-border);
+}
+
+.landing-page .public-review-author strong {
+  color: var(--review-title);
+  font-size: 12px;
+}
+
+.landing-page .public-review-author span,
+.landing-page .public-review-empty {
+  color: var(--review-copy);
+  font-size: 11px;
+}
+
+.landing-page .public-review-empty {
+  margin: 0;
+  text-align: center;
+}
+
+html[data-theme="dark"] .landing-page .reviews-section {
+  --review-surface: #1d2b22;
+  --review-border: #3a5041;
+  --review-copy: #b9c9bc;
+  --review-title: #edf5ee;
 }
 
 html[data-theme="dark"] .landing-page .faq-section {
@@ -1564,6 +1791,7 @@ html[data-theme="dark"] .landing-page .cta-content h2 {
 .landing-page .cta-content h2 em {
   color: #43856e;
   font-weight: inherit;
+  font-style: normal;
 }
 
 .landing-page .cta-content > p {
@@ -1622,6 +1850,10 @@ html[data-theme="dark"] .landing-page .footer-bottom {
 }
 
 @media (max-width: 900px) {
+  .landing-page .public-review-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .landing-page .hero-showcase {
     display: block;
     max-width: none;
@@ -1633,6 +1865,10 @@ html[data-theme="dark"] .landing-page .footer-bottom {
 }
 
 @media (max-width: 700px) {
+  .landing-page .public-review-grid {
+    grid-template-columns: 1fr;
+  }
+
   .landing-page {
     --landing-header-inset: 19px;
     padding: 5px;
@@ -2792,5 +3028,31 @@ html[data-theme="dark"] .landing-page .footer-bottom {
   .landing-page .landing-auth-experience .auth-welcome-panel {
     min-height: 190px;
     padding: 22px 16px;
+  }
+}
+
+@media (max-width: 1100px) {
+  .landing-page .pricing-section .pricing-plan-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .landing-page .pricing-section .pricing-plan-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .landing-page .pricing-section .pricing-plan-card {
+    padding: 36px 16px 16px;
+  }
+
+  .landing-page .pricing-section .pricing-plan-badge {
+    left: 16px;
+  }
+
+  .landing-page .pricing-section .pricing-plan-limits {
+    font-size: 11px;
   }
 }

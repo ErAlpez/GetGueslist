@@ -38,7 +38,7 @@ export function WorkspaceSettingsForm({
       </div>
       <label className="form-field">Address <textarea defaultValue={workspace.address ?? ""} name="address" rows={3} /></label>
       <div className="settings-form-footer">
-        <span>Workspace logo upload and member invites are not enabled in this phase.</span>
+        <span>Workspace members can be invited and managed from the section below.</span>
         <div className="form-save-actions">
           {state.success && !edited && !pending && <FormSaveSuccess message={t(state.success)} />}
           <button className="button button-dark app-primary-button" disabled={pending} type="submit">

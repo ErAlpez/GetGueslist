@@ -1,10 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { QrCode, RefreshCw, ShieldCheck, Smartphone, X } from "lucide-react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { ChevronDown, QrCode, RefreshCw, ShieldCheck, Smartphone, X } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+import { FormSaveSuccess } from "@/components/form-save-success";
 import { usePreferences } from "@/components/preferences-provider";
 import { localizeNode } from "@/lib/localization";
+import { createScannerPairing, getScannerAccesses, revokeScannerAccess } from "@/lib/api";
 import "./phone-scanner-access.css";
 
 type ScannerAccess = {
@@ -40,8 +42,9 @@ async function readResponseJson<T>(response: Response, label: string): Promise<T
   }
 }
 
-export function PhoneScannerAccess({ eventId }: { eventId: string }) {
-  const { locale } = usePreferences();
+export function PhoneScannerAccess({ canManageAccess, eventId }: { canManageAccess: boolean; eventId: string }) {
+  const { locale, t } = usePreferences();
+  const [open, setOpen] = useState(false);
   const [deviceName, setDeviceName] = useState("Front gate phone");
   const [pairing, setPairing] = useState<PairingCode | null>(null);
   const [pairingUrl, setPairingUrl] = useState("");
@@ -50,11 +53,40 @@ export function PhoneScannerAccess({ eventId }: { eventId: string }) {
   const [busyAccessId, setBusyAccessId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const popoverId = useId();
+
+  useEffect(() => {
+    if (!open) return;
+
+    function handlePointerDown(event: PointerEvent) {
+      if (event.target instanceof Node && !containerRef.current?.contains(event.target)) setOpen(false);
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+    }
+
+    function handleFocusIn(event: FocusEvent) {
+      if (event.target instanceof Node && !containerRef.current?.contains(event.target)) setOpen(false);
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("focusin", handleFocusIn);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("focusin", handleFocusIn);
+    };
+  }, [open]);
 
   const fetchAccesses = useCallback(async () => {
-    const response = await fetch(`/api/check-in/pairing?eventId=${encodeURIComponent(eventId)}`, {
-      cache: "no-store",
-    });
+    const response = await getScannerAccesses(eventId);
     const payload = await readResponseJson<{ accesses?: ScannerAccess[]; error?: string }>(
       response,
       "Phone scanner access",
@@ -106,11 +138,7 @@ export function PhoneScannerAccess({ eventId }: { eventId: string }) {
     setPairingUrl("");
 
     try {
-      const response = await fetch("/api/check-in/pairing", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ eventId, deviceName }),
-      });
+      const response = await createScannerPairing(eventId, deviceName);
       const payload = await readResponseJson<PairingCode & { error?: string }>(response, "Pairing request");
       if (!response.ok) throw new Error(payload.error ?? "A pairing code could not be created.");
 
@@ -130,11 +158,7 @@ export function PhoneScannerAccess({ eventId }: { eventId: string }) {
     setNotice("");
 
     try {
-      const response = await fetch("/api/check-in/pairing", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ accessId }),
-      });
+      const response = await revokeScannerAccess(accessId);
       const payload = await readResponseJson<{ error?: string }>(response, "Revocation request");
       if (!response.ok) throw new Error(payload.error ?? "Phone scanner access could not be revoked.");
       setNotice("Phone scanner access was revoked.");
@@ -147,87 +171,112 @@ export function PhoneScannerAccess({ eventId }: { eventId: string }) {
   }
 
   return localizeNode((
-    <section aria-labelledby="phone-scanner-access-heading" className="phone-scanner-access app-panel">
-      <div className="phone-scanner-access-heading">
-        <div>
-          <div className="phone-scanner-access-title-row">
-            <h2 id="phone-scanner-access-heading">Pair a check-in phone</h2>
-            <Smartphone aria-hidden="true" size={16} />
-          </div>
-          <p>Give a phone access to scan tickets for this event without signing in to the workspace dashboard.</p>
-          <div className="phone-scanner-access-kicker"><ShieldCheck aria-hidden="true" size={13} /> EVENT-SCOPED ACCESS</div>
-        </div>
-      </div>
+    <div className={`language-control phone-scanner-access-control${open ? " is-open" : ""}`} ref={containerRef}>
+      <button
+        aria-controls={popoverId}
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        className="language-trigger"
+        onClick={() => setOpen((current) => !current)}
+        ref={triggerRef}
+        type="button"
+      >
+        <span aria-hidden="true" className="language-trigger-icon"><Smartphone size={15} /></span>
+        <span className="language-trigger-name">Pair a check-in phone</span>
+        <ChevronDown aria-hidden="true" className="language-trigger-chevron" size={13} />
+      </button>
 
-      <div className="phone-scanner-access-create">
-        <label>
-          Scanner name
-          <input maxLength={60} onChange={(event) => setDeviceName(event.target.value)} value={deviceName} />
-        </label>
-        <button className="button button-dark app-primary-button" disabled={busy || !deviceName.trim()} onClick={createPairing} type="button">
-          {busy ? <RefreshCw aria-hidden="true" className="spin" size={14} /> : <QrCode aria-hidden="true" size={14} />}
-          Create pairing QR
-        </button>
-      </div>
+      {open && (
+        <section
+          aria-labelledby="phone-scanner-access-heading"
+          className="language-popover phone-scanner-access-popover"
+          id={popoverId}
+          role="dialog"
+        >
+          <div className="phone-scanner-access">
+            <div className="phone-scanner-access-heading">
+              <div>
+                <div className="phone-scanner-access-title-row">
+                  <h2 id="phone-scanner-access-heading">Pair a check-in phone</h2>
+                  <Smartphone aria-hidden="true" size={16} />
+                </div>
+                <p>Give a phone access to scan tickets for this event without signing in to the workspace dashboard.</p>
+                <div className="phone-scanner-access-kicker"><ShieldCheck aria-hidden="true" size={13} /> EVENT-SCOPED ACCESS</div>
+              </div>
+            </div>
 
-      <p className="phone-scanner-access-note">
-        The QR works once and expires in 5 minutes. Phone access expires after 12 hours and can be revoked here.
-        Camera permission is granted on the phone.
-      </p>
-
-      {pairing && pairingUrl && (
-        <div className="phone-scanner-pairing">
-          <QRCodeSVG aria-label="One-time phone scanner pairing QR code" size={144} value={pairingUrl} />
-          <div>
-            <strong>Scan this QR with the phone</strong>
-            <p>It opens a scanner-only page for {pairing.deviceName}. Keep this QR private until it is paired.</p>
-            <time dateTime={pairing.pairingExpiresAt}>
-              Expires at {new Date(pairing.pairingExpiresAt).toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit" })}
-            </time>
-          </div>
-        </div>
-      )}
-
-      {error && <p aria-live="polite" className="form-message form-error">{error}</p>}
-      {notice && <p aria-live="polite" className="phone-scanner-access-notice">{notice}</p>}
-
-      <div className="phone-scanner-access-list-heading">
-        <strong>Phone access for this event</strong>
-        <button aria-label="Refresh phone scanner access" onClick={() => {
-          setError("");
-          void fetchAccesses().then(setAccesses).catch((loadError: unknown) => setError(getErrorMessage(loadError)));
-        }} type="button">
-          <RefreshCw aria-hidden="true" size={13} />
-          Refresh
-        </button>
-      </div>
-      {accesses.length ? (
-        <ul className="phone-scanner-access-list">
-          {accesses.map((access) => (
-            <li key={access.id}>
-              <span>
-                <strong>{access.deviceName}</strong>
-                <small>
-                  {access.pairedAt
-                    ? `Connected · expires ${new Date(access.sessionExpiresAt ?? access.pairingExpiresAt).toLocaleString(locale)}`
-                    : `Pairing code expires ${new Date(access.pairingExpiresAt).toLocaleTimeString(locale)}`}
-                </small>
-              </span>
-              <button
-                aria-label={`${access.pairedAt ? "Revoke" : "Cancel"} ${access.deviceName}`}
-                disabled={busyAccessId === access.id}
-                onClick={() => void revokeAccess(access.id)}
-                type="button"
-              >
-                <X aria-hidden="true" size={14} />
-                {access.pairedAt ? "Revoke" : "Cancel"}
+            <div className="phone-scanner-access-create">
+              <label>
+                Scanner name
+                <input maxLength={60} onChange={(event) => setDeviceName(event.target.value)} value={deviceName} />
+              </label>
+              <button className="button button-dark app-primary-button" disabled={busy || !deviceName.trim()} onClick={createPairing} type="button">
+                {busy ? <RefreshCw aria-hidden="true" className="spin" size={14} /> : <QrCode aria-hidden="true" size={14} />}
+                Create pairing QR
               </button>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="phone-scanner-access-empty">No phone scanners are paired with this event.</p>
+            </div>
+
+            <p className="phone-scanner-access-note">
+              The QR works once and expires in 5 minutes. Phone access expires after 12 hours.
+              {canManageAccess ? " You can revoke access here." : " An Owner or Admin can revoke access."} Camera permission is granted on the phone.
+            </p>
+
+            {pairing && pairingUrl && (
+              <div className="phone-scanner-pairing">
+                <QRCodeSVG aria-label="One-time phone scanner pairing QR code" size={144} value={pairingUrl} />
+                <div>
+                  <strong>Scan this QR with the phone</strong>
+                  <p>It opens a scanner-only page for {pairing.deviceName}. Keep this QR private until it is paired.</p>
+                  <time dateTime={pairing.pairingExpiresAt}>
+                    Expires at {new Date(pairing.pairingExpiresAt).toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit" })}
+                  </time>
+                </div>
+              </div>
+            )}
+
+            {error && <p aria-live="polite" className="form-message form-error">{error}</p>}
+            {notice && <FormSaveSuccess className="phone-scanner-access-notice" message={t(notice)} />}
+
+            <div className="phone-scanner-access-list-heading">
+              <strong>{canManageAccess ? "Phone access for this event" : "Phone access you created"}</strong>
+              <button aria-label="Refresh phone scanner access" onClick={() => {
+                setError("");
+                void fetchAccesses().then(setAccesses).catch((loadError: unknown) => setError(getErrorMessage(loadError)));
+              }} type="button">
+                <RefreshCw aria-hidden="true" size={13} />
+                Refresh
+              </button>
+            </div>
+            {accesses.length ? (
+              <ul className="phone-scanner-access-list">
+                {accesses.map((access) => (
+                  <li key={access.id}>
+                    <span>
+                      <strong>{access.deviceName}</strong>
+                      <small>
+                        {access.pairedAt
+                          ? `Connected · expires ${new Date(access.sessionExpiresAt ?? access.pairingExpiresAt).toLocaleString(locale)}`
+                          : `Pairing code expires ${new Date(access.pairingExpiresAt).toLocaleTimeString(locale)}`}
+                      </small>
+                    </span>
+                    {canManageAccess && <button
+                      aria-label={`${access.pairedAt ? "Revoke" : "Cancel"} ${access.deviceName}`}
+                      disabled={busyAccessId === access.id}
+                      onClick={() => void revokeAccess(access.id)}
+                      type="button"
+                    >
+                      <X aria-hidden="true" size={14} />
+                      {access.pairedAt ? "Revoke" : "Cancel"}
+                    </button>}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="phone-scanner-access-empty">{canManageAccess ? "No phone scanners are paired with this event." : "You haven’t paired a phone with this event."}</p>
+            )}
+          </div>
+        </section>
       )}
-    </section>
+    </div>
   ), locale);
 }

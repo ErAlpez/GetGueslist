@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Bell, Check, Inbox, LoaderCircle, RefreshCw, UserRoundPlus, X } from "lucide-react";
 import { usePreferences } from "@/components/preferences-provider";
+import { getNotifications, markNotificationsSeen } from "@/lib/api";
 import "./notification-popover.css";
 
 type NotificationKind = "registration" | "check_in";
@@ -145,7 +146,7 @@ export function NotificationPopover() {
       inFlight = true;
 
       try {
-        const response = await fetch("/api/notifications", { cache: "no-store" });
+        const response = await getNotifications();
         if (!response.ok) throw new Error(t("Could not load notifications."));
         const payload: unknown = await response.json();
         if (!isNotificationResponse(payload)) throw new Error(t("Could not load notifications."));
@@ -194,11 +195,7 @@ export function NotificationPopover() {
     ids.forEach((id) => markingRef.current.add(id));
     async function markSeen() {
       try {
-        const response = await fetch("/api/notifications", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ids }),
-        });
+        const response = await markNotificationsSeen(ids);
         if (!response.ok) throw new Error(t("Could not mark notifications as seen."));
         const payload: unknown = await response.json();
         if (!isSeenResponse(payload) || ids.some((id) => !payload.seen.some((item) => item.id === id))) {
@@ -239,7 +236,7 @@ export function NotificationPopover() {
     const refresh = () => setRefreshKey((current) => current + 1);
     const refreshDashboard = () => {
       refresh();
-      window.dispatchEvent(new Event("guestlist:activity"));
+      window.dispatchEvent(new Event("venuguestpass:activity"));
     };
     const handleStreamError = () => setError(t("Live notification updates are temporarily unavailable."));
 

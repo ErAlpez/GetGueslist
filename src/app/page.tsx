@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BrandMark } from "@/components/brand-mark";
 import {
   ArrowDownRight,
   ArrowRight,
@@ -10,17 +11,17 @@ import {
   Check,
   CheckCircle2,
   ChevronDown,
-  CircleHelp,
   Clock3,
   CreditCard,
   LayoutDashboard,
-  LockKeyhole,
+  Nfc,
   QrCode,
   ScanLine,
   Search,
   Settings2,
   ShieldCheck,
   Sparkles,
+  Star,
   Ticket,
   UsersRound,
   Zap,
@@ -29,9 +30,12 @@ import { LandingFrameHeader } from "@/components/landing-frame-header";
 import { LandingSections } from "@/components/landing-sections";
 import { LandingAuthModal, LandingAuthTrigger } from "@/components/landing-auth-modal";
 import { StatisticCircle } from "@/components/statistic-circle";
+import { PlanPrice, PlanPricingPeriod } from "@/components/plan-pricing-period";
 import { getPreferences } from "@/lib/preferences";
 import { getCurrentSession } from "@/lib/auth";
 import { landingNavigationItems } from "@/lib/landing-navigation";
+import { getPlanFeatureLabels } from "@/lib/plan-features";
+import { getPrisma } from "@/lib/prisma";
 import { localizeNode, translate } from "@/lib/localization";
 import "./landing.css";
 import "./landing-experience.css";
@@ -65,15 +69,15 @@ const featureCards = [
 
 const faqs = [
   {
-    question: "What is Guestlist?",
-    answer: "Guestlist is an event operations workspace for organizing registrations, invitations, guestlists, tickets, and check-in in one place.",
+    question: "What is VenuGuestPass?",
+    answer: "VenuGuestPass is an event operations workspace for organizing registrations, invitations, guestlists, tickets, and check-in in one place.",
   },
   {
     question: "Can I start for free?",
     answer: "Yes. The Free plan is designed to help you get started with one active event and up to 50 attendees per event.",
   },
   {
-    question: "Does Guestlist support QR check-in?",
+    question: "Does VenuGuestPass support QR check-in?",
     answer: "QR ticketing and attendance are part of the product foundation. The webcam scanner is being built as part of the initial release.",
   },
   {
@@ -84,9 +88,9 @@ const faqs = [
 
 function Brand({ light = false }: { light?: boolean }) {
   return (
-    <Link aria-label="Guestlist home" className={`brand${light ? " brand-light" : ""}`} href="/">
-      <span className="brand-mark"><span /></span>
-      <span><span>G</span><span>uestlist</span></span>
+    <Link aria-label="VenuGuestPass home" className={`brand${light ? " brand-light" : ""}`} href="/">
+      <BrandMark />
+      <span>VenuGuestPass</span>
     </Link>
   );
 }
@@ -104,14 +108,14 @@ const previewStats = [
 
 function ProductPreview({ locale }: { locale: Parameters<typeof localizeNode>[1] }) {
   return localizeNode((
-    <div aria-label="Illustrative preview of the Guestlist event dashboard" className="preview-frame" role="img">
+    <div aria-label="Illustrative preview of the VenuGuestPass event dashboard" className="preview-frame" role="img">
       <div className="preview-dashboard">
         <aside className="preview-dashboard-sidebar">
-          <div className="preview-dashboard-brand"><span className="mini-mark"><span /></span> Guestlist</div>
+          <div className="preview-dashboard-brand"><BrandMark className="mini-mark" /> VenuGuestPass</div>
           <span className="preview-dashboard-label">WORKSPACE</span>
           <span className="preview-dashboard-nav active"><LayoutDashboard size={11} /> Overview</span>
           <span className="preview-dashboard-nav"><CalendarDays size={11} /> My events</span>
-          <span className="preview-dashboard-nav"><UsersRound size={11} /> Guestlist</span>
+          <span className="preview-dashboard-nav"><UsersRound size={11} /> Attendees</span>
           <span className="preview-dashboard-nav"><Ticket size={11} /> Tickets</span>
           <span className="preview-dashboard-nav"><ScanLine size={11} /> Check-in</span>
           <span className="preview-dashboard-nav"><BarChart3 size={11} /> Reports & analytics</span>
@@ -168,10 +172,17 @@ export default async function Home({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const [{ locale }, session, params] = await Promise.all([
+  const [{ locale }, session, params, plans, reviews] = await Promise.all([
     getPreferences(),
     getCurrentSession(),
     searchParams,
+    getPrisma().plan.findMany({ where: { isActive: true }, orderBy: { monthlyPriceCents: "asc" } }),
+    getPrisma().platformReview.findMany({
+      where: { rating: 5, status: "APPROVED", publicationConsent: true },
+      select: { id: true, authorName: true, workspaceName: true, message: true },
+      orderBy: [{ moderatedAt: "desc" }, { createdAt: "desc" }],
+      take: 6,
+    }),
   ]);
   const authMode = params.auth === "sign-up" ? "sign-up" : "sign-in";
   const openAuthModal = params.auth === "sign-in" || params.auth === "sign-up";
@@ -220,7 +231,7 @@ export default async function Home({
       <section className="section trust-section" id="features">
         <div className="section-kicker">LESS SPREADSHEETS. MORE IN-SYNC.</div>
         <h2>All the moving parts.<br /><span>Finally moving together.</span></h2>
-        <p className="section-lead">The event is the experience. Guestlist takes care of the coordination behind it, so the right details are there when you need them.</p>
+        <p className="section-lead">The event is the experience. VenuGuestPass takes care of the coordination behind it, so the right details are there when you need them.</p>
         <div className="feature-grid">
           {featureCards.map(({ icon: Icon, title, text, tone }) => (
             <article className="feature-card" key={title}>
@@ -271,7 +282,7 @@ export default async function Home({
             <div className="module-node chip-tickets"><div className="module-chip"><span className="chip-check"><Check size={11} /></span> QR tickets</div></div>
             <div className="module-node chip-custom-question"><div className="module-chip">Custom Question</div></div>
             <div className="module-node chip-active-events"><div className="module-chip">Active Events</div></div>
-            <div className="module-node chip-export-guestlist"><div className="module-chip">Export Guestlist</div></div>
+            <div className="module-node chip-export-venuguestpass"><div className="module-chip">Export attendees</div></div>
             <div className="module-node chip-attendance"><div className="module-chip"><span className="chip-check"><Check size={11} /></span> Attendance</div></div>
             <div className="module-node chip-rsvp"><div className="module-chip">RSVP <span className="chip-muted">optional</span></div></div>
             <div className="module-node chip-meals"><div className="module-chip">Meals <span className="chip-muted">optional</span></div></div>
@@ -298,11 +309,11 @@ export default async function Home({
             <div><span className="point-icon lilac-point"><ScanLine size={17} /></span><span><strong>Clear at the door</strong><small>See valid, used, and cancelled tickets at a glance.</small></span></div>
             <div><span className="point-icon peach-point"><Clock3 size={17} /></span><span><strong>Recorded as it happens</strong><small>Keep a time-stamped attendance history.</small></span></div>
           </div>
-          <p className="phase-note"><LockKeyhole size={13} /> NFC check-in is planned for a future release.</p>
+          <p className="phase-note"><Nfc size={13} /> Write NFC tickets on Android and scan them at the door; Mac requires a compatible external reader.</p>
         </div>
         <div className="checkin-visual">
           <div className="phone-card">
-            <div className="phone-top"><span className="phone-dot" /><span>GUESTLIST CHECK-IN</span><span className="phone-more">···</span></div>
+            <div className="phone-top"><span className="phone-dot" /><span>VENUGUESTPASS CHECK-IN</span><span className="phone-more">···</span></div>
             <div className="scan-stage"><div className="scan-corner corner-tl" /><div className="scan-corner corner-tr" /><div className="scan-corner corner-bl" /><div className="scan-corner corner-br" /><QrCode size={106} strokeWidth={1.1} /><span className="scan-laser" /></div>
             <div className="checkin-toast"><span className="toast-check"><Check size={16} /></span><span><strong>You’re all set, Jamie!</strong><small>Checked in at 10:42 AM</small></span><BadgeCheck size={19} className="toast-badge" /></div>
             <div className="phone-footer"><span><span className="live-dot" /> SCANNER READY</span><span>Gather & Grow</span></div>
@@ -360,14 +371,59 @@ export default async function Home({
 
       <section className="section pricing-section" id="pricing">
         <div className="center-heading">
-          <div className="section-kicker">ROOM TO GROW, NEVER A SURPRISE</div>
-          <h2>A good place to <span>get started.</span></h2>
-          <p className="section-lead">Start with what you need. Move up when the events—and your ambitions—get bigger.</p>
+          <div className="section-kicker">SIMPLE, TRANSPARENT PRICING</div>
+          <h2>A plan for every <span>event program.</span></h2>
+          <p className="section-lead">Choose the capacity and tools that fit your team, with clear monthly and annual pricing.</p>
         </div>
-        <div className="pricing-card">
-          <div className="pricing-main"><span className="plan-tag">GOOD THINGS START HERE</span><h3>Free</h3><p>Everything you need to bring your first event together.</p><div className="price"><strong>₱0</strong><span>forever</span></div><LandingAuthTrigger className="button button-dark pricing-cta" mode="sign-up">Get started free <ArrowRight size={15} /></LandingAuthTrigger><small className="no-card">No credit card required</small></div>
-          <div className="pricing-includes"><span className="includes-title">A thoughtful start, with:</span><span><Check size={15} /> 1 active event</span><span><Check size={15} /> Up to 50 attendees per event</span><span><Check size={15} /> Guestlist essentials</span><span><Check size={15} /> QR tickets</span><span><Check size={15} /> Basic attendance tracking</span><div className="pricing-footnote"><CircleHelp size={15} /> More plans and configurable limits are coming as the platform grows.</div></div>
+        <PlanPricingPeriod>
+          <div className="pricing-plan-grid">
+            {plans.map((plan) => (
+              <article className={`pricing-plan-card${plan.code === "PROFESSIONAL" ? " is-popular" : ""}`} key={plan.id}>
+                <span className="pricing-plan-badge">{plan.code === "PROFESSIONAL" ? "MOST POPULAR" : `${plan.name.toUpperCase()} PLAN`}</span>
+                <h3>{plan.name}</h3>
+                <p>{plan.description}</p>
+                <PlanPrice className="pricing-plan-monthly" locale={locale} monthlyPriceCents={plan.monthlyPriceCents} />
+                <div className="pricing-plan-limits">
+                  <span><strong>{plan.activeEventLimit ?? "Unlimited"}</strong> active events</span>
+                  <span><strong>{plan.attendeePerEventLimit?.toLocaleString(locale) ?? "Unlimited"}</strong> attendees per event</span>
+                </div>
+                <ul className="pricing-plan-features">
+                  {getPlanFeatureLabels(plan.features).map((feature) => <li key={feature}><Check size={14} />{feature}</li>)}
+                </ul>
+                {plan.code === "FREE"
+                  ? <LandingAuthTrigger className="button button-dark pricing-cta pricing-plan-cta" mode="sign-up">Get started free <ArrowRight size={15} /></LandingAuthTrigger>
+                  : <button className="button button-dark pricing-cta pricing-plan-cta" disabled type="button">Paid plan coming soon</button>}
+              </article>
+            ))}
+          </div>
+        </PlanPricingPeriod>
+        <p className="pricing-plan-note">Prices are in PHP. Annual plans include two months free. Paid plan checkout will open once billing is configured.</p>
+      </section>
+
+      <section className="section reviews-section" id="reviews">
+        <div className="center-heading">
+          <div className="section-kicker">FROM EVENT TEAMS</div>
+          <h2>Kind words from <span>our community.</span></h2>
+          <p className="section-lead">Shared by workspace owners and published with their permission.</p>
         </div>
+        {reviews.length ? (
+          <div className="public-review-grid">
+            {reviews.map((review) => (
+              <article className="public-review-card" key={review.id}>
+                <div aria-label="5 out of 5 stars" className="public-review-stars" role="img">
+                  {Array.from({ length: 5 }, (_, index) => <Star aria-hidden="true" fill="currentColor" key={index} size={15} />)}
+                </div>
+                <blockquote>{review.message}</blockquote>
+                <div className="public-review-author">
+                  <strong>{review.authorName}</strong>
+                  <span>{review.workspaceName}</span>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="public-review-empty">Owner reviews will appear here when shared and approved.</p>
+        )}
       </section>
 
       <section className="section faq-section" id="faq">
@@ -384,10 +440,10 @@ export default async function Home({
         <div className="footer-main">
           <div className="footer-brand"><Brand light /><p>Good events have a lot of moving parts.<br />We help you bring them together.</p></div>
           <div className="footer-col"><span>EXPLORE</span><a href="#features">Features</a><a href="#solutions">Solutions</a><a href="#how-it-works">How it works</a><a href="#pricing">Pricing</a></div>
-          <div className="footer-col"><span>GUESTLIST</span><a href="#faq">About the platform</a><a href="#faq">FAQs</a><Link href="/login">Sign in</Link><Link href="/sign-up">Get started</Link></div>
+          <div className="footer-col"><span>VENUGUESTPASS</span><a href="#faq">About the platform</a><a href="#faq">FAQs</a><Link href="/login">Sign in</Link><Link href="/sign-up">Get started</Link></div>
           <div className="footer-note"><div className="footer-note-mark">✳</div><strong>Thoughtful events<br />start with thoughtful details.</strong><span>One guest at a time.</span></div>
         </div>
-        <div className="footer-bottom"><span>© {new Date().getFullYear()} Guestlist. All rights reserved.</span><div><Link href="/privacy">Privacy</Link><span aria-hidden="true">|</span><Link href="/terms">Terms</Link></div></div>
+        <div className="footer-bottom"><span>© {new Date().getFullYear()} VenuGuestPass. All rights reserved.</span><div><Link href="/privacy">Privacy</Link><span aria-hidden="true">|</span><Link href="/terms">Terms</Link></div></div>
       </footer>
       </div>
       </LandingSections>

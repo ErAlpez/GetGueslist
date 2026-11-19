@@ -36,6 +36,7 @@ const event = {
   venue: "Main hall",
   address: "123 Event Street",
   settings: null,
+  modules: [],
   registrationForm: null,
 };
 
@@ -62,7 +63,7 @@ test("shows the requested date-only range and deadline in the event time zone", 
     registrationDeadline: new Date("2026-12-20T15:59:00Z"),
   });
   const text = html.replace(/<[^>]*>/g, "");
-  assert.ok(text.includes("Date: Weds, Dec 23 - Fri, Dec 25, 2026"));
+  assert.ok(text.includes("Date: Weds, Dec 23 - Fri, Dec 25, 2026, 5:01 PM"));
   assert.ok(text.includes("Registration deadline: Sun, Dec 20, 2026"));
   assert.ok(text.includes("Venue: Main hall"));
   assert.ok(text.includes("Address: 123 Event Street"));
@@ -73,6 +74,28 @@ test("shows the requested date-only range and deadline in the event time zone", 
   assert.ok(!text.includes("11:59"));
 });
 
+test("shows configured event start and end times", async () => {
+  const html = await renderEvent({
+    startsAt: new Date("2026-12-22T17:30:00Z"),
+    endsAt: new Date("2026-12-25T10:00:00Z"),
+    registrationDeadline: null,
+  });
+  const text = html.replace(/<[^>]*>/g, "");
+  assert.ok(text.includes("Date: Weds, Dec 23, 1:30 AM - Fri, Dec 25, 2026, 6:00 PM"));
+});
+
+test("hides default all-day start and end times", async () => {
+  const html = await renderEvent({
+    startsAt: new Date("2026-12-22T16:00:00Z"),
+    endsAt: new Date("2026-12-25T15:59:00Z"),
+    registrationDeadline: null,
+  });
+  const text = html.replace(/<[^>]*>/g, "");
+  assert.ok(text.includes("Date: Weds, Dec 23 - Fri, Dec 25, 2026"));
+  assert.ok(!text.includes("12:00 AM"));
+  assert.ok(!text.includes("11:59 PM"));
+});
+
 test("shows both years for events spanning years in the event time zone", async () => {
   const html = await renderEvent({
     startsAt: new Date("2026-12-30T16:00:00Z"),
@@ -80,7 +103,7 @@ test("shows both years for events spanning years in the event time zone", async 
     registrationDeadline: null,
   });
   const text = html.replace(/<[^>]*>/g, "");
-  assert.ok(text.includes("Date: Thu, Dec 31, 2026 - Fri, Jan 1, 2027"));
+  assert.ok(text.includes("Date: Thu, Dec 31, 2026 - Fri, Jan 1, 2027, 12:00 AM"));
 });
 
 test("omits an unset deadline and localizes labels", async () => {

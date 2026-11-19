@@ -5,7 +5,7 @@ import { getPreferences } from "@/lib/preferences";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
-  description: "Terms for people registering for or attending events through Guestlist.",
+  description: "Terms for people registering for or attending events through VenuGuestPass.",
   robots: { index: true, follow: true },
 };
 
@@ -15,14 +15,14 @@ export default async function TermsPage() {
   return (
     <LegalDocument locale={locale} session={session} title="Terms of Service">
       <p>
-        These Terms apply when you use Guestlist to view event information, register or RSVP, access a ticket, or check
+        These Terms apply when you use VenuGuestPass to view event information, register or RSVP, access a ticket, or check
         in to an event.
       </p>
 
       <section>
-        <h2>1. Using Guestlist</h2>
+        <h2>1. Using VenuGuestPass</h2>
         <p>
-          By using Guestlist for an event, you agree to these Terms. Provide accurate information when registering and
+          By using VenuGuestPass for an event, you agree to these Terms. Provide accurate information when registering and
           use the service only for its intended event-related purposes.
         </p>
       </section>
@@ -39,7 +39,7 @@ export default async function TermsPage() {
       <section>
         <h2>3. Event organizers</h2>
         <p>
-          Guestlist provides tools that organizers use to manage event attendance and is not the event organizer.
+          VenuGuestPass provides tools that organizers use to manage event attendance and is not the event organizer.
           Organizers are responsible for event details, admission decisions, cancellations, refunds, and responding to
           event-related questions. Contact the organizer for help with an event or its requirements.
         </p>
@@ -48,14 +48,14 @@ export default async function TermsPage() {
       <section>
         <h2>4. Your information</h2>
         <p>
-          The <a href="/privacy">Privacy Policy</a> explains how Guestlist handles information. The event organizer may
+          The <a href="/privacy">Privacy Policy</a> explains how VenuGuestPass handles information. The event organizer may
           also have its own privacy information and requirements for the event.
         </p>
       </section>
 
       <section>
         <h2>5. Acceptable use</h2>
-        <p>You may not use Guestlist to:</p>
+        <p>You may not use VenuGuestPass to:</p>
         <ul>
           <li>Break the law, infringe another person’s rights, or engage in fraud.</li>
           <li>Misuse another attendee’s information or ticket.</li>
@@ -66,7 +66,7 @@ export default async function TermsPage() {
       <section>
         <h2>6. Service availability and access</h2>
         <p>
-          Guestlist may not always be available or error-free. We may restrict access when needed to protect users or
+          VenuGuestPass may not always be available or error-free. We may restrict access when needed to protect users or
           the service, prevent misuse, or comply with law. Nothing in these Terms limits rights that cannot be limited
           under applicable law.
         </p>

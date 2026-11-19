@@ -28,6 +28,9 @@ const registrationInput = z.object({
   category: z.enum(attendeeCategories, { error: "Choose a valid category." }),
   age: registrationAge,
   gender: registrationGender,
+  rsvpStatus: z.enum(["PENDING", "ACCEPTED", "DECLINED", "MAYBE"]).optional(),
+  mealChoice: z.string().trim().max(80).optional(),
+  sessionIds: z.array(z.string().max(80)).max(100).optional(),
 });
 
 const registrationOpenStatuses = new Set(["PUBLISHED", "REGISTRATION_OPEN", "ONGOING"]);
@@ -45,6 +48,9 @@ export async function registerForEventAction(
     category: formData.get("category") ?? "GENERAL",
     age: formData.get("age") ?? "",
     gender: formData.get("gender") ?? "",
+    rsvpStatus: formData.get("rsvpStatus") || undefined,
+    mealChoice: formData.get("mealChoice") || undefined,
+    sessionIds: formData.getAll("sessionId").map((value) => String(value)).filter(Boolean),
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Check your details and try again." };
@@ -70,6 +76,7 @@ export async function registerForEventAction(
         status: true,
         visibility: true,
         settings: { select: { allowRegistration: true, requireApproval: true } },
+        modules: { where: { key: { in: ["rsvp", "meals", "sessions"] } }, select: { key: true, enabled: true, settings: true } },
         registrationForm: {
           select: {
             published: true,
@@ -191,6 +198,16 @@ export async function registerForEventAction(
       });
     }
 
+    const rsvpModule = (event.modules ?? []).find((module) => module.key === "rsvp");
+    const rsvpStatus = rsvpModule?.enabled
+      ? (input.rsvpStatus ?? "PENDING")
+      : "ACCEPTED";
+
+    const mealModule = (event.modules ?? []).find((module) => module.key === "meals");
+    const mealChoice = mealModule?.enabled ? input.mealChoice ?? null : null;
+    const sessionModule = (event.modules ?? []).find((module) => module.key === "sessions");
+    const sessionIds = sessionModule?.enabled ? input.sessionIds ?? [] : [];
+
     const registration = await transaction.eventRegistration.create({
       data: {
         eventId: event.id,
@@ -199,8 +216,9 @@ export async function registerForEventAction(
         category: input.category,
         age: input.age,
         gender: input.gender,
-        rsvpStatus: "ACCEPTED",
-        paymentStatus: "NOT_REQUIRED",
+        rsvpStatus,
+        mealChoice,
+        sessionIds,
         registrationSource: "online",
         answers: { create: answers },
         ticket: {

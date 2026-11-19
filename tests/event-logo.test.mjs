@@ -22,6 +22,8 @@ function loadTypeScript(file, mocks = {}) {
 
 const logo = "data:image/webp;base64,UklGRkAAAABXRUJQVlA4WAoAAAAQAAAAAAAAAAAAQUxQSAIAAAAAAFZQOCAYAAAAMAEAnQEqAQABAAFAJiWkAANwAP79NmgA";
 const logoLib = loadTypeScript("src/lib/event-logo.ts");
+const eventAttachment = loadTypeScript("src/lib/event-attachment.ts");
+const followupSchedule = loadTypeScript("src/lib/automated-followup-schedule.ts");
 
 function harness({ role = "ADMIN", workspace = "workspace-1", branding = { color: "green" } } = {}) {
   const calls = { lookups: [], updates: [], logs: [], paths: [] };
@@ -45,8 +47,16 @@ function harness({ role = "ADMIN", workspace = "workspace-1", branding = { color
     },
     "@/lib/datetime": {},
     "@/lib/date-range": {},
+    "@/lib/automated-followup-schedule": followupSchedule,
+    "@/lib/event-attachment": eventAttachment,
     "@/lib/event-logo": logoLib,
+    "@/lib/supabase-storage": {
+      uploadSupabaseObject: async () => {},
+      downloadSupabaseObject: async () => new Uint8Array(),
+      deleteSupabaseObject: async () => {},
+    },
     "@/lib/prisma": { getPrisma: () => ({ $transaction: async (fn) => fn(transaction) }) },
+    "@/lib/plan-features": { workspaceHasFeature: () => true },
     "@/lib/registration-form": { registrationQuestionTypes: ["TEXT"] },
     "@/lib/workspace": { getWorkspaceContext: async () => ({ membership: { role }, workspace: { id: workspace }, user: { id: "user-1" } }) },
   });

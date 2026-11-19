@@ -3,7 +3,70 @@
   max-width: 100%;
 }
 
+.app-shell .check-in-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.app-shell .checkin-mode-control {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.app-shell .checkin-mode-control .language-trigger {
+  max-width: 100%;
+}
+
+.app-shell .checkin-mode-control .language-trigger-name {
+  display: block;
+  max-width: 170px;
+}
+
+.app-shell .checkin-mode-popover {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 230px;
+}
+
+.app-shell .checkpoint-scan-popover {
+  width: min(230px, calc(100vw - 32px));
+  max-height: min(340px, calc(100vh - 40px));
+  overflow-y: auto;
+}
+
+.app-shell .checkpoint-scan-popover .language-option-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell .checkin-mode-popover .language-option.is-selected {
+  border-color: #dce8da;
+  color: #46714f;
+  background: linear-gradient(135deg, #f3f8f1, #edf5ec);
+}
+
+html[data-theme="dark"] .app-shell .checkin-mode-popover .language-option.is-selected {
+  border-color: rgba(131, 196, 164, .22);
+  color: var(--dashboard-accent-hover);
+  background: var(--dashboard-accent-soft);
+}
+
+.app-shell .nfc-checkin-control {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .app-shell .checkin-event-switcher .language-trigger {
+  max-width: 100%;
+}
+
+.app-shell .nfc-checkin-control .language-trigger {
   max-width: 100%;
 }
 
@@ -12,13 +75,82 @@
   max-width: min(240px, 55vw);
 }
 
+.app-shell .nfc-checkin-control .language-trigger-name {
+  display: block;
+}
+
 .app-shell .checkin-event-switcher .language-option-name {
   overflow-wrap: anywhere;
 }
 
+.app-shell .nfc-checkin-control .language-trigger:disabled {
+  cursor: not-allowed;
+  opacity: .72;
+}
+
+.app-shell .nfc-checkin-control .nfc-checkin-status {
+  right: auto;
+  left: 0;
+  max-width: min(260px, calc(100vw - 24px));
+  color: #64736a;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.app-shell .nfc-checkin-control .nfc-keyboard-reader {
+  display: grid;
+  width: min(340px, calc(100vw - 24px));
+  max-width: min(340px, calc(100vw - 24px));
+  gap: 12px;
+}
+
+.app-shell .nfc-keyboard-reader p {
+  margin: 0;
+  color: var(--dashboard-muted, #76847b);
+}
+
+.app-shell .nfc-keyboard-reader form {
+  display: flex;
+  gap: 8px;
+}
+
+.app-shell .nfc-keyboard-reader input {
+  min-width: 0;
+  height: 38px;
+  flex: 1;
+  padding: 0 10px;
+  border: 1px solid var(--dashboard-border, #e2e9e1);
+  border-radius: 9px;
+  color: var(--dashboard-text, #35433b);
+  background: var(--dashboard-surface, #fff);
+  font: inherit;
+}
+
+.app-shell .nfc-keyboard-reader button {
+  min-height: 38px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 9px;
+  color: #fff;
+  background: var(--dashboard-accent, #277b68);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 @media (max-width: 700px) {
-  .app-shell .checkin-event-switcher .language-trigger-icon {
+  .app-shell .checkin-event-switcher .language-trigger-icon,
+  .app-shell .nfc-checkin-control .language-trigger-icon {
     display: grid;
+  }
+
+  .app-shell .check-in-header-actions {
+    justify-content: flex-start;
+  }
+
+  .app-shell .nfc-checkin-control .language-trigger-name {
+    display: none;
   }
 
   .app-shell .checkin-event-switcher .language-popover {

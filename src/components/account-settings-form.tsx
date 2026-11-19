@@ -148,7 +148,7 @@ export function AccountSettingsForm({
         <div className="settings-form-footer">
           <span>Email changes take effect after confirmation.</span>
           <div className="form-save-actions">
-            {profileMessage?.tone === "success" && <FormSaveSuccess message={profileMessage.text} />}
+            {profileMessage?.tone === "success" && !profilePending && <FormSaveSuccess message={profileMessage.text} />}
             <button className="button button-dark app-primary-button" disabled={profilePending} type="submit">
               {profilePending ? <LoaderCircle className="spin" size={14} /> : <Save size={14} />}
               Save profile
@@ -177,7 +177,7 @@ export function AccountSettingsForm({
         <div className="settings-form-footer">
           <span>Use at least 8 characters.</span>
           <div className="form-save-actions">
-            {passwordMessage?.tone === "success" && <FormSaveSuccess message={passwordMessage.text} />}
+            {passwordMessage?.tone === "success" && !passwordPending && <FormSaveSuccess message={passwordMessage.text} />}
             <button className="button button-dark app-primary-button" disabled={passwordPending} type="submit">
               {passwordPending ? <LoaderCircle className="spin" size={14} /> : <LockKeyhole size={14} />}
               Update password

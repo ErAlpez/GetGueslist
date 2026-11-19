@@ -1,13 +1,19 @@
 "use server";
 
 import { Buffer } from "node:buffer";
+import { createHash, randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { WorkspaceRole } from "@prisma/client";
+import { redirect } from "next/navigation";
 import { getPrisma } from "@/lib/prisma";
 import { getWorkspaceContext } from "@/lib/workspace";
+import { workspaceRoleHasPermission } from "@/lib/workspace-roles";
+import { workspaceHasFeature } from "@/lib/plan-features";
 
 export type WorkspaceSettingsState = { error?: string; success?: string };
 export type ProfilePictureState = { error?: string; success?: string };
+export type WorkspaceInvitationState = { error?: string; success?: string };
 
 const profileImagePrefix = "data:image/jpeg;base64,";
 const profileImageInput = z.string()
@@ -29,7 +35,10 @@ export async function updateWorkspaceAction(
 ): Promise<WorkspaceSettingsState> {
   const context = await getWorkspaceContext();
   if (!context) return { error: "Your session has expired. Sign in again to continue." };
-  if (!["OWNER", "ADMIN"].includes(context.membership.role)) {
+  if (!workspaceHasFeature(context.subscription, "workspace_settings")) {
+    return { error: "Workspace details require the Max plan." };
+  }
+  if (!workspaceRoleHasPermission(context.membership.role, "workspace.manage")) {
     return { error: "Only workspace owners and admins can update these settings." };
   }
 
@@ -103,4 +112,154 @@ export async function updateProfilePictureAction(
   });
   revalidatePath("/dashboard", "layout");
   return { success: removeImage ? "Profile photo removed." : "Profile photo updated." };
+}
+
+export async function inviteWorkspaceMemberAction(
+  _previousState: WorkspaceInvitationState,
+  formData: FormData,
+): Promise<WorkspaceInvitationState> {
+  const context = await getWorkspaceContext();
+  if (!context) return { error: "Your session has expired. Sign in again to continue." };
+  if (!workspaceRoleHasPermission(context.membership.role, "workspace.manage")) {
+    return { error: "Only workspace owners and admins can invite members." };
+  }
+
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const roleValue = String(formData.get("role") ?? "VIEWER");
+  if (!z.email().safeParse(email).success) return { error: "Enter a valid email address." };
+  if (!["ADMIN", "MANAGER", "CHECKIN", "VIEWER"].includes(roleValue)) {
+    return { error: "Choose a valid workspace role." };
+  }
+
+  const prisma = getPrisma();
+  const existingUser = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+  if (existingUser) {
+    const existingMember = await prisma.workspaceMember.findUnique({
+      where: { workspaceId_userId: { workspaceId: context.workspace.id, userId: existingUser.id } },
+    });
+    if (existingMember) return { error: "That person is already a workspace member." };
+  }
+
+  const existingInvite = await prisma.workspaceInvitation.findUnique({
+    where: { workspaceId_email: { workspaceId: context.workspace.id, email } },
+  });
+  if (existingInvite && existingInvite.acceptedAt === null && existingInvite.expiresAt > new Date()) {
+    return { error: "A pending invitation already exists for that email." };
+  }
+
+  const token = randomBytes(32).toString("base64url");
+  const tokenHash = createHash("sha256").update(token).digest("hex");
+  await prisma.$transaction([
+    prisma.workspaceInvitation.upsert({
+      where: { workspaceId_email: { workspaceId: context.workspace.id, email } },
+      create: {
+        workspaceId: context.workspace.id,
+        email,
+        role: roleValue as WorkspaceRole,
+        tokenHash,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        invitedById: context.user.id,
+      },
+      update: {
+        role: roleValue as WorkspaceRole,
+        tokenHash,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        acceptedAt: null,
+        invitedById: context.user.id,
+      },
+    }),
+    prisma.activityLog.create({
+      data: {
+        workspaceId: context.workspace.id,
+        actorId: context.user.id,
+        action: "workspace.member_invited",
+        entityType: "workspace_invitation",
+        entityId: email,
+        metadata: { email, role: roleValue },
+      },
+    }),
+  ]);
+
+  const baseUrl = process.env.BETTER_AUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const { sendAuthEmail } = await import("@/lib/email");
+  await sendAuthEmail({
+    to: email,
+    subject: `Invitation to ${context.workspace.name}`,
+    url: `${baseUrl.replace(/\/$/, "")}/invite/${token}`,
+  }).catch((error: unknown) => {
+    console.error("Workspace invitation email could not be sent:", error);
+  });
+
+  revalidatePath("/dashboard/settings");
+  return { success: "Invitation created and sent." };
+}
+
+export async function revokeWorkspaceInvitationAction(formData: FormData) {
+  const context = await getWorkspaceContext();
+  if (!context) redirect("/login");
+  if (!workspaceRoleHasPermission(context.membership.role, "workspace.manage")) redirect("/dashboard/settings");
+  const invitationId = String(formData.get("invitationId") ?? "");
+  await getPrisma().workspaceInvitation.deleteMany({
+    where: { id: invitationId, workspaceId: context.workspace.id, acceptedAt: null },
+  });
+  revalidatePath("/dashboard/settings");
+}
+
+export async function removeWorkspaceMemberAction(formData: FormData) {
+  const context = await getWorkspaceContext();
+  if (!context) redirect("/login");
+  if (context.membership.role !== "OWNER") redirect("/dashboard/settings");
+  const memberId = String(formData.get("memberId") ?? "");
+  await getPrisma().workspaceMember.deleteMany({
+    where: { id: memberId, workspaceId: context.workspace.id, role: { not: "OWNER" } },
+  });
+  revalidatePath("/dashboard/settings");
+}
+
+export async function acceptWorkspaceInvitationAction(formData: FormData) {
+  const context = await getWorkspaceContext();
+  if (!context) redirect("/login");
+  const token = String(formData.get("token") ?? "");
+  if (!token) redirect("/dashboard");
+  const tokenHash = createHash("sha256").update(token).digest("hex");
+  const prisma = getPrisma();
+  const invitation = await prisma.workspaceInvitation.findUnique({
+    where: { tokenHash },
+  });
+  if (
+    !invitation ||
+    invitation.acceptedAt ||
+    invitation.expiresAt <= new Date() ||
+    invitation.email.toLowerCase() !== context.user.email.toLowerCase()
+  ) {
+    redirect("/dashboard?invitation=invalid");
+  }
+
+  await prisma.$transaction(async (transaction) => {
+    await transaction.workspaceMember.upsert({
+      where: {
+        workspaceId_userId: { workspaceId: invitation.workspaceId, userId: context.user.id },
+      },
+      create: {
+        workspaceId: invitation.workspaceId,
+        userId: context.user.id,
+        role: invitation.role,
+      },
+      update: { role: invitation.role },
+    });
+    await transaction.workspaceInvitation.update({
+      where: { id: invitation.id },
+      data: { acceptedAt: new Date() },
+    });
+  });
+
+  const cookieStore = await import("next/headers").then(({ cookies }) => cookies());
+  cookieStore.set("guestlist.workspace", invitation.workspaceId, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+  });
+  redirect("/dashboard");
 }

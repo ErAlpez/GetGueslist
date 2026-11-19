@@ -3,6 +3,7 @@ import { PrismaClient, WorkspaceRole } from "@prisma/client";
 import { hashPassword } from "better-auth/crypto";
 
 const prisma = new PrismaClient();
+const annualPriceCents = (monthlyPriceCents: number) => monthlyPriceCents * 10;
 
 const plans = [
   {
@@ -13,37 +14,55 @@ const plans = [
     yearlyPriceCents: 0,
     activeEventLimit: 1,
     attendeePerEventLimit: 50,
-    features: ["basic_guestlist", "qr_tickets", "basic_attendance"],
+    features: [
+      "public_registration",
+      "basic_guestlist",
+      "qr_tickets",
+      "checkin_options",
+      "event_checkpoints",
+      "basic_attendance",
+      "registration_notifications",
+      "live_raffle",
+      "e_certificates",
+    ],
   },
   {
     code: "STARTER",
     name: "Starter",
     description: "For growing event programs",
-    monthlyPriceCents: null,
-    yearlyPriceCents: null,
+    monthlyPriceCents: 9900,
+    yearlyPriceCents: annualPriceCents(9900),
     activeEventLimit: 3,
     attendeePerEventLimit: 500,
-    features: ["custom_forms", "qr_tickets", "import_export", "basic_reports"],
+    features: [
+      "includes_free",
+      "custom_forms",
+      "event_branding",
+      "guestlist_filters",
+      "csv_exports",
+      "basic_reports",
+      "event_lifecycle",
+      "automated_followups",
+    ],
   },
   {
     code: "PROFESSIONAL",
-    name: "Professional",
+    name: "Max",
     description: "For teams running events at scale",
-    monthlyPriceCents: null,
-    yearlyPriceCents: null,
-    activeEventLimit: 10,
-    attendeePerEventLimit: 2000,
-    features: ["qr_tickets", "nfc", "team_collaboration", "badges", "advanced_reports"],
-  },
-  {
-    code: "ENTERPRISE",
-    name: "Enterprise",
-    description: "Custom limits and support",
-    monthlyPriceCents: null,
-    yearlyPriceCents: null,
+    monthlyPriceCents: 49900,
+    yearlyPriceCents: annualPriceCents(49900),
     activeEventLimit: null,
     attendeePerEventLimit: null,
-    features: ["custom_limits", "advanced_permissions", "custom_branding", "integrations"],
+    features: [
+      "includes_starter",
+      "advanced_reports",
+      "multi_event_reporting",
+      "checkin_activity",
+      "custom_limits",
+      "workspace_settings",
+      "workspace_exports",
+      "support",
+    ],
   },
 ];
 
@@ -52,6 +71,7 @@ const permissions = [
   { code: "events.manage", description: "Create, update, publish, and archive events" },
   { code: "attendees.manage", description: "Manage attendee registrations and guestlists" },
   { code: "checkin.perform", description: "Validate tickets and record attendance" },
+  { code: "checkin.pair_device", description: "Pair event-scoped check-in phones" },
   { code: "billing.manage", description: "View and manage subscription settings" },
 ];
 
@@ -92,15 +112,7 @@ async function main() {
     await prisma.plan.upsert({
       where: { code: plan.code },
       create: plan,
-      update: {
-        name: plan.name,
-        description: plan.description,
-        monthlyPriceCents: plan.monthlyPriceCents,
-        yearlyPriceCents: plan.yearlyPriceCents,
-        activeEventLimit: plan.activeEventLimit,
-        attendeePerEventLimit: plan.attendeePerEventLimit,
-        features: plan.features,
-      },
+      update: {},
     });
   }
 
@@ -113,9 +125,9 @@ async function main() {
   ));
   const roleGrants: Array<{ role: WorkspaceRole; codes: string[] }> = [
     { role: "OWNER", codes: permissions.map((permission) => permission.code) },
-    { role: "ADMIN", codes: ["workspace.manage", "events.manage", "attendees.manage", "checkin.perform"] },
+    { role: "ADMIN", codes: ["workspace.manage", "events.manage", "attendees.manage", "checkin.perform", "checkin.pair_device"] },
     { role: "MANAGER", codes: ["events.manage", "attendees.manage", "checkin.perform"] },
-    { role: "CHECKIN", codes: ["checkin.perform"] },
+    { role: "CHECKIN", codes: ["checkin.perform", "checkin.pair_device"] },
     { role: "VIEWER", codes: [] },
   ];
   const assignments = roleGrants.flatMap(({ role, codes }) =>
@@ -132,8 +144,8 @@ async function main() {
       throw new Error("TICKET_SIGNING_SECRET must be set to a random value of at least 32 characters to seed demo tickets.");
     }
 
-    const email = "demo@guestlist.local";
-    const password = "GuestlistDemo123!";
+    const email = "demo@venuguestpass.local";
+    const password = "VenuGuestPassDemo123!";
     const conflictingUser = await prisma.user.findUnique({ where: { email } });
     if (conflictingUser && conflictingUser.id !== "guestlist-demo-user") {
       throw new Error(`Demo email ${email} is already assigned to a non-demo account.`);
@@ -143,11 +155,11 @@ async function main() {
       where: { id: "guestlist-demo-user" },
       create: {
         id: "guestlist-demo-user",
-        name: "Guestlist Demo",
+        name: "VenuGuestPass Demo",
         email,
         emailVerified: true,
       },
-      update: { name: "Guestlist Demo", email, emailVerified: true },
+      update: { name: "VenuGuestPass Demo", email, emailVerified: true },
     });
     const passwordHash = await hashPassword(password);
 
@@ -168,11 +180,11 @@ async function main() {
       where: { slug: "guestlist-demo" },
       create: {
         id: "guestlist-demo-workspace",
-        name: "Guestlist Demo",
+        name: "VenuGuestPass Demo",
         slug: "guestlist-demo",
         ownerId: user.id,
       },
-      update: { ownerId: user.id },
+      update: { ownerId: user.id, name: "VenuGuestPass Demo" },
     });
 
     await prisma.workspaceMember.upsert({
@@ -195,7 +207,7 @@ async function main() {
       create: {
         id: "guestlist-demo-event",
         workspaceId: workspace.id,
-        name: "Guestlist Demo Showcase",
+        name: "VenuGuestPass Demo Showcase",
         slug: "guestlist-demo-showcase",
         description: "A sample event populated with demo guests and QR tickets.",
         category: "Networking",
@@ -219,7 +231,7 @@ async function main() {
         registrationForm: { create: { published: true } },
       },
       update: {
-        name: "Guestlist Demo Showcase",
+        name: "VenuGuestPass Demo Showcase",
         description: "A sample event populated with demo guests and QR tickets.",
         status: "REGISTRATION_OPEN",
         startsAt,

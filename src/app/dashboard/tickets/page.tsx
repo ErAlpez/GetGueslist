@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, QrCode } from "lucide-react";
 import { DownloadButton } from "@/components/download-button";
+import { FormSaveSuccess } from "@/components/form-save-success";
 import { createTicketToken } from "@/lib/tickets";
 import { getPrisma } from "@/lib/prisma";
 import { getPreferences } from "@/lib/preferences";
-import { localizeNode } from "@/lib/localization";
-import { requireWorkspaceContext } from "@/lib/workspace";
+import { localizeNode, translate } from "@/lib/localization";
+import { requireWorkspaceSection } from "@/lib/workspace";
+import { workspaceHasFeature } from "@/lib/plan-features";
+import { workspaceRoleHasPermission } from "@/lib/workspace-roles";
 import { AnimatedMetric } from "@/components/animated-metric";
 import "./tickets.css";
 
@@ -17,7 +20,12 @@ const pageSize = 20;
 
 export default async function TicketsPage({ searchParams }: TicketsPageProps) {
   const { locale } = await getPreferences();
-  const context = await requireWorkspaceContext();
+  const context = await requireWorkspaceSection("tickets");
+  const canManageAttendees = workspaceRoleHasPermission(context.membership.role, "attendees.manage");
+  const canManageEvents = workspaceRoleHasPermission(context.membership.role, "events.manage");
+  const canViewTicketStatus = workspaceHasFeature(context.subscription, "checkin_activity");
+  const canExportCsv = workspaceHasFeature(context.subscription, "csv_exports");
+  const canExportWorkspace = workspaceHasFeature(context.subscription, "workspace_exports");
   const { event: eventId, issued, page: pageParam } = await searchParams;
   const requestedPage = Number(pageParam ?? 1);
   const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
@@ -57,6 +65,10 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
         include: {
           attendee: { select: { firstName: true, lastName: true, email: true } },
           event: { select: { id: true, name: true } },
+          checkpointClaims: {
+            include: { checkpoint: { select: { id: true, name: true } } },
+            orderBy: { createdAt: "asc" },
+          },
         },
       },
     },
@@ -79,9 +91,12 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
     <div className="tickets-page">
       <div className="page-heading-row">
         <div><div className="page-kicker">TICKETING</div><h1>Tickets</h1><p>Unique QR tickets issued to your guests.</p></div>
-        <DownloadButton href={eventId ? `/api/guestlist/export?event=${encodeURIComponent(eventId)}` : "/api/guestlist/export"} label="Export guestlist" />
+        {canExportCsv && (selectedEvent || canExportWorkspace)
+          ? <DownloadButton href={selectedEvent ? `/api/guestlist/export?event=${encodeURIComponent(selectedEvent.id)}` : "/api/guestlist/export"} label="Export attendees" />
+          : <span className="plan-gated-label">{canExportCsv ? "Workspace-wide CSV export requires Max; select an event to export one." : "CSV export requires Starter."}</span>}
       </div>
-      {issuedTicket && <p className="form-message form-success ticket-success">QR ticket created for {issuedTicket.registration.attendee.firstName} {issuedTicket.registration.attendee.lastName}.</p>}
+      {!canViewTicketStatus && <p className="plan-gated-label ticket-status-gate">Ticket status visibility requires Max</p>}
+      {issuedTicket && <FormSaveSuccess className="ticket-success" message={translate(locale, `QR ticket created for ${issuedTicket.registration.attendee.firstName} ${issuedTicket.registration.attendee.lastName}.`)} />}
       <nav aria-label="Tickets" className="ticket-filters">
         <Link aria-current={!eventId ? "page" : undefined} className={!eventId ? "selected" : ""} href="/dashboard/tickets">
           <span>All events</span><span className="ticket-filter-count">{allGuestCount}</span>
@@ -100,8 +115,8 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
       {tickets.length ? (
         <>
           <div className="guest-table-scroll">
-            <table aria-label="Tickets" className="guest-table ticket-table">
-              <thead><tr><th scope="col">Attendee</th><th scope="col">Status</th><th scope="col">Issued</th><th scope="col">Digital ticket</th></tr></thead>
+            <table aria-label="Tickets" className={`guest-table ticket-table${canViewTicketStatus ? " ticket-table-with-claims" : ""}`}>
+              <thead><tr><th scope="col">Attendee</th>{canViewTicketStatus && <><th scope="col">Status</th><th scope="col">Checkpoint Claim</th></>}<th scope="col">Issued</th><th scope="col">Ticket ID</th><th scope="col">Digital ticket</th></tr></thead>
               <tbody>{tickets.map((ticket) => {
                 const token = createTicketToken(ticket.id);
                 const isIssued = ticket.id === issued;
@@ -111,8 +126,20 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
                       <span className="guest-name">{ticket.registration.attendee.firstName} {ticket.registration.attendee.lastName}</span>
                       {ticket.registration.attendee.email && <span className="guest-email">{ticket.registration.attendee.email}</span>}
                     </td>
-                    <td><span className={`status-pill status-${ticket.status.toLowerCase()}`}>{ticket.status.toLowerCase()}</span></td>
+                    {canViewTicketStatus && <td><span className={`status-pill status-${ticket.status.toLowerCase()}`}>{ticket.status.toLowerCase()}</span></td>}
+                    {canViewTicketStatus && (
+                      <td>
+                        {ticket.registration.checkpointClaims.length ? (
+                          <div className="ticket-checkpoint-claim-list">
+                            {ticket.registration.checkpointClaims.map((claim) => (
+                              <span className="status-pill" key={claim.checkpoint.id}>{claim.checkpoint.name}</span>
+                            ))}
+                          </div>
+                        ) : <span className="ticket-checkpoint-empty">Not claimed</span>}
+                      </td>
+                    )}
                     <td>{new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(ticket.createdAt)}</td>
+                    <td><strong>ID: {ticket.displayId}</strong></td>
                     <td><Link className="ticket-open-link" href={`/t/${token}`} rel="noreferrer" target="_blank">Open digital ticket <ArrowRight size={13} /></Link></td>
                   </tr>
                 );
@@ -133,9 +160,9 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
           <div className="empty-state">
             <span className="empty-state-icon"><QrCode size={20} /></span>
             <strong>No tickets yet</strong>
-            <p>Add a guest to an event to issue a unique QR ticket.</p>
-            {events[0] && <Link className="text-link" href={`/dashboard/events/${selectedEvent?.id ?? events[0].id}/guestlist/add`}>Add a guest <ArrowRight size={14} /></Link>}
-            {!events.length && <Link className="text-link" href="/dashboard/events/new">Create an event <ArrowRight size={14} /></Link>}
+            <p>Tickets will appear here when guests register for an event.</p>
+            {events[0] && canManageAttendees && <Link className="text-link" href={`/dashboard/events/${selectedEvent?.id ?? events[0].id}/guestlist/add`}>Add a guest <ArrowRight size={14} /></Link>}
+            {!events.length && canManageEvents && <Link className="text-link" href="/dashboard/events/new">Create an event <ArrowRight size={14} /></Link>}
           </div>
         </section>
       )}

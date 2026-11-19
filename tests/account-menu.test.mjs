@@ -12,8 +12,14 @@ const source = fs.readFileSync(path.join(root, "src/components/account-menu.tsx"
 const output = ts.transpileModule(source, {
   compilerOptions: { jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
 }).outputText;
+const roleSource = fs.readFileSync(path.join(root, "src/lib/workspace-roles.ts"), "utf8");
+const roleOutput = ts.transpileModule(roleSource, {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
+}).outputText;
+const roleModule = { exports: {} };
+new Function("require", "module", "exports", roleOutput)(require, roleModule, roleModule.exports);
 
-function harness(showOverview, signOutResult = {}) {
+function harness(showOverview, signOutResult = {}, demoRole = null) {
   const slots = [];
   let cursor = 0;
   const navigation = [];
@@ -31,9 +37,22 @@ function harness(showOverview, signOutResult = {}) {
     },
     "next/link": { __esModule: true, default: () => null },
     "next/image": { __esModule: true, default: () => null },
-    "next/navigation": { useRouter: () => ({ replace: (url) => navigation.push(url), refresh: () => navigation.push("refresh") }) },
+    "next/navigation": {
+      usePathname: () => "/dashboard",
+      useRouter: () => ({ replace: (url) => navigation.push(url), refresh: () => navigation.push("refresh") }),
+    },
     "@/lib/auth-client": { authClient: { signOut: async () => signOutResult } },
     "@/components/preferences-provider": { usePreferences: () => ({ t: (text) => text }) },
+    "@/app/dashboard/demo-role/actions": { switchDemoRoleAction: () => {} },
+    "@/app/dashboard/demo-plan/actions": { switchDemoPlanAction: () => {} },
+    "@/app/dashboard/workspaces/actions": { switchWorkspaceAction: () => {} },
+    "@/lib/offline-venuguestpass": {
+      offlineVenuGuestPassCacheKey: "cache",
+      offlineVenuGuestPassIdentityKey: "identity",
+      offlineVenuGuestPassQueueKey: "queue",
+      readOfflineGuestQueue: () => [],
+    },
+    "@/lib/workspace-roles": roleModule.exports,
     "./account-tooltip.css": {},
   };
   const localRequire = (name) => Object.hasOwn(mocks, name) ? mocks[name] : require(name);
@@ -43,7 +62,7 @@ function harness(showOverview, signOutResult = {}) {
     navigation,
     render() {
       cursor = 0;
-      return loaded.exports.AccountMenu({ name: "Alex", email: "alex@example.test", image: "/avatar.png", showOverview });
+      return loaded.exports.AccountMenu({ name: "Alex", email: "alex@example.test", image: "/avatar.png", showOverview, demoRole });
     },
   };
 }
@@ -66,7 +85,14 @@ test("landing menu opens with overview, settings, and sign out", async () => {
   assert.equal(dialog.props.id, trigger.props["aria-controls"]);
   assert.ok(find(dialog, (node) => node.props?.href === "/dashboard"));
   assert.ok(find(dialog, (node) => node.props?.href === "/dashboard/settings"));
-  await find(dialog, (node) => node.props?.className === "account-popover-sign-out").props.onClick();
+  const originalWindow = globalThis.window;
+  globalThis.window = { localStorage: { removeItem() {} } };
+  try {
+    await find(dialog, (node) => node.props?.className === "account-popover-sign-out").props.onClick();
+  } finally {
+    if (originalWindow) globalThis.window = originalWindow;
+    else delete globalThis.window;
+  }
   assert.deepEqual(h.navigation, ["/", "refresh"]);
 });
 
@@ -79,4 +105,17 @@ test("dashboard menu retains its existing links and reports sign-out failures", 
   await find(dialog, (node) => node.props?.className === "account-popover-sign-out").props.onClick();
   assert.deepEqual(h.navigation, []);
   assert.equal(find(h.render(), (node) => node.props?.role === "alert").props.children, "Sign out failed. Please try again.");
+});
+
+test("demo role selector explains the selected role and updates the description", () => {
+  const h = harness(false, {}, "VIEWER");
+  find(h.render(), (node) => node.props?.className === "account-trigger").props.onClick();
+  let dialog = find(h.render(), (node) => node.props?.role === "dialog");
+  const selector = find(dialog, (node) => node.props?.name === "role");
+  assert.equal(selector.props.value, "VIEWER");
+  assert.ok(find(dialog, (node) => node.type === "small" && node.props?.children === roleModule.exports.workspaceRoleDetails.VIEWER.description));
+
+  selector.props.onChange({ currentTarget: { value: "MANAGER" } });
+  dialog = find(h.render(), (node) => node.props?.role === "dialog");
+  assert.ok(find(dialog, (node) => node.type === "small" && node.props?.children === roleModule.exports.workspaceRoleDetails.MANAGER.description));
 });

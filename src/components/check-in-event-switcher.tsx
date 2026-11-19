@@ -5,9 +5,9 @@ import { CalendarDays, Check, ChevronDown } from "lucide-react";
 import { usePreferences } from "@/components/preferences-provider";
 import "./check-in-event-switcher.css";
 
-type EventOption = { id: string; name: string };
+export type CheckInEventOption = { id: string; name: string };
 
-export function CheckInEventSwitcher({ events, selectedEvent }: { events: EventOption[]; selectedEvent: EventOption }) {
+export function CheckInEventSwitcher({ events, selectedEvent }: { events: CheckInEventOption[]; selectedEvent: CheckInEventOption }) {
   const { t } = usePreferences();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);

@@ -1,19 +1,19 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { EventForm, type EventFormValues } from "@/components/event-form";
 import { utcToLocalDateTime } from "@/lib/datetime";
 import { localizeNode } from "@/lib/localization";
 import { getPreferences } from "@/lib/preferences";
 import { getPrisma } from "@/lib/prisma";
-import { requireWorkspaceContext } from "@/lib/workspace";
+import { requireWorkspacePermission } from "@/lib/workspace";
 
 export default async function EditEventPage({ params }: { params: Promise<{ eventId: string }> }) {
   const { eventId } = await params;
-  const [{ locale }, context] = await Promise.all([getPreferences(), requireWorkspaceContext()]);
-  if (!["OWNER", "ADMIN", "MANAGER"].includes(context.membership.role)) {
-    redirect(`/dashboard/events/${encodeURIComponent(eventId)}?error=permission`);
-  }
+  const [{ locale }, context] = await Promise.all([
+    getPreferences(),
+    requireWorkspacePermission("events.manage", `/dashboard/events/${encodeURIComponent(eventId)}?error=permission`),
+  ]);
   const event = await getPrisma().event.findFirst({
     where: { id: eventId, workspaceId: context.workspace.id, archivedAt: null },
   });

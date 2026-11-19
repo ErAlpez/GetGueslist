@@ -2,11 +2,12 @@ import { NextResponse } from "next/server";
 import { getPrisma } from "@/lib/prisma";
 import { createTicketToken } from "@/lib/tickets";
 import { getWorkspaceContext } from "@/lib/workspace";
+import { workspaceRoleHasPermission } from "@/lib/workspace-roles";
 
 export async function GET(request: Request) {
   const context = await getWorkspaceContext();
   if (!context) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
-  if (!["OWNER", "ADMIN", "MANAGER", "CHECKIN"].includes(context.membership.role)) {
+  if (!workspaceRoleHasPermission(context.membership.role, "checkin.perform")) {
     return NextResponse.json({ error: "You don’t have permission to search attendees." }, { status: 403 });
   }
 

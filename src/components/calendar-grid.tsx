@@ -72,14 +72,14 @@ export function CalendarGrid({
 
   return (
     <>
-      <div className="guestlist-calendar-heading">
+      <div className="venuguestpass-calendar-heading">
         <button aria-label={t("Previous month")} disabled={month.getUTCFullYear() === 0 && month.getUTCMonth() === 0} onClick={() => changeMonth(-1)} type="button"><ChevronLeft size={16} /></button>
         <strong aria-live="polite">{monthFormatter.format(month)}</strong>
         <button aria-label={t("Next month")} disabled={month.getUTCFullYear() === 9999 && month.getUTCMonth() === 11} onClick={() => changeMonth(1)} type="button"><ChevronRight size={16} /></button>
       </div>
-      <div className="guestlist-calendar-grid">
+      <div className="venuguestpass-calendar-grid">
         {Array.from({ length: 7 }, (_, index) => (
-          <span className="guestlist-calendar-weekday" key={`weekday-${index}`}>
+          <span className="venuguestpass-calendar-weekday" key={`weekday-${index}`}>
             {weekdayFormatter.format(new Date(Date.UTC(2023, 0, index + 1)))}
           </span>
         ))}

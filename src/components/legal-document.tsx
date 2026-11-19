@@ -33,7 +33,7 @@ export function LegalDocument({
 
           <div className="legal-main">
             <article className="legal-document" lang="en">
-              <p className="legal-eyebrow">GUESTLIST · LEGAL</p>
+              <p className="legal-eyebrow">VENUGUESTPASS · LEGAL</p>
               <h1>{title}</h1>
               <p className="legal-updated">Last updated: November 17, 2026</p>
 
@@ -42,7 +42,7 @@ export function LegalDocument({
               <section aria-labelledby="legal-contact-heading" className="legal-contact">
                 <h2 id="legal-contact-heading">Contact</h2>
                 <p>
-                  For questions about Guestlist or your information, email{" "}
+                  For questions about VenuGuestPass or your information, email{" "}
                   <a href="mailto:hello@guestlist.com">hello@guestlist.com</a>.
                 </p>
                 <Link href={companion.href}>{companion.label}</Link>

@@ -22,6 +22,7 @@ async function renderHome(session) {
       LanguageControl: () => React.createElement("button", { "aria-label": "Choose language" }),
       ThemeToggle: () => React.createElement("button", { "aria-label": "Use light theme" }),
     },
+    "@/components/brand-mark": { BrandMark: () => React.createElement("span", null, "V") },
     "@/components/landing-sections": {
       LandingSections: ({ children }) => React.createElement(
         "div",
@@ -29,6 +30,29 @@ async function renderHome(session) {
         children,
         React.createElement("nav", { className: "landing-navigation" }),
       ),
+    },
+    "@/components/landing-frame-header": {
+      LandingFrameHeader: ({ session }) => React.createElement(
+        "header",
+        { className: "site-header" },
+        React.createElement("div", { className: "header-inner" },
+          React.createElement("span", { className: "landing-frame-mark" }, "VENUGUESTPASS"),
+          React.createElement("div", { className: "header-actions" },
+            React.createElement("button", { "aria-label": "Choose language" }),
+            React.createElement("button", { "aria-label": "Use light theme" }),
+            session
+              ? React.createElement("button", { className: "account-trigger", "aria-label": `${session.user.name}, ${session.user.email}`, "data-show-overview": "true" }, session.user.image ? React.createElement("img", { src: session.user.image }) : session.user.name.charAt(0))
+              : React.createElement(React.Fragment, null,
+                  React.createElement("a", { href: "/login", "aria-label": "Sign in" }, "Sign in"),
+                  React.createElement("a", { href: "/sign-up" }, "Get started"),
+                ),
+          ),
+        ),
+      ),
+    },
+    "@/components/landing-auth-modal": {
+      LandingAuthModal: ({ children }) => React.createElement(React.Fragment, null, children),
+      LandingAuthTrigger: ({ children }) => React.createElement("a", { href: "/login" }, children),
     },
     "@/components/account-menu": {
       AccountMenu: ({ name, email, image, showOverview }) => React.createElement(
@@ -38,6 +62,10 @@ async function renderHome(session) {
       ),
     },
     "@/lib/preferences": { getPreferences: async () => ({ locale: "en" }) },
+    "@/lib/prisma": { getPrisma: () => ({
+      plan: { findMany: async () => [] },
+      platformReview: { findMany: async () => [] },
+    }) },
     "@/lib/auth": { getCurrentSession: async () => session },
     "@/lib/localization": { localizeNode: (node) => node, translate: (_locale, text) => text },
     "./home-header.css": {},
@@ -47,7 +75,7 @@ async function renderHome(session) {
   const localRequire = (name) => Object.hasOwn(mocks, name) ? mocks[name] : require(name);
   const loaded = { exports: {} };
   new Function("require", "module", "exports", output)(localRequire, loaded, loaded.exports);
-  return renderToStaticMarkup(await loaded.exports.default());
+  return renderToStaticMarkup(await loaded.exports.default({ searchParams: Promise.resolve({}) }));
 }
 
 async function renderHeader(session) {
@@ -65,7 +93,7 @@ test("signed-out header retains sign-in and sign-up links", async () => {
 
 test("header groups language before theme beside the centered wordmark", async () => {
   const header = await renderHeader(null);
-  assert.match(header, /class="landing-frame-mark">GUESTLIST<\/span>[\s\S]*class="header-actions"[\s\S]*aria-label="Choose language"[\s\S]*aria-label="Use light theme"/);
+  assert.match(header, /class="landing-frame-mark">VENUGUESTPASS<\/span>[\s\S]*class="header-actions"[\s\S]*aria-label="Choose language"[\s\S]*aria-label="Use light theme"/);
   assert.doesNotMatch(header, /class="brand/);
 });
 
@@ -84,17 +112,18 @@ test("landing kickers use plain text without decorative dots", async () => {
 test("get started ends with the compact copyright and policy links", async () => {
   const html = await renderHome(null);
   const footer = html.match(/<div class="footer-bottom">[\s\S]*?<\/div><\/div><\/footer>/)[0];
-  assert.match(footer, /© \d{4} Guestlist\./);
-  assert.match(footer, /href="#privacy"[^>]*>Privacy<\/a><span aria-hidden="true">\|<\/span><a href="#terms"[^>]*>Terms<\/a>/);
+  assert.match(footer, /© \d{4} VenuGuestPass\./);
+  assert.match(footer, /href="\/privacy"[^>]*>Privacy<\/a><span aria-hidden="true">\|<\/span><a href="\/terms"[^>]*>Terms<\/a>/);
   assert.doesNotMatch(footer, /Made for bringing people together|Built with care/);
 });
 
 test("dashboard preview shows the overview with illustrative statistics", async () => {
   const html = await renderHome(null);
-  assert.match(html, /aria-label="Illustrative preview of the Guestlist event dashboard"[^>]*role="img"/);
+  assert.match(html, /aria-label="Illustrative preview of the VenuGuestPass event dashboard"[^>]*role="img"/);
   assert.equal((html.match(/class="preview-dashboard-stat preview-tone-/g) ?? []).length, 8);
   assert.match(html, /preview-dashboard-stat-label">Total events/);
   assert.match(html, /preview-dashboard-stat-label">Attendance rate/);
+  assert.ok(html.includes(" Attendees</span>"));
   assert.match(html, /preview-dashboard-panel-heading"><strong>Upcoming events<\/strong>/);
   assert.match(html, /preview-dashboard-panel-heading"><strong>Your plan<\/strong>/);
 });

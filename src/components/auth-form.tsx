@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { ArrowLeft, ArrowRight, LoaderCircle, LockKeyhole, Sparkles } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
+import { BrandMark } from "@/components/brand-mark";
+import { FormSaveSuccess } from "@/components/form-save-success";
 import { usePreferences } from "@/components/preferences-provider";
 import { localizeNode } from "@/lib/localization";
 
@@ -25,7 +27,7 @@ const headings: Record<AuthMode, { title: string; description: string }> = {
   },
   "sign-up": {
     title: "Make every event count",
-    description: "Create your free Guestlist workspace in a few moments.",
+    description: "Create your free VenuGuestPass workspace in a few moments.",
   },
   "forgot-password": {
     title: "Reset your password",
@@ -133,7 +135,7 @@ export function AuthForm({ mode, token, authError, onModeChange, showDemoAccount
     setSuccess("");
     setSubmitting(true);
     try {
-      await signIn("demo@guestlist.local", "GuestlistDemo123!");
+      await signIn("demo@venuguestpass.local", "VenuGuestPassDemo123!");
     } catch {
       setMessage(t("Demo sign-in could not reach the authentication service. Check the local database setup and seed the demo account."));
     } finally {
@@ -144,9 +146,9 @@ export function AuthForm({ mode, token, authError, onModeChange, showDemoAccount
   return localizeNode((
     <div className={`auth-card${isPrimaryAuth ? ` auth-card--framed${isSignUp ? " is-sign-up" : ""}` : ""}`}>
       <section className="auth-form-panel">
-        <Link aria-label="Guestlist home" className="brand brand-dark" href="/">
-          <span className="brand-mark"><span /></span>
-          <span><span>G</span><span>uestlist</span></span>
+        <Link aria-label="VenuGuestPass home" className="brand brand-dark" href="/">
+          <BrandMark />
+          <span>VenuGuestPass</span>
         </Link>
         <div className="auth-heading">
           <div className="auth-icon"><LockKeyhole size={19} /></div>
@@ -198,7 +200,7 @@ export function AuthForm({ mode, token, authError, onModeChange, showDemoAccount
             </div>
           )}
           {message && <p aria-live="polite" className="form-message form-error">{message}</p>}
-          {success && <p aria-live="polite" className="form-message form-success">{success}</p>}
+          {success && <FormSaveSuccess message={t(success)} />}
           <button className="button button-dark auth-submit" disabled={submitting || (isReset && !token)} type="submit">
             {submitting ? <LoaderCircle className="spin" size={17} /> : null}
             {submitting ? t("Please wait") : isSignUp ? t("Create free account") : isForgot ? t("Send reset link") : isReset ? t("Update password") : t("Sign in")}

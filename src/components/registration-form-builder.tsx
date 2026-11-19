@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useRef, useState } from "react";
-import { Check, ChevronDown, ClipboardList, Copy, ExternalLink, LoaderCircle, MessageCircle, Plus, Save, Trash2 } from "lucide-react";
+import { Check, ChevronDown, ClipboardList, Copy, ExternalLink, LoaderCircle, LockKeyhole, MessageCircle, Plus, Save, Trash2 } from "lucide-react";
 import {
   saveRegistrationFormAction,
   type RegistrationFormState,
@@ -31,17 +31,21 @@ export function RegistrationFormBuilder({
   eventId,
   registrationUrl,
   logo,
-  questions: initialQuestions,
+  questions: initialQuestions = [],
   canShareRegistration,
+  canCustomForms,
+  canBranding,
 }: {
   eventId: string;
   registrationUrl: string;
   logo: string | null;
-  questions: RegistrationQuestionDraft[];
+  questions?: RegistrationQuestionDraft[];
   canShareRegistration: boolean;
+  canCustomForms: boolean;
+  canBranding: boolean;
 }) {
   const { t } = usePreferences();
-  const [questions, setQuestions] = useState(() => initialQuestions.map((question, index) => ({
+  const [questions, setQuestions] = useState(() => (Array.isArray(initialQuestions) ? initialQuestions : []).map((question, index) => ({
     ...question,
     localKey: `initial-${index}`,
   })));
@@ -99,31 +103,41 @@ export function RegistrationFormBuilder({
         </div>
         <ClipboardList aria-hidden="true" size={16} />
       </div>
-      <div className="registration-share-panel">
-        <div className="registration-share-copy">
-          <strong>{t("Share registration form")}</strong>
-          <p>{canShareRegistration
-            ? t("Guests can register themselves")
-            : t("Publish the event and enable registrations to make the link available.")}</p>
-        </div>
-        {canShareRegistration && (
-          <>
-            <div className="registration-share-controls">
-              <input aria-label={t("Registration link")} readOnly value={registrationUrl} />
-              <button className="button button-light" onClick={copyRegistrationLink} type="button">
-                {linkFeedback === t("Registration link copied.") ? <Check size={13} /> : <Copy size={13} />}
-                {t("Copy link")}
-              </button>
-              <a aria-label={t("Open registration form")} className="button button-light" href={registrationPath} rel="noreferrer" target="_blank">
-                <ExternalLink size={13} />
-              </a>
-            </div>
-            {linkFeedback && <p aria-live="polite" className="registration-share-feedback">{linkFeedback}</p>}
-          </>
-        )}
-      </div>
       <div className="registration-builder-columns">
-        <EventLogoForm eventId={eventId} key={eventId} logo={logo} />
+        <div className="registration-builder-left">
+          <div className="registration-share-panel">
+            <div className="registration-share-copy">
+              <strong>{t("Share registration form")}</strong>
+              <p>{canShareRegistration
+                ? t("Guests can register themselves")
+                : t("Publish the event and enable registrations to make the link available.")}</p>
+            </div>
+            {canShareRegistration && (
+              <>
+                <div className="registration-share-controls">
+                  <input aria-label={t("Registration link")} readOnly value={registrationUrl} />
+                  <button className="button button-light" onClick={copyRegistrationLink} type="button">
+                    {linkFeedback === t("Registration link copied.") ? <Check size={13} /> : <Copy size={13} />}
+                    {t("Copy link")}
+                  </button>
+                  <a aria-label={t("Open registration form")} className="button button-light" href={registrationPath} rel="noreferrer" target="_blank">
+                    <ExternalLink size={13} />
+                  </a>
+                </div>
+                {linkFeedback && <p aria-live="polite" className="registration-share-feedback">{linkFeedback}</p>}
+              </>
+            )}
+          </div>
+          {canBranding ? (
+            <EventLogoForm eventId={eventId} key={eventId} logo={logo} />
+          ) : (
+            <div className="plan-feature-lock">
+              <span><LockKeyhole aria-hidden="true" size={15} /></span>
+              <div><strong>Event branding is locked</strong><p>Upgrade to Starter or a higher plan to add and remove an event logo.</p></div>
+            </div>
+          )}
+        </div>
+        {canCustomForms ? (
         <form action={formAction} className="registration-form-builder" onSubmit={() => setEdited(false)}>
           <input name="eventId" type="hidden" value={eventId} />
           <input name="questions" type="hidden" value={serializedQuestions} />
@@ -230,6 +244,12 @@ export function RegistrationFormBuilder({
             </div>
           </div>
         </form>
+        ) : (
+          <div className="plan-feature-lock plan-feature-lock-wide">
+            <span><LockKeyhole aria-hidden="true" size={16} /></span>
+            <div><strong>Custom registration questions are locked</strong><p>Upgrade to Starter or a higher plan to add, edit, and save custom questions.</p></div>
+          </div>
+        )}
       </div>
     </section>
   );
