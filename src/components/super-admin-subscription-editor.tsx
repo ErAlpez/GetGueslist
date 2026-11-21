@@ -8,7 +8,7 @@ import { usePreferences } from "@/components/preferences-provider";
 
 type SelectablePlan = { id: string; code: string; name: string; isActive: boolean };
 
-const subscriptionStatuses = ["ACTIVE", "TRIALING", "PAST_DUE", "CANCELLED", "EXPIRED"] as const;
+const subscriptionStatuses = ["ACTIVE", "TRIALING", "PAST_DUE", "PAUSED", "CANCELLED", "EXPIRED"] as const;
 const initialState: AdminActionState = {};
 
 export function SuperAdminSubscriptionEditor({

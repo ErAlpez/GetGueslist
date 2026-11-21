@@ -14,16 +14,22 @@ export type AdminActionState = {
 
 const featureCodes = new Set(planFeatureOptions.map(({ code }) => code));
 const numericText = z.union([z.literal(""), z.string().regex(/^\d+$/)]);
+const dollarAmountText = z.union([
+  z.literal(""),
+  z.string().regex(/^\d+(?:\.\d{1,2})?$/, "Enter a dollar amount with no more than two decimal places."),
+]).transform((value) => {
+  if (value === "") return null;
+  const [dollars, cents = ""] = value.split(".");
+  return Number(dollars) * 100 + Number(cents.padEnd(2, "0"));
+}).pipe(z.number().int().safe().nonnegative().nullable());
 
 const planInput = z.object({
   id: z.string().optional(),
   code: z.string().trim().toUpperCase().regex(/^[A-Z][A-Z0-9_]{1,39}$/, "Use 2–40 uppercase letters, numbers, or underscores for the plan code."),
   name: z.string().trim().min(2, "Enter a plan name.").max(60),
   description: z.string().trim().max(240),
-  monthlyPriceCents: numericText.transform((value) => value === "" ? null : Number(value))
-    .pipe(z.number().int().safe().nonnegative().nullable()),
-  yearlyPriceCents: numericText.transform((value) => value === "" ? null : Number(value))
-    .pipe(z.number().int().safe().nonnegative().nullable()),
+  monthlyPriceCents: dollarAmountText,
+  yearlyPriceCents: dollarAmountText,
   activeEventLimit: numericText.transform((value) => value === "" ? null : Number(value))
     .pipe(z.number().int().safe().nonnegative().nullable()),
   attendeePerEventLimit: numericText.transform((value) => value === "" ? null : Number(value))
@@ -41,8 +47,8 @@ function readPlanInput(formData: FormData) {
     code: formData.get("code"),
     name: formData.get("name"),
     description: formData.get("description"),
-    monthlyPriceCents: formData.get("monthlyPriceCents"),
-    yearlyPriceCents: formData.get("yearlyPriceCents"),
+    monthlyPriceCents: formData.get("monthlyPriceDollars"),
+    yearlyPriceCents: formData.get("yearlyPriceDollars"),
     activeEventLimit: formData.get("activeEventLimit"),
     attendeePerEventLimit: formData.get("attendeePerEventLimit"),
     features: rawFeatures,

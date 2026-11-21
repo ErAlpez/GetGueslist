@@ -27,7 +27,9 @@ export function LandingAuthModal({
   showDemoAccount = false,
 }: LandingAuthModalProps) {
   const [mode, setMode] = useState<AuthMode>(initialMode);
+  const [isSwitchingMode, setIsSwitchingMode] = useState(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const modeChangeTimeout = useRef<number | null>(null);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -39,7 +41,12 @@ export function LandingAuthModal({
     }
 
     document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      if (modeChangeTimeout.current !== null) {
+        window.clearTimeout(modeChangeTimeout.current);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -57,8 +64,32 @@ export function LandingAuthModal({
     }
   }, [authenticated, openInitially]);
 
+  function handleModeChange(nextMode: AuthMode) {
+    if (nextMode === mode || modeChangeTimeout.current !== null) return;
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setMode(nextMode);
+      return;
+    }
+
+    setIsSwitchingMode(true);
+    modeChangeTimeout.current = window.setTimeout(() => {
+      modeChangeTimeout.current = null;
+      setMode(nextMode);
+      setIsSwitchingMode(false);
+    }, 200);
+  }
+
+  function cancelModeChange() {
+    if (modeChangeTimeout.current === null) return;
+    window.clearTimeout(modeChangeTimeout.current);
+    modeChangeTimeout.current = null;
+    setIsSwitchingMode(false);
+  }
+
   function openModal(nextMode: AuthMode) {
     if (authenticated) return;
+    cancelModeChange();
     setMode(nextMode);
 
     const dialog = dialogRef.current;
@@ -72,6 +103,7 @@ export function LandingAuthModal({
   }
 
   function closeModal() {
+    cancelModeChange();
     const dialog = dialogRef.current;
     if (dialog?.open) {
       dialog.close();
@@ -105,8 +137,8 @@ export function LandingAuthModal({
             >
               <X aria-hidden="true" size={18} />
             </button>
-            <div className="landing-auth-experience">
-              <AuthForm key={mode} mode={mode} onModeChange={setMode} showDemoAccount={showDemoAccount} />
+            <div className={`landing-auth-experience${isSwitchingMode ? " is-switching-mode" : ""}`}>
+              <AuthForm key={mode} mode={mode} onModeChange={handleModeChange} showDemoAccount={showDemoAccount} />
             </div>
           </div>
         </dialog>

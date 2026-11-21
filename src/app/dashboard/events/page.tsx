@@ -47,7 +47,7 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
       </div>
       <section className="app-panel events-table-panel">
         <div className="events-toolbar">
-          <form action="/dashboard/events" className="event-search"><Search size={14} /><input defaultValue={q} name="q" placeholder="Search events" /><button aria-label="Search events" type="submit"><ArrowRight size={13} /></button></form>
+          <form action="/dashboard/events" className="dashboard-search-field event-search"><Search aria-hidden="true" size={14} /><input aria-label="Search events" defaultValue={q} name="q" placeholder="Search events" /><button aria-label="Search events" type="submit"><ArrowRight aria-hidden="true" size={13} /></button></form>
           <span className="event-count"><AnimatedMetric locale={locale} value={events.length} /> {events.length === 1 ? "event" : "events"}</span>
         </div>
         {events.length ? (

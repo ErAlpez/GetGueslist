@@ -7,9 +7,24 @@
   color: #618c72;
 }
 
+.app-shell .tickets-page .ticket-event-filter {
+  margin-bottom: 20px;
+}
+
+.app-shell .tickets-page .ticket-event-search {
+  width: min(100%, 360px);
+  margin-bottom: 10px;
+}
+
+.app-shell .tickets-page .ticket-event-search-empty {
+  margin: 0;
+  color: var(--dashboard-muted, #87938a);
+  font-size: 12px;
+}
+
 .app-shell .tickets-page .ticket-filters {
   gap: 8px;
-  margin-bottom: 20px;
+  margin-bottom: 0;
   padding: 2px 2px 5px;
 }
 
@@ -124,6 +139,11 @@
 
 html[data-theme="dark"] .app-shell .tickets-page .page-kicker {
   color: #88b99a;
+}
+
+html[data-theme="dark"] .app-shell .tickets-page .ticket-event-search {
+  border-color: var(--dashboard-border);
+  background: var(--dashboard-inset);
 }
 
 html[data-theme="dark"] .app-shell .tickets-page .ticket-filters a {

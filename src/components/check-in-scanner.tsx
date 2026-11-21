@@ -454,7 +454,7 @@ export function CheckInScanner({
         </div>
         <div className="manual-checkin app-panel">
           <div className="panel-heading-row"><div><h2>Find a guest</h2><p>Search by ticket ID, name or email to {activeCheckpointId ? "record a checkpoint claim" : "check in a guest"}.</p></div></div>
-          <label className="manual-search"><Search aria-hidden="true" size={14} /><input aria-label="Ticket ID, name or email" autoComplete="off" onChange={(event) => setManualQuery(event.target.value)} placeholder="Enter ticket ID, name or email" value={manualQuery} /></label>
+          <label className="dashboard-search-field manual-search"><Search aria-hidden="true" size={14} /><input aria-label="Ticket ID, name or email" autoComplete="off" onChange={(event) => setManualQuery(event.target.value)} placeholder="Enter ticket ID, name or email" value={manualQuery} /></label>
           {query.length >= 2 && currentSearch?.error && <p className="form-message form-error manual-search-error">{currentSearch.error}</p>}
           {query.length >= 2 && !currentSearch && <div className="manual-helper" role="status">Searching guests…</div>}
           {query.length >= 2 && currentSearch && !currentSearch.error && (

@@ -10,6 +10,7 @@ import {
   HardDrive,
   Mail,
   MapPin,
+  Search,
   ShieldAlert,
   ShieldCheck,
   UsersRound,
@@ -494,9 +495,10 @@ export default async function SuperAdminPlansPage({ searchParams }: PageProps) {
           <div><h2>Workspace subscriptions</h2><p>Manually assign an active plan and update the subscription status.</p></div>
           <span>{workspaceCount} {workspaceCount === 1 ? "workspace" : "workspaces"}</span>
         </div>
-        <form action="/dashboard/admin/plans" className="super-admin-search">
+        <form action="/dashboard/admin/plans" className="dashboard-search-field super-admin-search">
+          <Search aria-hidden="true" size={14} />
           <input aria-label={translate(locale, "Search workspaces")} defaultValue={query} maxLength={100} name="q" placeholder={translate(locale, "Search workspace, slug, or owner")} />
-          <button className="button button-dark app-primary-button" type="submit">{translate(locale, "Search")}</button>
+          <button aria-label={translate(locale, "Search workspaces")} type="submit"><ArrowRight aria-hidden="true" size={13} /></button>
         </form>
         {workspaces.length ? (
           <div className="super-admin-workspace-list">

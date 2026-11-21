@@ -181,7 +181,7 @@ export default async function AttendeesPage({ searchParams }: AttendeesPageProps
       </div>
       <section className="app-panel venuguestpass-panel">
         <form action="/dashboard/attendees" className="venuguestpass-toolbar">
-          <label className="guest-search"><Search size={14} /><input defaultValue={query} name="q" placeholder="Search name or email" /><button aria-label="Search attendees" type="submit"><ArrowRight size={13} /></button></label>
+          <label className="dashboard-search-field guest-search"><Search aria-hidden="true" size={14} /><input aria-label="Search name or email" defaultValue={query} name="q" placeholder="Search name or email" /><button aria-label="Search attendees" type="submit"><ArrowRight aria-hidden="true" size={13} /></button></label>
           {canFilterAttendees ? (
             <>
               <select aria-label="Filter by event" defaultValue={requestedEventId} name="event">

@@ -32,17 +32,22 @@ function harness() {
     matches(selector) {
       if (selector.startsWith(".app-content :is(.usage-bar")) return this.kind === "horizontal";
       if (selector.startsWith(".app-content :is(.overview-chart-column")) return this.kind === "chart";
-      if (selector === ".app-content .statistic-circle") return this.kind === "circle";
-      return ["panel", "horizontal", "chart", "circle"].includes(this.kind);
+      if (selector === ".app-content :is(.statistic-circle, .statistic-icon-circle)") {
+        return this.kind === "circle" || this.kind === "icon-circle";
+      }
+      return ["panel", "horizontal", "chart", "circle", "icon-circle"].includes(this.kind);
     }
     querySelector(selector) {
       if (selector === ":scope > span" && this.kind === "horizontal") return this.children[0] ?? null;
       if (selector === ":scope > i" && this.kind === "chart") return this.children[0] ?? null;
-      if (selector === ":scope > svg > circle" && this.kind === "circle") return this.children[0] ?? null;
+      if (selector === ":scope > svg > circle[stroke-dashoffset]" && this.kind === "circle") return this.children[0] ?? null;
+      if (selector === ":scope > svg > circle[stroke-dashoffset]" && this.kind === "icon-circle") {
+        return this.children.find((child) => child.kind === "icon-circle-fill") ?? null;
+      }
       return null;
     }
     getAttribute(name) {
-      return name === "stroke-dashoffset" && this.kind === "circle-fill" ? "25" : null;
+      return name === "stroke-dashoffset" && ["circle-fill", "icon-circle-fill"].includes(this.kind) ? "25" : null;
     }
     querySelectorAll(selector) {
       return this.children.flatMap((child) => [
@@ -85,12 +90,16 @@ function harness() {
   const chart = new Element("chart");
   const circle = new Element("circle");
   const circleFill = new Element("circle-fill");
+  const iconCircle = new Element("icon-circle");
+  const iconCircleTrack = new Element("icon-circle-track");
+  const iconCircleFill = new Element("icon-circle-fill");
   const horizontalFill = new Element("fill");
   const chartFill = new Element("fill");
   horizontal.children.push(horizontalFill);
   chart.children.push(chartFill);
   circle.children.push(circleFill);
-  root.children.push(panel, horizontal, chart, circle);
+  iconCircle.children.push(iconCircleTrack, iconCircleFill);
+  root.children.push(panel, horizontal, chart, circle, iconCircle);
   const document = { querySelector: () => root, activeElement: null, documentElement: { dir: "ltr" } };
   const window = { IntersectionObserver, matchMedia: () => media };
   const react = { ...require("react"), useEffect: (callback) => { effect = callback; } };
@@ -101,15 +110,37 @@ function harness() {
   );
   loaded.exports.DashboardMotion();
   const cleanup = effect();
-  return { Element, root, panel, horizontal, horizontalFill, chart, chartFill, circle, circleFill, intersection, mutations, media, cleanup };
+  return {
+    Element,
+    root,
+    panel,
+    horizontal,
+    horizontalFill,
+    chart,
+    chartFill,
+    circle,
+    circleFill,
+    iconCircle,
+    iconCircleTrack,
+    iconCircleFill,
+    intersection,
+    mutations,
+    media,
+    cleanup,
+  };
 }
 
 test("statistic circles animate their fill from zero on entry and replay without observing the fill", () => {
   const h = harness();
   assert.equal(h.intersection.observed.has(h.circle), true);
   assert.equal(h.intersection.observed.has(h.circleFill), false);
+  assert.equal(h.intersection.observed.has(h.iconCircle), true);
+  assert.equal(h.intersection.observed.has(h.iconCircleFill), false);
   h.intersection.trigger(h.circle, true);
   assert.deepEqual(h.circleFill.animations[0].keyframes, [{ strokeDashoffset: "100" }, { strokeDashoffset: "25" }]);
+  h.intersection.trigger(h.iconCircle, true);
+  assert.deepEqual(h.iconCircleFill.animations[0].keyframes, [{ strokeDashoffset: "100" }, { strokeDashoffset: "25" }]);
+  assert.equal(h.iconCircleTrack.animations.length, 0);
   assert.ok(h.circleFill.animations[0].options.delay > 0);
   assert.ok(h.circleFill.animations[0].options.duration > 900);
   assert.equal(h.circleFill.animations[0].options.fill, "backwards");

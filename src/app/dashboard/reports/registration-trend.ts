@@ -1,5 +1,5 @@
 export function registrationTrend(
-  registrations: { registeredAt: Date }[],
+  dailyCounts: { day: string; count: number | bigint }[],
   locale: string,
   now: Date,
 ) {
@@ -15,10 +15,9 @@ export function registrationTrend(
     };
   });
   const daysByKey = new Map(days.map((day) => [day.key, day]));
-  for (const registration of registrations) {
-    const key = registration.registeredAt.toISOString().slice(0, 10);
-    const day = daysByKey.get(key);
-    if (day) day.count += 1;
+  for (const dailyCount of dailyCounts) {
+    const day = daysByKey.get(dailyCount.day);
+    if (day) day.count = Number(dailyCount.count);
   }
   return days.map(({ label, count }) => ({ label, count }));
 }

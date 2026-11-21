@@ -24,6 +24,30 @@ function loadTypeScript(file, mocks = {}) {
 }
 
 const workspaceRoles = loadTypeScript("src/lib/workspace-roles.ts");
+const api = loadTypeScript("src/lib/api.ts");
+
+test("phone pairing APIs return responses whose bodies are still available", async () => {
+  const originalFetch = globalThis.fetch;
+  const requests = [];
+  globalThis.fetch = async (path, init) => {
+    requests.push({ path, init });
+    return Response.json(requests.length === 1
+      ? { id: "access-1", pairingToken: "pairing-token" }
+      : { ok: true });
+  };
+
+  try {
+    const pairingResponse = await api.createScannerPairing("event-1", "Front gate");
+    assert.deepEqual(await pairingResponse.json(), { id: "access-1", pairingToken: "pairing-token" });
+
+    const revokeResponse = await api.revokeScannerAccess("access-1");
+    assert.deepEqual(await revokeResponse.json(), { ok: true });
+    assert.equal(requests[0].init.method, "POST");
+    assert.equal(requests[1].init.method, "DELETE");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
 
 function createHarness(role) {
   const calls = {};

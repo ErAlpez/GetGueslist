@@ -737,7 +737,6 @@ html[data-theme="dark"] .super-admin-review-actions {
 }
 
 html[data-theme="dark"] .super-admin-plan-fields > label input:not([type="checkbox"]),
-html[data-theme="dark"] .super-admin-search input,
 html[data-theme="dark"] .super-admin-subscription-form select {
   border-color: var(--dashboard-border);
   color: var(--dashboard-text);

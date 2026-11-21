@@ -30,12 +30,16 @@ import { LandingFrameHeader } from "@/components/landing-frame-header";
 import { LandingSections } from "@/components/landing-sections";
 import { LandingAuthModal, LandingAuthTrigger } from "@/components/landing-auth-modal";
 import { StatisticCircle } from "@/components/statistic-circle";
-import { PlanPrice, PlanPricingPeriod } from "@/components/plan-pricing-period";
+import {
+  PlanPrice,
+  PlanPricingPeriod,
+} from "@/components/plan-pricing-period";
 import { getPreferences } from "@/lib/preferences";
 import { getCurrentSession } from "@/lib/auth";
 import { landingNavigationItems } from "@/lib/landing-navigation";
 import { getPlanFeatureLabels } from "@/lib/plan-features";
 import { getPrisma } from "@/lib/prisma";
+import { getAnnualDiscountPercent } from "@/lib/currency-format";
 import { localizeNode, translate } from "@/lib/localization";
 import "./landing.css";
 import "./landing-experience.css";
@@ -78,11 +82,27 @@ const faqs = [
   },
   {
     question: "Does VenuGuestPass support QR check-in?",
-    answer: "QR ticketing and attendance are part of the product foundation. The webcam scanner is being built as part of the initial release.",
+    answer: "Yes. Each ticket has a unique QR code that event teams can scan for check-in. NFC and manual check-in options are also available.",
   },
   {
     question: "Can my team manage events together?",
     answer: "Team workspaces and role-based access are part of the platform architecture. Team collaboration features will roll out in a later release.",
+  },
+  {
+    question: "How many events and attendees can I have?",
+    answer: "Limits depend on your plan. The Free plan includes one active event and up to 50 attendees per event. See Pricing for plan limits and available features.",
+  },
+  {
+    question: "Can guests register online?",
+    answer: "Yes. Share your event's public registration page so guests can register online whenever registration is enabled for the event.",
+  },
+  {
+    question: "Can I add custom questions to my registration form?",
+    answer: "Yes. The Starter plan includes custom registration forms with up to 12 questions. Check Pricing for plan details.",
+  },
+  {
+    question: "Can I export my Attendees?",
+    answer: "CSV exports for filtered Attendees, tickets, and reports are available on plans that include CSV exports. Workspace-wide exports are included with Max.",
   },
 ];
 
@@ -187,6 +207,12 @@ export default async function Home({
   const authMode = params.auth === "sign-up" ? "sign-up" : "sign-in";
   const openAuthModal = params.auth === "sign-in" || params.auth === "sign-up";
   const showDemoAccount = params.demo === "account";
+  const annualDiscountPercent = plans.reduce((maximumDiscount, plan) => {
+    if (plan.code === "FREE") return maximumDiscount;
+
+    const discount = getAnnualDiscountPercent(plan.monthlyPriceCents, plan.yearlyPriceCents);
+    return Math.max(maximumDiscount, discount ?? 0);
+  }, 0) || null;
 
   return localizeNode((
     <main className="landing-page">
@@ -285,6 +311,8 @@ export default async function Home({
             <div className="module-node chip-export-venuguestpass"><div className="module-chip">Export attendees</div></div>
             <div className="module-node chip-attendance"><div className="module-chip"><span className="chip-check"><Check size={11} /></span> Attendance</div></div>
             <div className="module-node chip-rsvp"><div className="module-chip">RSVP <span className="chip-muted">optional</span></div></div>
+            <div className="module-node chip-live-raffle"><div className="module-chip">Live raffle</div></div>
+            <div className="module-node chip-checkpoints"><div className="module-chip">Checkpoints</div></div>
             <div className="module-node chip-meals"><div className="module-chip">Meals <span className="chip-muted">optional</span></div></div>
             <div className="module-node chip-sessions"><div className="module-chip">Sessions <span className="chip-muted">optional</span></div></div>
           </div>
@@ -375,29 +403,44 @@ export default async function Home({
           <h2>A plan for every <span>event program.</span></h2>
           <p className="section-lead">Choose the capacity and tools that fit your team, with clear monthly and annual pricing.</p>
         </div>
-        <PlanPricingPeriod>
+        <PlanPricingPeriod annualDiscountPercent={annualDiscountPercent}>
           <div className="pricing-plan-grid">
-            {plans.map((plan) => (
-              <article className={`pricing-plan-card${plan.code === "PROFESSIONAL" ? " is-popular" : ""}`} key={plan.id}>
-                <span className="pricing-plan-badge">{plan.code === "PROFESSIONAL" ? "MOST POPULAR" : `${plan.name.toUpperCase()} PLAN`}</span>
-                <h3>{plan.name}</h3>
-                <p>{plan.description}</p>
-                <PlanPrice className="pricing-plan-monthly" locale={locale} monthlyPriceCents={plan.monthlyPriceCents} />
-                <div className="pricing-plan-limits">
-                  <span><strong>{plan.activeEventLimit ?? "Unlimited"}</strong> active events</span>
-                  <span><strong>{plan.attendeePerEventLimit?.toLocaleString(locale) ?? "Unlimited"}</strong> attendees per event</span>
-                </div>
-                <ul className="pricing-plan-features">
-                  {getPlanFeatureLabels(plan.features).map((feature) => <li key={feature}><Check size={14} />{feature}</li>)}
-                </ul>
-                {plan.code === "FREE"
-                  ? <LandingAuthTrigger className="button button-dark pricing-cta pricing-plan-cta" mode="sign-up">Get started free <ArrowRight size={15} /></LandingAuthTrigger>
-                  : <button className="button button-dark pricing-cta pricing-plan-cta" disabled type="button">Paid plan coming soon</button>}
-              </article>
-            ))}
+            {plans.map((plan) => {
+              const monthlyPriceMinor = plan.monthlyPriceCents;
+              const annualPriceMinor = plan.yearlyPriceCents;
+              const currencyCode = "USD";
+
+              return (
+                <article className={`pricing-plan-card${plan.code === "PROFESSIONAL" ? " is-popular" : ""}`} key={plan.id}>
+                  <span className="pricing-plan-badge">{plan.code === "PROFESSIONAL" ? "MOST POPULAR" : `${plan.name.toUpperCase()} PLAN`}</span>
+                  <h3>{plan.name}</h3>
+                  <p>{plan.description}</p>
+                  <PlanPrice
+                    annualPriceMinor={annualPriceMinor}
+                    className="pricing-plan-monthly"
+                    currencyCode={currencyCode}
+                    locale={locale}
+                    monthlyPriceMinor={monthlyPriceMinor}
+                  />
+                  <div className="pricing-plan-limits">
+                    <span><strong>{plan.activeEventLimit ?? "Unlimited"}</strong> active events</span>
+                    <span><strong>{plan.attendeePerEventLimit?.toLocaleString(locale) ?? "Unlimited"}</strong> attendees per event</span>
+                  </div>
+                  <ul className="pricing-plan-features">
+                    {getPlanFeatureLabels(plan.features).map((feature) => <li key={feature}><Check size={14} />{feature}</li>)}
+                  </ul>
+                  {plan.code === "FREE"
+                    ? <LandingAuthTrigger className="button button-dark pricing-cta pricing-plan-cta" mode="sign-up">Get started free <ArrowRight size={15} /></LandingAuthTrigger>
+                    : <button className="button button-dark pricing-cta pricing-plan-cta" disabled type="button">Paid plan coming soon</button>}
+                </article>
+              );
+            })}
           </div>
         </PlanPricingPeriod>
-        <p className="pricing-plan-note">Prices are in PHP. Annual plans include two months free. Paid plan checkout will open once billing is configured.</p>
+        <div className="pricing-plan-note">
+          <CreditCard aria-hidden="true" className="pricing-plan-note-icon" size={12} />
+          <span className="pricing-plan-note-copy">Find the plan that fits your events. Grow with tools designed for every stage.</span>
+        </div>
       </section>
 
       <section className="section reviews-section" id="reviews">

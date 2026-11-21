@@ -97,6 +97,7 @@ test("existing public ticket links display the short ID without changing their l
 test("dashboard ticket card labels the display ID with a colon", async () => {
   const page = loadTypeScript("src/app/dashboard/tickets/page.tsx", {
     "./tickets.css": {},
+    "./tickets-event-filter": { TicketsEventFilter: () => null },
     "next/link": { __esModule: true, default: ({ children }) => children },
     "@/components/download-button": { DownloadButton: () => null },
     "@/components/ticket-qr": { TicketQr: () => null },

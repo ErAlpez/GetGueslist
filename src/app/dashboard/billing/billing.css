@@ -213,6 +213,126 @@
   line-height: 1.65;
 }
 
+.app-shell .billing-page .billing-subscription-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 18px;
+  padding: 14px 16px;
+  border: 1px solid #d5e9db;
+  border-radius: 12px;
+  color: #536f5b;
+  background: #f0f8f2;
+}
+
+.app-shell .billing-page .billing-subscription-notice svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: #438360;
+}
+
+.app-shell .billing-page .billing-subscription-notice p {
+  margin: 0;
+  color: inherit;
+  font-size: 13px !important;
+  line-height: 1.6;
+}
+
+.app-shell .billing-page .billing-renewal-control {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--billing-border);
+}
+
+.app-shell .billing-page .billing-renewal-disable,
+.app-shell .billing-page .billing-renewal-enable,
+.app-shell .billing-page .billing-renewal-confirm,
+.app-shell .billing-page .billing-renewal-keep {
+  min-height: 38px;
+  padding: 0 13px;
+  border: 1px solid var(--billing-border);
+  border-radius: 9px;
+  font-size: 12px !important;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.app-shell .billing-page .billing-renewal-disable {
+  border-color: #e6c9c4;
+  color: #a64e43;
+  background: #fff8f6;
+}
+
+.app-shell .billing-page .billing-renewal-disable:hover {
+  background: #fff0ed;
+}
+
+.app-shell .billing-page .billing-renewal-confirmation p,
+.app-shell .billing-page .billing-renewal-status,
+.app-shell .billing-page .billing-renewal-error {
+  margin: 0;
+  font-size: 12px !important;
+  line-height: 1.6;
+}
+
+.app-shell .billing-page .billing-renewal-confirmation p {
+  color: var(--billing-muted);
+}
+
+.app-shell .billing-page .billing-renewal-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 12px;
+}
+
+.app-shell .billing-page .billing-renewal-confirm {
+  border-color: #a64e43;
+  color: #fff;
+  background: #a64e43;
+}
+
+.app-shell .billing-page .billing-renewal-disable:disabled,
+.app-shell .billing-page .billing-renewal-enable:disabled,
+.app-shell .billing-page .billing-renewal-confirm:disabled,
+.app-shell .billing-page .billing-renewal-keep:disabled {
+  cursor: wait;
+  opacity: .65;
+}
+
+.app-shell .billing-page .billing-renewal-keep {
+  color: var(--billing-text);
+  background: var(--billing-surface);
+}
+
+.app-shell .billing-page .billing-renewal-status {
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid #d5e9db;
+  border-radius: 10px;
+  color: #438360;
+  background: #f0f8f2;
+}
+
+.app-shell .billing-page .billing-renewal-status strong {
+  color: inherit;
+}
+
+.app-shell .billing-page .billing-renewal-error {
+  margin-bottom: 12px;
+  color: #a64e43;
+}
+
+.app-shell .billing-page .billing-renewal-enable {
+  border-color: #cfe4d2;
+  color: #327651;
+  background: #f0f8f2;
+}
+
+.app-shell .billing-page .billing-renewal-enable:hover {
+  background: #e6f4e9;
+}
+
 .app-shell .billing-page .plan-options-panel,
 .app-shell .billing-page .invoice-panel {
   margin-top: 18px;
@@ -355,6 +475,55 @@
   opacity: 1;
 }
 
+.app-shell .billing-page .plan-upgrade-control {
+  display: grid;
+  width: 100%;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.app-shell .billing-page .plan-option .plan-upgrade-confirmation {
+  display: grid;
+  gap: 8px;
+  margin-top: 0;
+}
+
+.app-shell .billing-page .plan-upgrade-confirmation > p,
+.app-shell .billing-page .plan-upgrade-message {
+  margin: 0;
+  color: var(--billing-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.app-shell .billing-page .plan-upgrade-message.error {
+  color: #b42318;
+}
+
+.app-shell .billing-page .plan-upgrade-message.success {
+  color: var(--billing-accent);
+}
+
+.app-shell .billing-page .plan-upgrade-cancel {
+  justify-self: center;
+  padding: 3px 8px;
+  border: 0;
+  background: transparent;
+  color: var(--billing-muted);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.app-shell .billing-page .plan-upgrade-cancel:disabled {
+  cursor: wait;
+}
+
+.app-shell .billing-page .plan-option form {
+  width: 100%;
+  margin-top: auto;
+}
+
 .app-shell .billing-page .plan-option.current .plan-upgrade-button {
   border-color: #c8e4d0;
   color: #347b57;
@@ -439,6 +608,36 @@ html[data-theme="dark"] .app-shell .billing-page .usage-bar {
 
 html[data-theme="dark"] .app-shell .billing-page .billing-empty {
   border-color: #435b49;
+}
+
+html[data-theme="dark"] .app-shell .billing-page .billing-subscription-notice {
+  border-color: #3c674c;
+  color: #b7d5be;
+  background: #263f30;
+}
+
+html[data-theme="dark"] .app-shell .billing-page .billing-renewal-disable {
+  border-color: #75453f;
+  color: #f0a69a;
+  background: #3a2826;
+}
+
+html[data-theme="dark"] .app-shell .billing-page .billing-renewal-confirm,
+html[data-theme="dark"] .app-shell .billing-page .billing-renewal-status,
+html[data-theme="dark"] .app-shell .billing-page .billing-renewal-enable {
+  border-color: #3c674c;
+}
+
+html[data-theme="dark"] .app-shell .billing-page .billing-renewal-status,
+html[data-theme="dark"] .app-shell .billing-page .billing-renewal-enable {
+  color: #a8ddba;
+  background: #263f30;
+}
+
+html[data-theme="dark"] .app-shell .billing-page .billing-renewal-keep {
+  border-color: var(--billing-border);
+  color: var(--billing-text);
+  background: var(--billing-surface);
 }
 
 html[data-theme="dark"] .app-shell .billing-page .plan-option.current {

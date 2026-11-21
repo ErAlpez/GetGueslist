@@ -74,7 +74,7 @@ Requirements: Node.js 22.18+ and a PostgreSQL database.
 - **PostgreSQL:** required for authentication and all private workspace pages.
 - **Email:** Resend delivery is supported when `RESEND_API_KEY` and `EMAIL_FROM` are configured. Configure them before production.
 - **Automated follow-ups and system health:** Apply the `system_health_monitoring` migration. Vercel Cron runs both endpoints every five minutes and requires `CRON_SECRET`. Health samples are retained for seven days; Super Admin shows rolling 24-hour availability, failed probes, average latency, and an hourly trend. Configure Supabase credentials to enable its storage check. Vercel Hobby supports scheduled functions only once per day; this schedule requires Vercel Pro or Enterprise hosting.
-- **Subscription payments:** not connected. Plan checkout buttons remain disabled, and no real or simulated payment is made.
+- **Subscription payments:** Paddle is the only supported provider. New checkouts use one-time monthly/yearly prices for manual renewals. Customers pay again on or after the renewal date; access expires and returns to Free if they do not renew. Configure the four `PADDLE_ONE_TIME_PRICE_*` IDs and a publicly reachable HTTPS webhook. Existing recurring subscriptions continue to renew automatically unless the customer turns off auto-renew in Subscription & billing. The existing recurring `PADDLE_PRICE_*` IDs remain for those subscriptions and their upgrades; the `PADDLE_API_KEY` needs `subscription.write` for subscription upgrades and cancellations.
 - **Ticket payments:** removed; events use free registration and tickets.
 - **QR signing:** `TICKET_SIGNING_SECRET` signs ticket URLs. Rotating it invalidates existing tickets; plan a key-rotation strategy before production.
 - **PWA/offline:** an installable app shell, offline page fallback, and connection banner are available. Offline attendee-list snapshots and manual guest registrations are supported as described below; other private workspace pages are not cached.
@@ -83,7 +83,7 @@ Requirements: Node.js 22.18+ and a PostgreSQL database.
 - **Owner reviews:** owners can opt in to public display when leaving feedback. Only opted-in 5-star reviews approved in Super Admin plan management are shown on the homepage; other feedback remains private.
 - **Website analytics:** first-party daily aggregate counts cover only the public home and legal pages. Optional Plausible page-view tracking loads only after opt-in and only on those public pages; configure `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` to enable it. The first-party aggregate does not use analytics cookies, visitor identifiers, or full IP addresses. Country codes are read only from Vercel's trusted country header; other hosting environments record location as unknown.
 - **PWA/offline:** the last loaded attendee page is saved on the device for offline viewing. Manual guest registrations can be queued offline and are validated by the server before being committed; conflicting or rejected entries remain in the queue for review. Offline data is cleared on sign-out. Other workspace pages and edits are not available offline.
-- **Not implemented:** external subscription-provider checkout. Profile photos, event logos, event attachments, workspace switching/invitations, offline check-in queues, and Web NFC foundations are supported.
+- **Other supported features:** Profile photos, event logos, event attachments, workspace switching/invitations, offline check-in queues, and Web NFC foundations.
 
 ## Validation
 

@@ -16,15 +16,14 @@ const loaded = { exports: {} };
 new Function("require", "module", "exports", output)(require, loaded, loaded.exports);
 const { registrationTrend } = loaded.exports;
 
-test("registration trend groups only the seven UTC days, including year boundaries", () => {
-  const dates = [
-    "2025-12-27T23:59:59Z",
-    "2025-12-28T00:00:00Z",
-    "2025-12-28T23:59:59Z",
-    "2026-01-03T12:00:00Z",
-    "2026-01-04T00:00:00Z",
-  ].map((value) => ({ registeredAt: new Date(value) }));
-  const result = registrationTrend(dates, "en-US", new Date("2026-01-03T23:59:59Z"));
+test("registration trend maps grouped counts across seven UTC days, including year boundaries", () => {
+  const dailyCounts = [
+    { day: "2025-12-27", count: 10 },
+    { day: "2025-12-28", count: 2 },
+    { day: "2026-01-03", count: 1n },
+    { day: "2026-01-04", count: 5 },
+  ];
+  const result = registrationTrend(dailyCounts, "en-US", new Date("2026-01-03T23:59:59Z"));
   assert.deepEqual(result.map((day) => day.label), ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]);
   assert.deepEqual(result.map((day) => day.count), [2, 0, 0, 0, 0, 0, 1]);
 });

@@ -1,10 +1,10 @@
 import Link from "next/link";
 import "./reports.css";
-import { ArrowRight, BarChart3, CheckCircle2, UsersRound } from "lucide-react";
-import { AttendeeCategory } from "@prisma/client";
+import { ArrowRight, BarChart3, CheckCircle2, CircleDashed, Filter, UsersRound } from "lucide-react";
+import { Prisma, type AttendeeCategory } from "@prisma/client";
 import { DownloadButton } from "@/components/download-button";
 import { AnimatedMetric } from "@/components/animated-metric";
-import { StatisticCircle } from "@/components/statistic-circle";
+import { StatisticCircle, StatisticIconCircle } from "@/components/statistic-circle";
 import { VenuGuestPassDateRange } from "@/components/venuguestpass-date-range";
 import { getPrisma } from "@/lib/prisma";
 import { getPreferences } from "@/lib/preferences";
@@ -54,6 +54,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
   const trendStart = new Date(now);
   trendStart.setUTCHours(0, 0, 0, 0);
   trendStart.setUTCDate(trendStart.getUTCDate() - 6);
+  const trendRangeStart = start && start > trendStart ? start : trendStart;
   const events = await prisma.event.findMany({
     where: { workspaceId: context.workspace.id, archivedAt: null },
     select: { id: true, name: true },
@@ -76,13 +77,6 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
       },
     } : {}),
   };
-  const trendWhere = {
-    ...where,
-    registeredAt: {
-      gte: start && start > trendStart ? start : trendStart,
-      ...(end ? { lte: end } : {}),
-    },
-  };
   const attendanceWhere = {
     workspaceId: context.workspace.id,
     action: "CHECK_IN" as const,
@@ -100,15 +94,29 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
       },
     },
   };
+  const trendFilters: Prisma.Sql[] = [
+    Prisma.sql`event."workspaceId" = ${context.workspace.id}`,
+    Prisma.sql`registration."registeredAt" >= ${trendRangeStart}`,
+  ];
+  if (eventScopeId) trendFilters.push(Prisma.sql`event.id = ${eventScopeId}`);
+  if (category) trendFilters.push(Prisma.sql`registration.category = CAST(${category} AS "AttendeeCategory")`);
+  if (end) trendFilters.push(Prisma.sql`registration."registeredAt" <= ${end}`);
   const [totalRegistrations, checkedIn, registrationsForTrend, recentAttendance] = await Promise.all([
     prisma.eventRegistration.count({ where }),
     prisma.attendanceLog.count({ where: attendanceWhere }),
-    canViewAdvancedReports ? prisma.eventRegistration.findMany({
-      where: trendWhere,
-      select: { registeredAt: true },
-      orderBy: { registeredAt: "desc" },
-      take: 10000,
-    }) : Promise.resolve([]),
+    canViewAdvancedReports
+      ? prisma.$queryRaw<Array<{ day: string; count: bigint }>>(Prisma.sql`
+          SELECT to_char(
+            date_trunc('day', registration."registeredAt" AT TIME ZONE 'UTC'),
+            'YYYY-MM-DD'
+          ) AS day, COUNT(*) AS count
+          FROM "EventRegistration" AS registration
+          JOIN "Event" AS event ON event.id = registration."eventId"
+          WHERE ${Prisma.join(trendFilters, " AND ")}
+          GROUP BY date_trunc('day', registration."registeredAt" AT TIME ZONE 'UTC')
+          ORDER BY day
+        `)
+      : Promise.resolve([]),
     canViewCheckinActivity ? prisma.attendanceLog.findMany({
       where: attendanceWhere,
       include: { registration: { include: { attendee: { select: { firstName: true, lastName: true } }, event: { select: { name: true } } } } },
@@ -134,17 +142,17 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
         <label>Event<select aria-label="Filter by event" defaultValue={selectedEventId} name="event">{canViewMultiEventReports ? <option value="">All events</option> : null}{events.map((event) => <option key={event.id} value={event.id}>{event.name}</option>)}</select></label>
         <label>Category<select aria-label="Filter by category" defaultValue={category ?? ""} name="category"><option value="">All categories</option>{categories.map((item) => <option key={item} value={item}>{item.replaceAll("_", " ")}</option>)}</select></label>
         <VenuGuestPassDateRange initialFrom={params.from ?? ""} initialTo={params.to ?? ""} key={`${params.from ?? ""}:${params.to ?? ""}`} />
-        <button className="button button-light report-filter-submit" type="submit">Apply filters <ArrowRight size={13} /></button>
+        <button className="venuguestpass-filter-submit report-filter-submit" type="submit"><Filter size={14} /> Apply Filters</button>
       </form>
       {!canViewMultiEventReports && <p className="plan-gated-label report-feature-note">Cross-event reports require Max.</p>}
 
       <section aria-label="Report totals" className="stat-cards report-stat-cards">
-        <article className="stat-card stat-total-attendees"><span className="stat-card-label">Total registrations</span><StatisticCircle locale={locale} value={totalRegistrations} total={totalRegistrations} /><span className="stat-card-note"><UsersRound size={13} /> Matching selected filters</span></article>
-        <article className="stat-card stat-checked-in"><span className="stat-card-label">Checked in</span><StatisticCircle locale={locale} value={checkedIn} total={totalRegistrations} /><span className="stat-card-note">Attendance log entries</span></article>
-        <article className="stat-card stat-not-checked-in"><span className="stat-card-label">Not checked in</span><StatisticCircle locale={locale} value={Math.max(totalRegistrations - checkedIn, 0)} total={totalRegistrations} /><span className="stat-card-note">Registrations without a check-in</span></article>
+        <article className="stat-card stat-total-attendees"><span className="stat-card-label">Total registrations</span><StatisticCircle locale={locale} value={totalRegistrations} total={totalRegistrations} /><span className="stat-card-note"><UsersRound size={13} /> Matching selected filters</span><span className="stat-card-icon"><UsersRound size={17} /></span></article>
+        <article className="stat-card stat-checked-in"><span className="stat-card-label">Checked in</span><StatisticCircle locale={locale} value={checkedIn} total={totalRegistrations} /><span className="stat-card-note"><CheckCircle2 size={13} /> Attendance log entries</span><span className="stat-card-icon"><CheckCircle2 size={17} /></span></article>
+        <article className="stat-card stat-not-checked-in"><span className="stat-card-label">Not checked in</span><StatisticCircle locale={locale} value={Math.max(totalRegistrations - checkedIn, 0)} total={totalRegistrations} /><span className="stat-card-note"><CircleDashed size={13} /> Registrations without a check-in</span><span className="stat-card-icon"><CircleDashed size={17} /></span></article>
         {canViewAdvancedReports
-          ? <article className="stat-card stat-attendance-rate"><span className="stat-card-label">Attendance rate</span><StatisticCircle locale={locale} value={rate} total={100} percentage /><span className="stat-card-note">Checked in / registrations</span></article>
-          : <article className="stat-card report-feature-locked"><span className="stat-card-label">Attendance rate</span><span className="plan-gated-label">Max only</span></article>}
+          ? <article className="stat-card stat-attendance-rate"><span className="stat-card-label">Attendance rate</span><StatisticCircle locale={locale} value={rate} total={100} percentage /><span className="stat-card-note"><BarChart3 size={13} /> Checked in / registrations</span><span className="stat-card-icon"><BarChart3 size={17} /></span></article>
+          : <article className="stat-card stat-attendance-rate report-feature-locked"><span className="stat-card-label">Attendance rate</span><span className="plan-gated-label">Max only</span><span className="stat-card-icon"><BarChart3 size={17} /></span></article>}
       </section>
 
       <div className="report-grid">
@@ -156,7 +164,6 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                 {days.map((day) => <div className="registration-chart-column" key={day.label}><span><AnimatedMetric locale={locale} value={day.count} /></span><div><i style={{ height: `${Math.max((day.count / maximum) * 100, day.count ? 8 : 2)}%` }} /></div><small>{day.label}</small></div>)}
               </div>
             ) : <div className="report-empty">Registration activity will appear here when guests sign up.</div>}
-            {registrationsForTrend.length === 10000 && <p className="report-truncation-note">The trend source reached its 10,000-registration display limit; totals above remain accurate.</p>}
           </section>
         ) : (
           <section className="app-panel report-chart-panel report-feature-locked-panel">
@@ -166,11 +173,20 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
         )}
         <section className="app-panel report-attendance-panel">
           <div className="panel-heading-row"><div><h2>Attendance</h2><p>Check-in progress for the selected scope.</p></div></div>
-          {canViewAdvancedReports
-            ? <div className="attendance-summary-number"><AnimatedMetric locale={locale} value={rate} /><span>%</span></div>
-            : <span className="plan-gated-label attendance-rate-gate">Attendance-rate analytics require Max</span>}
-          <div className="attendance-summary-caption"><AnimatedMetric locale={locale} value={checkedIn} /> of <AnimatedMetric locale={locale} value={totalRegistrations} /> registrations checked in</div>
+          <div className="attendance-summary-metric-row">
+            <div className="attendance-summary-metric-content">
+              {canViewAdvancedReports
+                ? <div className="attendance-summary-number"><AnimatedMetric locale={locale} value={rate} /><span>%</span></div>
+                : <span className="plan-gated-label attendance-rate-gate">Attendance-rate analytics require Max</span>}
+              <div className="attendance-summary-caption">of registrations checked in</div>
+            </div>
+            {canViewAdvancedReports && <StatisticIconCircle icon={<UsersRound size={36} />} locale={locale} total={100} value={rate} />}
+          </div>
           {canViewAdvancedReports && <div className="attendance-summary-bar"><span style={{ width: `${rate}%` }} /></div>}
+          <div className="attendance-summary-legend">
+            <span><i /> Checked in <b><AnimatedMetric locale={locale} value={checkedIn} /></b></span>
+            <span><i /> Not checked in <b><AnimatedMetric locale={locale} value={Math.max(totalRegistrations - checkedIn, 0)} /></b></span>
+          </div>
           <Link className="text-link" href={selectedEvent ? `/dashboard/check-in?event=${selectedEvent.id}` : "/dashboard/check-in"}>Open check-in <ArrowRight size={13} /></Link>
         </section>
       </div>

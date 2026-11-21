@@ -16,7 +16,7 @@ import { workspaceRoleHasPermission } from "@/lib/workspace-roles";
 import { getPreferences } from "@/lib/preferences";
 import { localizeNode } from "@/lib/localization";
 import { AnimatedMetric } from "@/components/animated-metric";
-import { StatisticCircle } from "@/components/statistic-circle";
+import { StatisticCircle, StatisticIconCircle } from "@/components/statistic-circle";
 import "./dashboard.css";
 
 export default async function DashboardPage() {
@@ -136,8 +136,13 @@ export default async function DashboardPage() {
 
         <section className="app-panel attendance-summary-panel">
           <div className="panel-heading-row"><div><h2>Attendance summary</h2><p>Across all events in your workspace.</p></div></div>
-          <div className="attendance-summary-number"><AnimatedMetric locale={locale} value={summary.attendanceRate} /><span>%</span></div>
-          <div className="attendance-summary-caption">of registrations checked in</div>
+          <div className="attendance-summary-metric-row">
+            <div className="attendance-summary-metric-content">
+              <div className="attendance-summary-number"><AnimatedMetric locale={locale} value={summary.attendanceRate} /><span>%</span></div>
+              <div className="attendance-summary-caption">of registrations checked in</div>
+            </div>
+            <StatisticIconCircle icon={<UsersRound size={36} />} locale={locale} total={100} value={summary.attendanceRate} />
+          </div>
           <div className="attendance-summary-bar"><span style={{ width: `${summary.attendanceRate}%` }} /></div>
           <div className="attendance-summary-legend"><span><i /> Checked in <b><AnimatedMetric locale={locale} value={summary.checkedInAttendees} /></b></span><span><i /> Not checked in <b><AnimatedMetric locale={locale} value={summary.notCheckedInAttendees} /></b></span></div>
         </section>

@@ -1,8 +1,10 @@
 import "server-only";
 
 import { prismaAdapter } from "@better-auth/prisma-adapter";
-import { betterAuth } from "better-auth";
+import { APIError, betterAuth } from "better-auth";
+import { createAuthMiddleware } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
+import { twoFactor } from "better-auth/plugins";
 import { headers } from "next/headers";
 import { getPrisma } from "@/lib/prisma";
 
@@ -33,6 +35,17 @@ function createAuth(secret: string) {
     secret,
     trustedOrigins: getTrustedOrigins(baseURL),
     database: prismaAdapter(prisma, { provider: "postgresql" }),
+    rateLimit: {
+      enabled: true,
+      storage: "database",
+      window: 10,
+      max: 100,
+      customRules: {
+        "/sign-in/email": { window: 15 * 60, max: 5 },
+        "/two-factor/send-otp": { window: 60, max: 3 },
+        "/two-factor/verify-otp": { window: 15 * 60, max: 10 },
+      },
+    },
     user: {
       changeEmail: {
         enabled: true,
@@ -61,7 +74,7 @@ function createAuth(secret: string) {
     },
     emailVerification: {
       sendOnSignUp: true,
-      autoSignInAfterVerification: true,
+      autoSignInAfterVerification: false,
       sendVerificationEmail: async ({ user, url }) => {
         const { sendAuthEmail } = await import("@/lib/email");
         await sendAuthEmail({
@@ -74,7 +87,22 @@ function createAuth(secret: string) {
     databaseHooks: {
       user: {
         create: {
+          before: async (createdUser) => ({
+            data: {
+              ...createdUser,
+              twoFactorEnabled: true,
+            },
+          }),
           after: async (createdUser) => {
+            await prisma.twoFactor.create({
+              data: {
+                id: createdUser.id,
+                userId: createdUser.id,
+                secret: "",
+                backupCodes: "",
+              },
+            });
+
             const freePlan = await prisma.plan.upsert({
               where: { code: "FREE" },
               create: {
@@ -131,10 +159,40 @@ function createAuth(secret: string) {
         },
       },
     },
+    hooks: {
+      before: createAuthMiddleware(async (ctx) => {
+        if (ctx.path === "/two-factor/disable") {
+          throw APIError.from("FORBIDDEN", {
+            code: "TWO_FACTOR_REQUIRED",
+            message: "Email verification is required for every sign-in.",
+          });
+        }
+      }),
+    },
     advanced: {
       useSecureCookies: process.env.NODE_ENV === "production",
     },
-    plugins: [nextCookies()],
+    plugins: [
+      twoFactor({
+        issuer: "VenuGuestPass",
+        totpOptions: { disable: true },
+        otpOptions: {
+          period: 5,
+          digits: 6,
+          allowedAttempts: 5,
+          storeOTP: "hashed",
+          sendOTP: async ({ user, otp }) => {
+            const { sendSignInOTPEmail } = await import("@/lib/email");
+            await sendSignInOTPEmail(user.email, otp);
+          },
+        },
+        accountLockout: {
+          maxFailedAttempts: 5,
+          durationSeconds: 15 * 60,
+        },
+      }),
+      nextCookies(),
+    ],
   });
 }
 

@@ -28,14 +28,16 @@ function createPlanForm({
   name = "Custom",
   features = ["includes_free"],
   isActive = true,
+  monthlyPriceDollars = "100.00",
+  yearlyPriceDollars = "1000.00",
 } = {}) {
   const formData = new FormData();
   if (id) formData.set("id", id);
   formData.set("code", code);
   formData.set("name", name);
   formData.set("description", "A custom plan");
-  formData.set("monthlyPriceCents", "10000");
-  formData.set("yearlyPriceCents", "100000");
+  formData.set("monthlyPriceDollars", monthlyPriceDollars);
+  formData.set("yearlyPriceDollars", yearlyPriceDollars);
   formData.set("activeEventLimit", "");
   formData.set("attendeePerEventLimit", "100");
   if (isActive) formData.set("isActive", "true");
@@ -81,10 +83,46 @@ test("creates plans with validated known features and writes an audit entry", as
 
   assert.deepEqual(result, { success: "Plan created." });
   assert.deepEqual(calls.created[0].features, ["includes_free", "custom_forms"]);
+  assert.equal(calls.created[0].monthlyPriceCents, 10000);
+  assert.equal(calls.created[0].yearlyPriceCents, 100000);
   assert.equal(calls.created[0].activeEventLimit, null);
   assert.equal(calls.audits[0].adminId, "admin-1");
   assert.equal(calls.audits[0].action, "plan.created");
   assert.deepEqual(calls.revalidated, [["/dashboard/admin/plans"], ["/dashboard", "layout"]]);
+});
+
+test("converts decimal dollar prices to cents without rounding", async () => {
+  const calls = { created: [], audits: [], revalidated: [] };
+  const transaction = {
+    plan: { create: async ({ data }) => calls.created.push(data) },
+    superAdminAuditLog: {
+      create: async ({ data }) => calls.audits.push(data),
+    },
+  };
+  const { savePlanAction } = loadActions({ transaction, calls });
+  const result = await savePlanAction({}, createPlanForm({
+    monthlyPriceDollars: "99.99",
+    yearlyPriceDollars: "1200.5",
+  }));
+
+  assert.deepEqual(result, { success: "Plan created." });
+  assert.equal(calls.created[0].monthlyPriceCents, 9999);
+  assert.equal(calls.created[0].yearlyPriceCents, 120050);
+});
+
+test("rejects dollar prices with more than two decimal places", async () => {
+  const calls = { created: [], audits: [], revalidated: [] };
+  const transaction = {
+    plan: { create: async ({ data }) => calls.created.push(data) },
+    superAdminAuditLog: {
+      create: async ({ data }) => calls.audits.push(data),
+    },
+  };
+  const { savePlanAction } = loadActions({ transaction, calls });
+  const result = await savePlanAction({}, createPlanForm({ monthlyPriceDollars: "99.999" }));
+
+  assert.match(result.error, /two decimal places/);
+  assert.equal(calls.created.length, 0);
 });
 
 test("rejects unknown feature flags without writing a plan", async () => {

@@ -1,7 +1,7 @@
 .app-content .reports-page .attendance-summary-number {
   margin-top: 12px;
-  font-size: 130px !important;
-  line-height: 1;
+  font-size: clamp(76px, 10vw, 116px) !important;
+  line-height: .95;
 }
 
 .app-content .reports-page .attendance-summary-caption {

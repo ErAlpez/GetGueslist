@@ -9,8 +9,8 @@ export async function apiJson<T>(path: string, init?: RequestInit): Promise<{ re
   return { response, payload: await response.json() as T };
 }
 
-export async function apiPost<T>(path: string, body: JsonObject, init: RequestInit = {}): Promise<{ response: Response; payload: T }> {
-  return apiJson<T>(path, {
+function apiPostResponse(path: string, body: JsonObject, init: RequestInit = {}): Promise<Response> {
+  return apiRequest(path, {
     ...init,
     method: init.method ?? "POST",
     headers: {
@@ -21,8 +21,13 @@ export async function apiPost<T>(path: string, body: JsonObject, init: RequestIn
   });
 }
 
+export async function apiPost<T>(path: string, body: JsonObject, init: RequestInit = {}): Promise<{ response: Response; payload: T }> {
+  const response = await apiPostResponse(path, body, init);
+  return { response, payload: await response.json() as T };
+}
+
 export function validateCheckIn(body: JsonObject, init: RequestInit = {}): Promise<Response> {
-  return apiPost<unknown>("/api/check-in/validate", body, init).then(({ response }) => response);
+  return apiPostResponse("/api/check-in/validate", body, init);
 }
 
 export function searchCheckIns(eventId: string, query: string, init: RequestInit = {}): Promise<Response> {
@@ -33,7 +38,7 @@ export function searchCheckIns(eventId: string, query: string, init: RequestInit
 }
 
 export function pairMobileCheckIn(pairingToken: string): Promise<Response> {
-  return apiPost<unknown>("/api/check-in/pair", { pairingToken }).then(({ response }) => response);
+  return apiPostResponse("/api/check-in/pair", { pairingToken });
 }
 
 export function endMobileCheckIn(): Promise<Response> {
@@ -48,19 +53,19 @@ export function getScannerAccesses(eventId: string, init: RequestInit = {}): Pro
 }
 
 export function createScannerPairing(eventId: string, deviceName: string): Promise<Response> {
-  return apiPost<unknown>("/api/check-in/pairing", { eventId, deviceName }).then(({ response }) => response);
+  return apiPostResponse("/api/check-in/pairing", { eventId, deviceName });
 }
 
 export function revokeScannerAccess(accessId: string): Promise<Response> {
-  return apiPost<unknown>("/api/check-in/pairing", { accessId }, { method: "DELETE" }).then(({ response }) => response);
+  return apiPostResponse("/api/check-in/pairing", { accessId }, { method: "DELETE" });
 }
 
 export function syncOfflineCheckIn(body: JsonObject): Promise<Response> {
-  return apiPost<unknown>("/api/check-in/validate", body).then(({ response }) => response);
+  return apiPostResponse("/api/check-in/validate", body);
 }
 
 export function syncOfflineGuest(body: JsonObject): Promise<Response> {
-  return apiPost<unknown>("/api/guestlist/offline-sync", body, { cache: "no-store" }).then(({ response }) => response);
+  return apiPostResponse("/api/guestlist/offline-sync", body, { cache: "no-store" });
 }
 
 export function getNotifications(init: RequestInit = {}): Promise<Response> {
@@ -68,11 +73,16 @@ export function getNotifications(init: RequestInit = {}): Promise<Response> {
 }
 
 export function markNotificationsSeen(ids: string[]): Promise<Response> {
-  return apiPost<unknown>("/api/notifications", { ids }).then(({ response }) => response);
+  return apiPostResponse("/api/notifications", { ids });
 }
 
 export function trackWebsiteAnalytics(path: string): Promise<Response> {
-  return apiPost<unknown>("/api/website-analytics", { path }, { keepalive: true }).then(({ response }) => response);
+  return apiRequest("/api/website-analytics", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path }),
+    keepalive: true,
+  });
 }
 
 export function downloadResource(url: string | URL, init: RequestInit = {}): Promise<Response> {

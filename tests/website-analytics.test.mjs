@@ -91,3 +91,27 @@ test("records an anonymous daily aggregate and uses country only on Vercel", asy
     else process.env.VERCEL = originalVercel;
   }
 });
+
+test("analytics tracking accepts the endpoint's empty 204 response", async () => {
+  const originalFetch = globalThis.fetch;
+  let requestUrl = "";
+  let requestOptions;
+  globalThis.fetch = async (url, options) => {
+    requestUrl = String(url);
+    requestOptions = options;
+    return new Response(null, { status: 204 });
+  };
+
+  try {
+    const api = loadTypeScript("src/lib/api.ts");
+    const response = await api.trackWebsiteAnalytics("/");
+
+    assert.equal(requestUrl, "/api/website-analytics");
+    assert.equal(requestOptions.method, "POST");
+    assert.equal(requestOptions.keepalive, true);
+    assert.equal(requestOptions.headers["Content-Type"], "application/json");
+    assert.equal(response.status, 204);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

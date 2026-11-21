@@ -10,6 +10,7 @@ import { requireWorkspaceSection } from "@/lib/workspace";
 import { workspaceHasFeature } from "@/lib/plan-features";
 import { workspaceRoleHasPermission } from "@/lib/workspace-roles";
 import { AnimatedMetric } from "@/components/animated-metric";
+import { TicketsEventFilter } from "./tickets-event-filter";
 import "./tickets.css";
 
 type TicketsPageProps = {
@@ -97,21 +98,7 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
       </div>
       {!canViewTicketStatus && <p className="plan-gated-label ticket-status-gate">Ticket status visibility requires Max</p>}
       {issuedTicket && <FormSaveSuccess className="ticket-success" message={translate(locale, `QR ticket created for ${issuedTicket.registration.attendee.firstName} ${issuedTicket.registration.attendee.lastName}.`)} />}
-      <nav aria-label="Tickets" className="ticket-filters">
-        <Link aria-current={!eventId ? "page" : undefined} className={!eventId ? "selected" : ""} href="/dashboard/tickets">
-          <span>All events</span><span className="ticket-filter-count">{allGuestCount}</span>
-        </Link>
-        {events.map((event) => (
-          <Link
-            aria-current={eventId === event.id ? "page" : undefined}
-            className={eventId === event.id ? "selected" : ""}
-            href={`/dashboard/tickets?event=${event.id}`}
-            key={event.id}
-          >
-            <span>{event.name}</span><span className="ticket-filter-count">{event._count.registrations}</span>
-          </Link>
-        ))}
-      </nav>
+      <TicketsEventFilter allGuestCount={allGuestCount} events={events} selectedEventId={eventId} />
       {tickets.length ? (
         <>
           <div className="guest-table-scroll">

@@ -158,8 +158,19 @@ async function main() {
         name: "VenuGuestPass Demo",
         email,
         emailVerified: true,
+        twoFactorEnabled: false,
       },
-      update: { name: "VenuGuestPass Demo", email, emailVerified: true },
+      update: { name: "VenuGuestPass Demo", email, emailVerified: true, twoFactorEnabled: false },
+    });
+    await prisma.twoFactor.upsert({
+      where: { id: user.id },
+      create: {
+        id: user.id,
+        userId: user.id,
+        secret: "",
+        backupCodes: "",
+      },
+      update: {},
     });
     const passwordHash = await hashPassword(password);
 

@@ -49,12 +49,24 @@ export function SuperAdminPlanEditor({ plan }: { plan?: PlanEditorValue }) {
           <input defaultValue={plan?.description ?? ""} maxLength={240} name="description" />
         </label>
         <label>
-          <span>{t("Monthly price (cents)")}</span>
-          <input defaultValue={plan?.monthlyPriceCents ?? ""} min={0} name="monthlyPriceCents" type="number" />
+          <span>{t("Monthly price ($)")}</span>
+          <input
+            defaultValue={plan?.monthlyPriceCents == null ? "" : (plan.monthlyPriceCents / 100).toFixed(2)}
+            min={0}
+            name="monthlyPriceDollars"
+            step="0.01"
+            type="number"
+          />
         </label>
         <label>
-          <span>{t("Yearly price (cents)")}</span>
-          <input defaultValue={plan?.yearlyPriceCents ?? ""} min={0} name="yearlyPriceCents" type="number" />
+          <span>{t("Yearly price ($)")}</span>
+          <input
+            defaultValue={plan?.yearlyPriceCents == null ? "" : (plan.yearlyPriceCents / 100).toFixed(2)}
+            min={0}
+            name="yearlyPriceDollars"
+            step="0.01"
+            type="number"
+          />
         </label>
         <label>
           <span>{t("Active event limit")}</span>

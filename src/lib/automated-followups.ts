@@ -163,6 +163,32 @@ async function queueUpcomingDeliveries(now: Date) {
   return { reminders, followups };
 }
 
+async function expireManualPaddleSubscriptions(now: Date) {
+  const prisma = getPrisma();
+  const freePlan = await prisma.plan.findUnique({
+    where: { code: "FREE" },
+    select: { id: true },
+  });
+  if (!freePlan) throw new Error("The Free plan is required to expire manual Paddle subscriptions.");
+
+  const expired = await prisma.subscription.updateMany({
+    where: {
+      provider: "paddle",
+      providerSubscriptionId: null,
+      scheduledCancellationAt: null,
+      status: { in: ["ACTIVE", "TRIALING"] },
+      billingPeriodEnd: { lte: now },
+      planId: { not: freePlan.id },
+    },
+    data: {
+      planId: freePlan.id,
+      status: "EXPIRED",
+      renewalDate: null,
+    },
+  });
+  return expired.count;
+}
+
 async function skipDelivery(id: string, reason: string) {
   await getPrisma().automatedEmailDelivery.update({
     where: { id },
@@ -347,6 +373,7 @@ async function claimDueDeliveries(now: Date) {
 }
 
 export async function runAutomatedFollowups(now = new Date()) {
+  const expiredManualSubscriptions = await expireManualPaddleSubscriptions(now);
   const queued = await queueUpcomingDeliveries(now);
   const claimed = await claimDueDeliveries(now);
   let sent = 0;
@@ -363,6 +390,7 @@ export async function runAutomatedFollowups(now = new Date()) {
   }
 
   return {
+    expiredManualSubscriptions,
     queuedReminders: queued.reminders,
     queuedFollowups: queued.followups,
     sent,

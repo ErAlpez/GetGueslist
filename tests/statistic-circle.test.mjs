@@ -26,6 +26,15 @@ function render(value, total, percentage = false) {
   }));
 }
 
+function renderIconCircle(value, total = 100) {
+  return renderToStaticMarkup(React.createElement(loaded.exports.StatisticIconCircle, {
+    value,
+    total,
+    locale: "en",
+    icon: React.createElement("svg", { "data-icon": "attendance" }),
+  }));
+}
+
 test("statistic circles represent their share and provide an accessible percentage", () => {
   const markup = render(3, 4);
   assert.match(markup, /aria-label="75%"/);
@@ -40,4 +49,12 @@ test("empty totals and out-of-range shares produce bounded rings", () => {
   assert.match(render(0, 0), /stroke-dashoffset="100"/);
   assert.match(render(5, 5), /stroke-dashoffset="0"/);
   assert.match(render(7, 5), /stroke-dashoffset="0"/);
+});
+
+test("icon statistic circles show progress and provide an accessible percentage", () => {
+  const markup = renderIconCircle(43);
+  assert.match(markup, /role="img"/);
+  assert.match(markup, /aria-label="43%"/);
+  assert.match(markup, /stroke-dashoffset="57"/);
+  assert.match(markup, /data-icon="attendance"/);
 });

@@ -19,7 +19,7 @@ const revealSelector = [
 
 const horizontalBarSelector = ".app-content :is(.usage-bar, .attendance-summary-bar)";
 const chartBarSelector = ".app-content :is(.overview-chart-column, .registration-chart-column) > div";
-const statCircleSelector = ".app-content .statistic-circle";
+const statCircleSelector = ".app-content :is(.statistic-circle, .statistic-icon-circle)";
 const selector = `${revealSelector}, ${horizontalBarSelector}, ${chartBarSelector}, ${statCircleSelector}`;
 
 export function DashboardMotion() {
@@ -57,7 +57,7 @@ export function DashboardMotion() {
           : chart
             ? target.querySelector(":scope > i")
             : circle
-              ? target.querySelector(":scope > svg > circle")
+              ? target.querySelector(":scope > svg > circle[stroke-dashoffset]")
               : target;
         if (!animatedElement) return;
         const circleOffset = circle ? animatedElement.getAttribute("stroke-dashoffset") : null;

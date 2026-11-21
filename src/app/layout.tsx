@@ -26,7 +26,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const direction = locale === "ar" ? "rtl" : "ltr";
 
   return (
-    <html className="h-full antialiased" data-theme={theme} dir={direction} lang={locale} suppressHydrationWarning>
+    <html className="h-full antialiased" data-scroll-behavior="smooth" data-theme={theme} dir={direction} lang={locale} suppressHydrationWarning>
       <body className={`${arabic.variable} ${outfit.variable} min-h-full`} suppressHydrationWarning>
         <PreferencesProvider initialLocale={locale} initialTheme={theme}>
           <PwaRuntime />

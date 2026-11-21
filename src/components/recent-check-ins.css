@@ -12,7 +12,7 @@ html[data-theme="dark"] .app-shell .check-in-page .recent-checkin-new {
 }
 
 @keyframes recent-checkin-highlight-dark {
-  0%, 85% { background-color: #1d382b; }
+  0%, 85% { background-color: #222425; }
   100% { background-color: transparent; }
 }
 

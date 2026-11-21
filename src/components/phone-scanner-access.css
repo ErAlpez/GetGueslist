@@ -83,7 +83,7 @@
 }
 
 .phone-scanner-access-heading p {
-  margin: 4px 0 0;
+  margin: 10px 0 0;
 }
 
 .phone-scanner-access-create {
@@ -125,7 +125,7 @@
 }
 
 .phone-scanner-access-note {
-  margin: 8px 0 0;
+  margin: 10px 0 0 !important;
 }
 
 .phone-scanner-pairing {

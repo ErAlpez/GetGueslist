@@ -93,6 +93,33 @@ export async function sendAuthEmail({ to, subject, url, message }: AuthEmail) {
   }
 }
 
+export async function sendSignInOTPEmail(to: string, otp: string) {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.EMAIL_FROM;
+
+  if (!apiKey || !from) {
+    if (process.env.NODE_ENV === "development") {
+      console.info(`[VenuGuestPass sign-in code preview] ${to}: ${otp}`);
+      return;
+    }
+
+    throw new Error("Set RESEND_API_KEY and EMAIL_FROM to enable sign-in code delivery.");
+  }
+
+  const subject = "Your VenuGuestPass sign-in code";
+  const text = `Your sign-in code is ${otp}. It expires in 5 minutes. If you did not request it, you can ignore this email.`;
+  const response = await sendResendEmail(apiKey, from, {
+    to: [to],
+    subject,
+    html: `<p>Use this one-time code to finish signing in:</p><p style="font-size:24px;font-weight:700;letter-spacing:6px">${escapeHtml(otp)}</p><p>This code expires in 5 minutes. If you did not request it, you can ignore this email.</p>`,
+    text,
+  }, { signal: AbortSignal.timeout(10000) });
+
+  if (!response.ok) {
+    throw new Error(`Sign-in code delivery failed with status ${response.status}.`);
+  }
+}
+
 export async function sendTicketEmail({ to, guestName, eventName, startsAt, endsAt, timeZone, ticketId, ticketUrl, locale }: TicketEmail) {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.EMAIL_FROM;

@@ -1,14 +1,37 @@
 "use client";
 
 import { createContext, useContext, useState, type ReactNode } from "react";
+import { formatCurrencyMinorUnits, getAnnualDiscountPercent } from "@/lib/currency-format";
 
-type BillingPeriod = "monthly" | "annual";
+export type BillingPeriod = "monthly" | "annual";
 
 const BillingPeriodContext = createContext<BillingPeriod>("monthly");
 
-export function PlanPricingPeriod({ children, header }: { children: ReactNode; header?: ReactNode }) {
-  const [period, setPeriod] = useState<BillingPeriod>("monthly");
-  const toggle = (
+export function useBillingPeriod() {
+  return useContext(BillingPeriodContext);
+}
+
+export function PlanPricingPeriod({
+  children,
+  header,
+  annualDiscountPercent,
+  initialPeriod = "monthly",
+  lockPeriod = false,
+}: {
+  children: ReactNode;
+  header?: ReactNode;
+  annualDiscountPercent?: number | null;
+  initialPeriod?: BillingPeriod;
+  lockPeriod?: boolean;
+}) {
+  const [period, setPeriod] = useState<BillingPeriod>(initialPeriod);
+  const toggle = lockPeriod ? (
+    <div aria-label="Current billing period" className="plan-pricing-toggle" role="group">
+      <span className="plan-pricing-save">
+        {period === "annual" ? "Annual billing · current cycle" : "Monthly billing · current cycle"}
+      </span>
+    </div>
+  ) : (
     <div aria-label="Billing period" className="plan-pricing-toggle" role="group">
       <button
         aria-pressed={period === "monthly"}
@@ -36,7 +59,9 @@ export function PlanPricingPeriod({ children, header }: { children: ReactNode; h
       >
         Annual
       </button>
-      <span className="plan-pricing-save">Save 2 months</span>
+      <span className="plan-pricing-save">
+        {annualDiscountPercent ? "2 Months Free" : "Annual pricing"}
+      </span>
     </div>
   );
 
@@ -51,26 +76,33 @@ export function PlanPricingPeriod({ children, header }: { children: ReactNode; h
 }
 
 export function PlanPrice({
-  monthlyPriceCents,
+  monthlyPriceMinor,
+  annualPriceMinor,
+  currencyCode,
   locale,
   className,
 }: {
-  monthlyPriceCents: number | null;
+  monthlyPriceMinor: number | null;
+  annualPriceMinor: number | null;
+  currencyCode: string;
   locale: string;
   className: string;
 }) {
-  const period = useContext(BillingPeriodContext);
-  const isFree = monthlyPriceCents === 0;
-  const isAnnual = period === "annual" && monthlyPriceCents !== null && !isFree;
-  const priceCents = monthlyPriceCents === null
-    ? null
+  const period = useBillingPeriod();
+  const isFree = monthlyPriceMinor === 0;
+  const isAnnual = period === "annual" && !isFree;
+  const priceMinor = isAnnual ? annualPriceMinor : monthlyPriceMinor;
+  const annualDiscountPercent = getAnnualDiscountPercent(monthlyPriceMinor, annualPriceMinor);
+  const price = isFree
+    ? "0"
+    : priceMinor === null
+      ? "Unavailable"
+      : formatCurrencyMinorUnits(locale, priceMinor, currencyCode);
+  const unit = isFree
+    ? "forever"
     : isAnnual
-      ? monthlyPriceCents * 10
-      : monthlyPriceCents;
-  const price = priceCents === null
-    ? "Contact us"
-    : new Intl.NumberFormat(locale, { style: "currency", currency: "PHP", maximumFractionDigits: 0 }).format(priceCents / 100);
-  const unit = isFree ? "forever" : isAnnual ? "/ year" : monthlyPriceCents === null ? "" : "/ month";
+      ? `/ year${annualDiscountPercent ? " · 2 Months Free" : ""}`
+      : "/ month";
 
   return (
     <div className={className}>

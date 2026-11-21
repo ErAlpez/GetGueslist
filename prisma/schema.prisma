@@ -19,6 +19,7 @@ enum SubscriptionStatus {
   TRIALING
   ACTIVE
   PAST_DUE
+  PAUSED
   CANCELLED
   EXPIRED
 }
@@ -102,11 +103,13 @@ model user {
   name                     String
   email                    String                @unique
   emailVerified            Boolean               @default(false)
+  twoFactorEnabled         Boolean               @default(true)
   image                    String?
   createdAt                DateTime              @default(now())
   updatedAt                DateTime              @updatedAt
   sessions                 session[]
   accounts                 account[]
+  twoFactors               twoFactor[]
   ownedWorkspaces          Workspace[]           @relation("WorkspaceOwner")
   memberships              WorkspaceMember[]
   attendanceLogs           AttendanceLog[]       @relation("AttendanceOperator")
@@ -168,6 +171,29 @@ model verification {
 
   @@index([identifier])
   @@map("verifications")
+}
+
+model twoFactor {
+  id                     String   @id
+  userId                 String
+  user                   user     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  secret                 String
+  backupCodes            String
+  verified               Boolean  @default(true)
+  failedVerificationCount Int     @default(0)
+  lockedUntil            DateTime?
+
+  @@index([userId])
+  @@map("two_factors")
+}
+
+model rateLimit {
+  id          String @id @default(cuid())
+  key         String @unique
+  count       Int
+  lastRequest BigInt
+
+  @@map("rate_limits")
 }
 
 model Workspace {
@@ -339,6 +365,9 @@ model Subscription {
   provider               String                 @default("manual")
   providerCustomerId     String?
   providerSubscriptionId String?                @unique
+  providerCheckoutId     String?
+  providerEventAt        DateTime?
+  scheduledCancellationAt DateTime?
   workspace              Workspace              @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   plan                   Plan                   @relation(fields: [planId], references: [id], onDelete: Restrict)
   invoices               SubscriptionInvoice[]
@@ -350,15 +379,16 @@ model Subscription {
 }
 
 model SubscriptionInvoice {
-  id             String       @id @default(cuid())
-  subscriptionId String
-  amountCents    Int
-  currency       String       @default("PHP")
-  status         String
-  invoiceUrl     String?
-  issuedAt       DateTime     @default(now())
-  paidAt         DateTime?
-  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  id                    String       @id @default(cuid())
+  subscriptionId        String
+  amountCents           Int
+  currency              String       @default("PHP")
+  status                String
+  invoiceUrl            String?
+  providerTransactionId String?      @unique
+  issuedAt              DateTime     @default(now())
+  paidAt                DateTime?
+  subscription          Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
 
   @@index([subscriptionId, issuedAt])
 }
@@ -440,7 +470,7 @@ model EventAttachment {
 }
 
 model WorkspaceFile {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   workspaceId  String
   uploadedById String?
   fileName     String
@@ -448,8 +478,8 @@ model WorkspaceFile {
   size         Int
   storagePath  String
   workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  uploadedBy   user?      @relation("WorkspaceFileUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
-  createdAt    DateTime @default(now())
+  uploadedBy   user?     @relation("WorkspaceFileUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime  @default(now())
 
   @@index([workspaceId, createdAt])
   @@index([uploadedById])
