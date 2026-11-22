@@ -6,6 +6,5 @@ async function handleAuthRequest(request: Request) {
   return auth.handler(request);
 }
 
-
 export const GET = handleAuthRequest;
 export const POST = handleAuthRequest;

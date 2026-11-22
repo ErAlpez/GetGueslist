@@ -499,7 +499,7 @@ html[data-theme="dark"] .landing-page .section-kicker {
 .landing-page .step-card {
   min-height: 0;
   padding: 18px;
-  transition: all .3s ease-in-out !important;
+  transition: all .3s ease-in-out;
 }
 
 .landing-page .step-card {
