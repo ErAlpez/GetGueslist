@@ -2,11 +2,11 @@
   "crons": [
     {
       "path": "/api/cron/automated-followups",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 0 * * *"
     },
     {
       "path": "/api/cron/system-health",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 1 * * *"
     }
   ]
 }

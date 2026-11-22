@@ -41,6 +41,26 @@ test("does not schedule a reminder for registrations made after the reminder tim
   assert.equal(schedule.shouldScheduleReminder(new Date("2026-12-23T18:00:00.001Z"), reminderAt), false);
 });
 
+test("keeps reminders eligible across daily cron timing jitter", () => {
+  const scheduledAt = new Date("2026-12-23T18:00:00.000Z");
+  assert.equal(
+    schedule.isReminderWithinDeliveryWindow(scheduledAt, new Date("2026-12-23T17:00:00.000Z")),
+    true,
+  );
+  assert.equal(
+    schedule.isReminderWithinDeliveryWindow(scheduledAt, new Date("2026-12-23T16:59:59.999Z")),
+    false,
+  );
+  assert.equal(
+    schedule.isReminderWithinDeliveryWindow(scheduledAt, new Date("2026-12-24T20:00:00.000Z")),
+    true,
+  );
+  assert.equal(
+    schedule.isReminderWithinDeliveryWindow(scheduledAt, new Date("2026-12-24T20:00:00.001Z")),
+    false,
+  );
+});
+
 test("protects the cron endpoint with the configured bearer secret", async () => {
   const oldSecret = process.env.CRON_SECRET;
   let runs = 0;

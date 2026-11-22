@@ -1629,6 +1629,7 @@ html[data-theme="dark"] .landing-page .pricing-section .pricing-cta:hover {
   overflow-wrap: anywhere;
   white-space: pre-wrap;
   -webkit-box-orient: vertical;
+  line-clamp: 6;
   -webkit-line-clamp: 6;
 }
 

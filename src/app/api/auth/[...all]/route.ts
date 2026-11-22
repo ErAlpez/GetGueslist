@@ -1,5 +1,7 @@
 import { getAuth } from "@/lib/auth";
 
+export const runtime = "nodejs";
+
 async function handleAuthRequest(request: Request) {
   const auth = getAuth();
   if (!auth.handler) throw new Error("The authentication request handler is unavailable.");

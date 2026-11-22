@@ -10,6 +10,7 @@ import {
 } from "@/lib/email";
 import {
   getAutomatedFollowupScheduledAt,
+  isReminderWithinDeliveryWindow,
   shouldScheduleReminder,
 } from "@/lib/automated-followup-schedule";
 
@@ -18,8 +19,7 @@ const dayInMilliseconds = 24 * hourInMilliseconds;
 const reminderScanAhead = 25 * hourInMilliseconds;
 const followupScanBehind = 26 * hourInMilliseconds;
 const followupScanAhead = dayInMilliseconds;
-const reminderLatenessLimit = hourInMilliseconds;
-const followupLatenessLimit = dayInMilliseconds;
+const followupLatenessLimit = 26 * hourInMilliseconds;
 const retryDelays = [5 * 60 * 1000, 30 * 60 * 1000, 2 * hourInMilliseconds, 6 * hourInMilliseconds];
 const maxAttempts = retryDelays.length + 1;
 const maxBatchSize = 20;
@@ -269,7 +269,7 @@ async function processDelivery(id: string, now: Date): Promise<"sent" | "failed"
     if (
       ticket.status !== "ACTIVE" ||
       event.startsAt <= now ||
-      now.getTime() - expectedScheduledAt.getTime() > reminderLatenessLimit
+      !isReminderWithinDeliveryWindow(expectedScheduledAt, now)
     ) {
       await skipDelivery(id, "The event reminder is no longer timely.");
       return "skipped";
@@ -330,6 +330,19 @@ async function processDelivery(id: string, now: Date): Promise<"sent" | "failed"
 async function claimDueDeliveries(now: Date) {
   const prisma = getPrisma();
   const staleLock = new Date(now.getTime() - 10 * 60 * 1000);
+  const readyDeliveryFilter = {
+    OR: [
+      {
+        kind: AutomatedEmailKind.PRE_EVENT_REMINDER,
+        scheduledAt: { lte: new Date(now.getTime() + hourInMilliseconds) },
+      },
+      {
+        kind: AutomatedEmailKind.POST_EVENT_FOLLOWUP,
+        scheduledAt: { lte: now },
+      },
+    ],
+  };
+  const retryReadyFilter = { OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }] };
   await prisma.automatedEmailDelivery.updateMany({
     where: { status: "PROCESSING", lockedAt: { lt: staleLock }, attempts: { lt: maxAttempts } },
     data: { status: "FAILED", lockedAt: null, nextAttemptAt: now, lastError: "Delivery attempt timed out." },
@@ -342,9 +355,8 @@ async function claimDueDeliveries(now: Date) {
   const due = await prisma.automatedEmailDelivery.findMany({
     where: {
       status: { in: ["PENDING", "FAILED"] },
-      scheduledAt: { lte: now },
       attempts: { lt: maxAttempts },
-      OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }],
+      AND: [readyDeliveryFilter, retryReadyFilter],
     },
     orderBy: [{ scheduledAt: "asc" }, { createdAt: "asc" }],
     take: maxBatchSize,
@@ -356,9 +368,8 @@ async function claimDueDeliveries(now: Date) {
       where: {
         id: delivery.id,
         status: { in: ["PENDING", "FAILED"] },
-        scheduledAt: { lte: now },
         attempts: { lt: maxAttempts },
-        OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }],
+        AND: [readyDeliveryFilter, retryReadyFilter],
       },
       data: {
         status: "PROCESSING",
