@@ -58,6 +58,8 @@ export function AuthForm({ mode, token, authError, onModeChange, showDemoAccount
   const [message, setMessage] = useState(authError ?? "");
   const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState("");
+  const [resendingVerification, setResendingVerification] = useState(false);
   const [otpRequired, setOtpRequired] = useState(false);
   const [otpEmail, setOtpEmail] = useState("");
   const [otpCode, setOtpCode] = useState("");
@@ -108,6 +110,7 @@ export function AuthForm({ mode, token, authError, onModeChange, showDemoAccount
     event.preventDefault();
     setMessage("");
     setSuccess("");
+    if (mode === "sign-up") setVerificationEmail("");
     setOtpInvalid(false);
 
     const code = otpCode.trim();
@@ -157,6 +160,29 @@ export function AuthForm({ mode, token, authError, onModeChange, showDemoAccount
     }
   }
 
+  async function resendVerificationEmail() {
+    if (!verificationEmail) return;
+
+    setMessage("");
+    setSuccess("");
+    setResendingVerification(true);
+    try {
+      const result = await authClient.$fetch<{ status: boolean }>("/send-verification-email", {
+        method: "POST",
+        body: { email: verificationEmail, callbackURL: "/dashboard" },
+      });
+      if (result.error) {
+        setMessage(t(result.error.message ?? "Something went wrong. Please try again."));
+      } else {
+        setSuccess("If an unverified account exists for this email, a verification link is on its way.");
+      }
+    } catch {
+      setMessage(t("Something went wrong. Please try again."));
+    } finally {
+      setResendingVerification(false);
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage("");
@@ -192,7 +218,8 @@ export function AuthForm({ mode, token, authError, onModeChange, showDemoAccount
         if (result.error) {
           setMessage(result.error.message ?? "We couldn’t create your account.");
         } else {
-          setSuccess("Check your inbox for a verification link to finish setting up your account.");
+          setVerificationEmail(email);
+          setSuccess("If an unverified account exists for this email, a verification link is on its way.");
         }
       } else if (mode === "sign-in") {
         await signIn(email, password);
@@ -366,7 +393,14 @@ export function AuthForm({ mode, token, authError, onModeChange, showDemoAccount
               </p>
             )}
             {success && <FormSaveSuccess message={t(success)} />}
-            <button className="button button-dark auth-submit" disabled={submitting || (isReset && !token)} type="submit">
+            {isSignUp && verificationEmail && (
+              <div className="auth-inline-link">
+                <button disabled={submitting || resendingVerification} onClick={resendVerificationEmail} type="button">
+                  {resendingVerification ? t("Sending...") : t("Resend verification email")}
+                </button>
+              </div>
+            )}
+            <button className="button button-dark auth-submit" disabled={submitting || resendingVerification || (isReset && !token)} type="submit">
               {submitting ? <LoaderCircle className="spin" size={17} /> : null}
               {submitting
                 ? t("Please wait")
