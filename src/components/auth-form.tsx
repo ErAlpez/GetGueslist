@@ -19,6 +19,7 @@ type AuthFormProps = {
   authError?: string;
   onModeChange?: (mode: "sign-in" | "sign-up") => void;
   showDemoAccount?: boolean;
+  autoDismissSuccess?: boolean;
 };
 
 const headings: Record<AuthMode, { title: string; description: string }> = {
@@ -52,7 +53,14 @@ function isInvalidOtpError(code: string | undefined, message: string) {
   return error.includes("invalid") && (error.includes("otp") || error.includes("code"));
 }
 
-export function AuthForm({ mode, token, authError, onModeChange, showDemoAccount = false }: AuthFormProps) {
+export function AuthForm({
+  mode,
+  token,
+  authError,
+  onModeChange,
+  showDemoAccount = false,
+  autoDismissSuccess = true,
+}: AuthFormProps) {
   const router = useRouter();
   const { locale, t } = usePreferences();
   const [message, setMessage] = useState(authError ?? "");
@@ -160,6 +168,13 @@ export function AuthForm({ mode, token, authError, onModeChange, showDemoAccount
     }
   }
 
+  function requestVerificationEmail(email: string) {
+    return authClient.$fetch<{ status: boolean }>("/send-verification-email", {
+      method: "POST",
+      body: { email, callbackURL: "/dashboard" },
+    });
+  }
+
   async function resendVerificationEmail() {
     if (!verificationEmail) return;
 
@@ -167,10 +182,7 @@ export function AuthForm({ mode, token, authError, onModeChange, showDemoAccount
     setSuccess("");
     setResendingVerification(true);
     try {
-      const result = await authClient.$fetch<{ status: boolean }>("/send-verification-email", {
-        method: "POST",
-        body: { email: verificationEmail, callbackURL: "/dashboard" },
-      });
+      const result = await requestVerificationEmail(verificationEmail);
       if (result.error) {
         setMessage(t(result.error.message ?? "Something went wrong. Please try again."));
       } else {
@@ -219,7 +231,12 @@ export function AuthForm({ mode, token, authError, onModeChange, showDemoAccount
           setMessage(result.error.message ?? "We couldn’t create your account.");
         } else {
           setVerificationEmail(email);
-          setSuccess("If an unverified account exists for this email, a verification link is on its way.");
+          const verificationResult = await requestVerificationEmail(email);
+          if (verificationResult.error) {
+            setMessage(t(verificationResult.error.message ?? "Something went wrong. Please try again."));
+          } else {
+            setSuccess("If an unverified account exists for this email, a verification link is on its way.");
+          }
         }
       } else if (mode === "sign-in") {
         await signIn(email, password);
@@ -392,7 +409,7 @@ export function AuthForm({ mode, token, authError, onModeChange, showDemoAccount
                 {message}
               </p>
             )}
-            {success && <FormSaveSuccess message={t(success)} />}
+            {success && <FormSaveSuccess autoDismiss={autoDismissSuccess} message={t(success)} />}
             {isSignUp && verificationEmail && (
               <div className="auth-inline-link">
                 <button disabled={submitting || resendingVerification} onClick={resendVerificationEmail} type="button">

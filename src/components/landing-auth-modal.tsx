@@ -138,7 +138,13 @@ export function LandingAuthModal({
               <X aria-hidden="true" size={18} />
             </button>
             <div className={`landing-auth-experience${isSwitchingMode ? " is-switching-mode" : ""}`}>
-              <AuthForm key={mode} mode={mode} onModeChange={handleModeChange} showDemoAccount={showDemoAccount} />
+              <AuthForm
+                autoDismissSuccess={false}
+                key={mode}
+                mode={mode}
+                onModeChange={handleModeChange}
+                showDemoAccount={showDemoAccount}
+              />
             </div>
           </div>
         </dialog>

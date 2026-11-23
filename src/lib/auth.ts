@@ -73,7 +73,7 @@ function createAuth(secret: string) {
       },
     },
     emailVerification: {
-      sendOnSignUp: true,
+      sendOnSignUp: false,
       autoSignInAfterVerification: false,
       sendVerificationEmail: async ({ user, url }) => {
         const { sendAuthEmail } = await import("@/lib/email");
