@@ -47,8 +47,8 @@
 }
 
 .paddle-checkout-brand-mark {
-  width: 42px;
-  height: 42px;
+  width: 32px;
+  height: 32px;
   border-radius: 10px !important;
   object-fit: cover;
   box-shadow: 0 5px 15px rgba(27, 73, 52, .12);

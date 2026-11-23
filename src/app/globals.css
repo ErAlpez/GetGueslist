@@ -36,7 +36,7 @@ button, a, summary { -webkit-tap-highlight-color: transparent; }
 .site-header { position: relative; z-index: 20; height: 78px; border-bottom: 1px solid rgba(32, 54, 46, .07); background: rgba(251, 252, 249, .91); }
 .header-inner { display: flex; align-items: center; justify-content: space-between; width: min(var(--container-width), calc(100% - 64px)); height: 100%; margin: 0 auto; }
 .brand { display: inline-flex; align-items: center; gap: 9px; color: #20312c; font-size: 19px; font-weight: 750; letter-spacing: -1px; }
-.brand-mark, .mini-mark { display: block; width: 25px; height: 25px; flex: 0 0 auto; border-radius: 5px; object-fit: cover; }
+.brand-mark, .mini-mark { display: block; width: 32px; height: 32px; flex: 0 0 auto; border-radius: 5px; object-fit: cover; }
 .desktop-nav { display: flex; align-items: center; gap: 33px; margin-left: 5%; color: #58635f; font-size: 12.5px; font-weight: 550; }
 .desktop-nav a, .footer-col a, .footer-bottom a { transition: color .2s ease; }
 .desktop-nav a:hover, .footer-col a:hover, .footer-bottom a:hover { color: var(--green); }
@@ -698,7 +698,7 @@ html[data-theme="dark"] .form-save-success svg {
 .app-sidebar { position: sticky; top: 0; display: flex; width: 238px; height: 100vh; flex: 0 0 238px; flex-direction: column; padding: 21px 14px 14px; border-right: 0; background: #fcfdfb; text-transform: capitalize; }
 .app-brand { display: flex; align-items: center; gap: 8px; padding: 0 8px; color: #23332d; font-size: 17px; font-weight: 750; letter-spacing: -.8px; }
 .app-brand-name { font-size: 14px; }
-.app-brand .brand-mark { width: 23px; height: 23px; }
+.app-brand .brand-mark { width: 32px; height: 32px; }
 .workspace-switcher { display: flex; align-items: center; gap: 9px; min-height: 48px; margin-top: 28px; padding: 6px 8px; border: 1px solid #e9ede8; border-radius: 7px; background: white; }
 .workspace-switcher-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 3px; }.workspace-switcher-copy strong { overflow: hidden; color: #48564e; font-size: 9px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }.workspace-switcher-copy small { color: #929d95; font-size: 8px; }
 .workspace-chevron { color: #8d9991; font-size: 15px; }
@@ -803,7 +803,7 @@ html[data-theme="dark"] .form-save-success svg {
   .app-sidebar { width: 205px; flex-basis: 205px; }.app-content { padding-right: 21px; padding-left: 21px; }.app-topbar { padding-right: 21px; padding-left: 21px; }.dashboard-grid { grid-template-columns: minmax(0, 1fr) minmax(230px, .75fr); gap: 10px; }.stat-cards { gap: 8px; }
 }
 @media (max-width: 700px) {
-  .app-shell { display: block; }.app-sidebar { position: sticky; z-index: 20; top: 0; display: block; width: 100%; height: auto; padding: 10px 15px; border-right: 0; border-bottom: 1px solid #e7ece6; }.app-brand { display: inline-flex; font-size: 15px; }.app-brand .brand-mark { width: 21px; height: 21px; }.workspace-switcher, .sidebar-bottom { display: none; }.app-nav { display: flex; overflow-x: auto; flex-direction: row; gap: 4px; margin-top: 10px; padding-bottom: 1px; scrollbar-width: none; }.app-nav::-webkit-scrollbar { display: none; }.app-nav-label { display: none; }.app-nav-label-spaced { display: none; }.app-nav-link { flex: 0 0 auto; gap: 6px; min-height: 31px; padding: 0 8px; font-size: 8px; }.app-nav-link svg { width: 13px; }.app-nav-link small { display: none; }
+  .app-shell { display: block; }.app-sidebar { position: sticky; z-index: 20; top: 0; display: block; width: 100%; height: auto; padding: 10px 15px; border-right: 0; border-bottom: 1px solid #e7ece6; }.app-brand { display: inline-flex; font-size: 15px; }.app-brand .brand-mark { width: 32px; height: 32px; }.workspace-switcher, .sidebar-bottom { display: none; }.app-nav { display: flex; overflow-x: auto; flex-direction: row; gap: 4px; margin-top: 10px; padding-bottom: 1px; scrollbar-width: none; }.app-nav::-webkit-scrollbar { display: none; }.app-nav-label { display: none; }.app-nav-label-spaced { display: none; }.app-nav-link { flex: 0 0 auto; gap: 6px; min-height: 31px; padding: 0 8px; font-size: 8px; }.app-nav-link svg { width: 13px; }.app-nav-link small { display: none; }
   .app-topbar { position: relative; height: 49px; padding: 0 15px; }.topbar-search { width: min(230px, 55%); }.topbar-search kbd { display: none; }.topbar-right { gap: 7px; }.account-avatar { width: 25px; height: 25px; flex-basis: 25px; }
   .app-content { padding: 24px 14px 35px; }.page-heading-row { align-items: flex-start; gap: 10px; }.page-heading-row h1 { font-size: 19px; }.page-heading-row p { max-width: 230px; font-size: 8px; line-height: 1.6; }.app-primary-button { min-height: 33px; gap: 5px; padding: 0 8px; font-size: 8px; white-space: nowrap; }.app-primary-button svg { width: 13px; }
   .stat-cards { grid-template-columns: 1fr 1fr; gap: 8px; }.stat-card { min-height: 89px; padding: 20px; }.stat-card > strong { margin-top: 7px; font-size: 20px; }.stat-card-icon { top: 10px; right: 9px; width: 25px; height: 25px; }.stat-card-icon svg { width: 14px; }.dashboard-grid, .dashboard-lower-grid { grid-template-columns: 1fr; gap: 9px; margin-top: 9px; }.app-panel { padding: 13px 12px 11px; }.events-panel, .usage-panel, .registrations-panel, .attendance-summary-panel, .overview-trend-panel, .overview-activity-panel { min-height: auto; }.dashboard-event { gap: 7px; min-height: 46px; }.event-registration-count { display: none; }.dashboard-event-copy small { max-width: 180px; }.usage-footer { font-size: 6.5px; }.registration-time { font-size: 6px; }
@@ -2030,8 +2030,8 @@ html[data-theme="dark"] .feedback-message-label textarea:focus {
 }
 
 .app-shell .app-brand .brand-mark {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 5px;
 }
 
@@ -2503,8 +2503,8 @@ html[data-theme="dark"] .feedback-message-label textarea:focus {
   }
 
   .app-shell .app-brand .brand-mark {
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
   }
 
   html[data-theme="dark"] .app-shell .app-sidebar {
@@ -2835,8 +2835,8 @@ html[data-theme="dark"] .app-shell .topbar-search {
 }
 
 .public-registration-brand .brand-mark {
-  width: 44px;
-  height: 44px;
+  width: 32px;
+  height: 32px;
 }
 
 .public-registration-card {
@@ -5710,8 +5710,8 @@ html[data-theme="dark"] .app-shell .profile-settings-panel .profile-picture-acti
 }
 
 .public-ticket-brand .brand-mark {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
 }
 
 .public-ticket {
