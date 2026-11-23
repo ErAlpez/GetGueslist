@@ -646,6 +646,7 @@ model AttendanceLog {
   @@unique([ticketId, action])
   @@index([workspaceId, eventId, createdAt])
   @@index([registrationId, createdAt])
+  @@index([workspaceId, action, createdAt, registrationId], map: "AttendanceLog_workspace_action_created_registration_idx")
 }
 
 model EventCheckpoint {

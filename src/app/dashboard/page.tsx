@@ -20,8 +20,10 @@ import { StatisticCircle, StatisticIconCircle } from "@/components/statistic-cir
 import "./dashboard.css";
 
 export default async function DashboardPage() {
-  const { locale } = await getPreferences();
-  const context = await requireWorkspaceSection("overview");
+  const [{ locale }, context] = await Promise.all([
+    getPreferences(),
+    requireWorkspaceSection("overview"),
+  ]);
   const summary = await getDashboardSummary(context.workspace.id, locale);
   const canManageEvents = workspaceRoleHasPermission(context.membership.role, "events.manage");
   const plan = summary.subscription?.plan;

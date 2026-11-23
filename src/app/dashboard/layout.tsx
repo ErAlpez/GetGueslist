@@ -1,7 +1,8 @@
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { AccountMenu } from "@/components/account-menu";
 import { AppSidebar } from "@/components/app-sidebar";
 import { DashboardActivityRefresh } from "@/components/dashboard-activity-refresh";
+import { DashboardLoadingContent } from "@/components/dashboard-loading-content";
 import { DashboardMotion } from "@/components/dashboard-motion";
 import { NotificationPopover } from "@/components/notification-popover";
 import { TopbarEventSearch } from "@/components/topbar-event-search";
@@ -14,12 +15,20 @@ import { workspaceRoleCanAccessSection } from "@/lib/workspace-roles";
 import { isSuperAdminEmail } from "@/lib/super-admin";
 import "./page-kicker.css";
 import "./stat-circles.css";
+import "./loading.css";
 
 export const dynamic = "force-dynamic";
 
-export default async function DashboardLayout({ children }: { children: ReactNode }) {
-  const { locale } = await getPreferences();
-  const context = await requireWorkspaceContext();
+export default function DashboardLayout({ children }: { children: ReactNode }) {
+  return (
+    <Suspense fallback={<DashboardShellLoading />}>
+      <DashboardShell>{children}</DashboardShell>
+    </Suspense>
+  );
+}
+
+async function DashboardShell({ children }: { children: ReactNode }) {
+  const [{ locale }, context] = await Promise.all([getPreferences(), requireWorkspaceContext()]);
   const isLocalDemo =
     process.env.NODE_ENV === "development" &&
     context.user.id === "guestlist-demo-user" &&
@@ -61,6 +70,34 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           </div>
         </header>
         <main className="app-content">{children}</main>
+      </div>
+    </div>
+  );
+}
+
+function DashboardShellLoading() {
+  return (
+    <div aria-busy="true" className="app-shell">
+      <aside aria-hidden="true" className="app-sidebar">
+        <div className="sidebar-brand-row">
+          <span className="dashboard-loading-block dashboard-shell-loading-brand" />
+        </div>
+        <div className="app-nav dashboard-shell-loading-nav">
+          {Array.from({ length: 8 }, (_, index) => (
+            <span className="dashboard-loading-block dashboard-shell-loading-link" key={index} />
+          ))}
+        </div>
+        <div className="sidebar-bottom">
+          <span className="dashboard-loading-block dashboard-shell-loading-bottom" />
+        </div>
+      </aside>
+      <div className="app-main">
+        <header className="app-topbar">
+          <span className="dashboard-loading-block dashboard-shell-loading-topbar" />
+        </header>
+        <main className="app-content">
+          <DashboardLoadingContent />
+        </main>
       </div>
     </div>
   );

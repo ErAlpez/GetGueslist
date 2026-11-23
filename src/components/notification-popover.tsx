@@ -178,13 +178,15 @@ export function NotificationPopover() {
     }
 
     void loadNotifications();
-    const intervalId = window.setInterval(() => {
-      void loadNotifications();
-    }, streamConnected ? 30_000 : 3_000);
+    const intervalId = streamConnected
+      ? undefined
+      : window.setInterval(() => {
+          void loadNotifications();
+        }, 15_000);
 
     return () => {
       active = false;
-      window.clearInterval(intervalId);
+      if (intervalId !== undefined) window.clearInterval(intervalId);
     };
   }, [refreshKey, streamConnected, t]);
 
