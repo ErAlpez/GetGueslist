@@ -36,7 +36,8 @@ button, a, summary { -webkit-tap-highlight-color: transparent; }
 .site-header { position: relative; z-index: 20; height: 78px; border-bottom: 1px solid rgba(32, 54, 46, .07); background: rgba(251, 252, 249, .91); }
 .header-inner { display: flex; align-items: center; justify-content: space-between; width: min(var(--container-width), calc(100% - 64px)); height: 100%; margin: 0 auto; }
 .brand { display: inline-flex; align-items: center; gap: 9px; color: #20312c; font-size: 19px; font-weight: 750; letter-spacing: -1px; }
-.brand-mark, .mini-mark { display: block; width: 25px; height: 25px; flex: 0 0 auto; border-radius: 5px; object-fit: cover; }
+.brand-mark, .mini-mark { display: block; flex: 0 0 auto; border-radius: 5px; object-fit: cover; }
+.brand-mark { width: 42px; height: 42px; }
 .desktop-nav { display: flex; align-items: center; gap: 33px; margin-left: 5%; color: #58635f; font-size: 12.5px; font-weight: 550; }
 .desktop-nav a, .footer-col a, .footer-bottom a { transition: color .2s ease; }
 .desktop-nav a:hover, .footer-col a:hover, .footer-bottom a:hover { color: var(--green); }
@@ -698,7 +699,7 @@ html[data-theme="dark"] .form-save-success svg {
 .app-sidebar { position: sticky; top: 0; display: flex; width: 238px; height: 100vh; flex: 0 0 238px; flex-direction: column; padding: 21px 14px 14px; border-right: 0; background: #fcfdfb; text-transform: capitalize; }
 .app-brand { display: flex; align-items: center; gap: 8px; padding: 0 8px; color: #23332d; font-size: 17px; font-weight: 750; letter-spacing: -.8px; }
 .app-brand-name { font-size: 14px; }
-.app-brand .brand-mark { width: 23px; height: 23px; }
+.app-brand .brand-mark { width: 42px; height: 42px; }
 .workspace-switcher { display: flex; align-items: center; gap: 9px; min-height: 48px; margin-top: 28px; padding: 6px 8px; border: 1px solid #e9ede8; border-radius: 7px; background: white; }
 .workspace-switcher-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 3px; }.workspace-switcher-copy strong { overflow: hidden; color: #48564e; font-size: 9px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }.workspace-switcher-copy small { color: #929d95; font-size: 8px; }
 .workspace-chevron { color: #8d9991; font-size: 15px; }
@@ -2030,8 +2031,8 @@ html[data-theme="dark"] .feedback-message-label textarea:focus {
 }
 
 .app-shell .app-brand .brand-mark {
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 42px;
   border-radius: 5px;
 }
 
@@ -2503,8 +2504,8 @@ html[data-theme="dark"] .feedback-message-label textarea:focus {
   }
 
   .app-shell .app-brand .brand-mark {
-    width: 30px;
-    height: 30px;
+    width: 36px;
+    height: 36px;
   }
 
   html[data-theme="dark"] .app-shell .app-sidebar {
@@ -2835,8 +2836,8 @@ html[data-theme="dark"] .app-shell .topbar-search {
 }
 
 .public-registration-brand .brand-mark {
-  width: 44px;
-  height: 44px;
+  width: 42px;
+  height: 42px;
 }
 
 .public-registration-card {
@@ -5710,8 +5711,8 @@ html[data-theme="dark"] .app-shell .profile-settings-panel .profile-picture-acti
 }
 
 .public-ticket-brand .brand-mark {
-  width: 30px;
-  height: 30px;
+  width: 42px;
+  height: 42px;
 }
 
 .public-ticket {
