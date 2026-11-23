@@ -10,6 +10,7 @@ import { getPrisma } from "@/lib/prisma";
 import { getWorkspaceContext } from "@/lib/workspace";
 import { workspaceRoleHasPermission } from "@/lib/workspace-roles";
 import { workspaceHasFeature } from "@/lib/plan-features";
+import { convertImageToAvif } from "@/lib/image-optimization";
 
 export type WorkspaceSettingsState = { error?: string; success?: string };
 export type ProfilePictureState = { error?: string; success?: string };
@@ -103,7 +104,16 @@ export async function updateProfilePictureAction(
       bytes[bytes.length - 2] === 0xff &&
       bytes[bytes.length - 1] === 0xd9;
     if (!isJpeg) return { error: "That photo could not be saved. Choose another image." };
-    image = parsed.data;
+    try {
+      const avif = await convertImageToAvif(bytes, { maxDimension: 256, quality: 60 });
+      if (avif.length > 100_000) {
+        return { error: "This image is too large after compression. Choose another image." };
+      }
+      image = `data:image/avif;base64,${avif.toString("base64")}`;
+    } catch (error) {
+      console.error("Profile photo AVIF conversion failed.", error);
+      return { error: "That photo could not be processed. Choose another image." };
+    }
   }
 
   await getPrisma().user.update({

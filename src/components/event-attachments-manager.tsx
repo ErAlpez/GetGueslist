@@ -110,7 +110,7 @@ export function EventAttachmentsManager({
         <input name="eventId" type="hidden" value={eventId} />
         <label className="button button-light profile-picture-choose">
           <input
-            accept="application/pdf,image/jpeg,image/png,image/webp"
+            accept="application/pdf,image/jpeg,image/png,image/webp,image/avif"
             className="profile-picture-file-input"
             disabled={pending || atLimit}
             name="file"

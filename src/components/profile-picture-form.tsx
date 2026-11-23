@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useActionState, useEffect, useState, type ChangeEvent } from "react";
+import { useActionState, useEffect, useRef, useState, type ChangeEvent } from "react";
 import { LoaderCircle, Save, Trash2, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
@@ -14,7 +14,7 @@ import { ConfirmButton } from "@/components/confirm-button";
 import "./profile-picture-form.css";
 
 const initialState: ProfilePictureState = {};
-const acceptedImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+const acceptedImageTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
 const maxUploadBytes = 8 * 1024 * 1024;
 const maxProcessedLength = 140_000;
 
@@ -27,25 +27,43 @@ export function ProfilePictureForm({
 }) {
   const { t } = usePreferences();
   const router = useRouter();
-  const [state, formAction, pending] = useActionState(updateProfilePictureAction, initialState);
+  const [state, dispatchFormAction, pending] = useActionState(updateProfilePictureAction, initialState);
   const [imageData, setImageData] = useState("");
   const [clientError, setClientError] = useState("");
   const [showFeedback, setShowFeedback] = useState(false);
-  const preview = imageData || (state.success === "Profile photo removed." ? null : image);
+  const requestId = useRef(0);
+  const previewObjectUrl = useRef<string | null>(null);
+  const [submittedImageData, setSubmittedImageData] = useState("");
+  const visibleImageData = state.success && submittedImageData === imageData ? "" : imageData;
+  const preview = visibleImageData || (state.success === "Profile photo removed." ? null : image);
+
+  function formAction(formData: FormData) {
+    setSubmittedImageData(String(formData.get("imageData") ?? ""));
+    dispatchFormAction(formData);
+  }
 
   useEffect(() => {
-    if (state.success) router.refresh();
+    if (!state.success) return;
+    router.refresh();
   }, [router, state.success]);
+
+  useEffect(() => () => {
+    requestId.current += 1;
+    if (previewObjectUrl.current) URL.revokeObjectURL(previewObjectUrl.current);
+  }, []);
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    const currentRequest = ++requestId.current;
+    if (previewObjectUrl.current) URL.revokeObjectURL(previewObjectUrl.current);
+    previewObjectUrl.current = null;
     setShowFeedback(false);
     setClientError("");
     setImageData("");
     if (!acceptedImageTypes.has(file.type)) {
-      setClientError(t("Choose a JPEG, PNG, or WebP image."));
+      setClientError(t("Choose a JPEG, PNG, WebP, or AVIF image."));
       return;
     }
     if (file.size > maxUploadBytes) {
@@ -54,9 +72,15 @@ export function ProfilePictureForm({
     }
 
     const objectUrl = URL.createObjectURL(file);
+    previewObjectUrl.current = objectUrl;
+    const releaseObjectUrl = () => {
+      URL.revokeObjectURL(objectUrl);
+      if (previewObjectUrl.current === objectUrl) previewObjectUrl.current = null;
+    };
     const source = new window.Image();
     source.onload = () => {
-      URL.revokeObjectURL(objectUrl);
+      releaseObjectUrl();
+      if (currentRequest !== requestId.current) return;
       if (!source.naturalWidth || !source.naturalHeight) {
         setClientError(t("This image could not be processed. Try another image."));
         return;
@@ -88,7 +112,8 @@ export function ProfilePictureForm({
       }
     };
     source.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
+      releaseObjectUrl();
+      if (currentRequest !== requestId.current) return;
       setClientError(t("This image could not be processed. Try another image."));
     };
     source.src = objectUrl;
@@ -105,11 +130,11 @@ export function ProfilePictureForm({
       </div>
       <div className="profile-picture-controls">
         <p>{t("Choose a photo to personalize your account. It will appear in the topbar profile menu.")}</p>
-        <input name="imageData" type="hidden" value={imageData} />
+        <input name="imageData" type="hidden" value={visibleImageData} />
         <div className="profile-picture-actions">
           <label className="button button-light profile-picture-choose">
             <input
-              accept="image/jpeg,image/png,image/webp"
+              accept="image/jpeg,image/png,image/webp,image/avif"
               className="profile-picture-file-input"
               onChange={handleFileChange}
               onClick={(event) => {
@@ -119,7 +144,7 @@ export function ProfilePictureForm({
             />
             <Upload size={14} /> {t("Choose photo")}
           </label>
-          <button className="button button-dark app-primary-button" disabled={!imageData || pending} type="submit">
+          <button className="button button-dark app-primary-button" disabled={!visibleImageData || pending} type="submit">
             {pending ? <LoaderCircle className="spin" size={14} /> : <Save size={14} />}
             {t("Save photo")}
           </button>
@@ -129,7 +154,12 @@ export function ProfilePictureForm({
             disabled={!preview || pending}
             message="Remove this profile photo?"
             name="removeImage"
-            onClick={() => setImageData("")}
+            onClick={() => {
+              requestId.current += 1;
+              if (previewObjectUrl.current) URL.revokeObjectURL(previewObjectUrl.current);
+              previewObjectUrl.current = null;
+              setImageData("");
+            }}
             title={t("Remove photo")}
             type="submit"
             value="true"

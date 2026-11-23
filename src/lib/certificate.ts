@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import PDFDocument from "pdfkit";
 import fontkit from "@pdf-lib/fontkit";
 import sharp from "sharp";
-import { eventLogoPrefix } from "@/lib/event-logo";
+import { eventLogoInputPrefix, eventLogoPrefix } from "@/lib/event-logo";
 
 type AttendanceCertificateInput = {
   attendeeName: string;
@@ -99,11 +99,10 @@ function getCertificateFrame() {
 async function getCertificateLogo(eventLogo: string | null | undefined): Promise<CertificateLogo | null> {
   if (!eventLogo) return null;
 
-  const encodedLogo = eventLogo.startsWith(eventLogoPrefix)
-    ? eventLogo.slice(eventLogoPrefix.length)
-    : null;
+  const prefix = [eventLogoPrefix, eventLogoInputPrefix].find((candidate) => eventLogo.startsWith(candidate));
+  const encodedLogo = prefix ? eventLogo.slice(prefix.length) : null;
   if (!encodedLogo || !/^[A-Za-z0-9+/]+={0,2}$/.test(encodedLogo)) {
-    throw new Error("Certificate event logo must be a valid WebP data URI.");
+    throw new Error("Certificate event logo must be a valid AVIF or WebP data URI.");
   }
 
   const { data, info } = await sharp(Buffer.from(encodedLogo, "base64"), {

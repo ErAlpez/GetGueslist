@@ -174,7 +174,7 @@ export function WorkspaceFileLibrary({
       {canManage && <form action={formAction} className="event-attachment-upload">
         <label className="button button-light profile-picture-choose">
           <input
-            accept="application/pdf,image/jpeg,image/png,image/webp"
+            accept="application/pdf,image/jpeg,image/png,image/webp,image/avif"
             className="profile-picture-file-input"
             disabled={pending}
             name="file"

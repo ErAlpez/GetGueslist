@@ -6,9 +6,21 @@ const extensionByContentType: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",
   "image/webp": "webp",
+  "image/avif": "avif",
 };
 
 export function detectEventAttachmentContentType(bytes: Uint8Array): string | null {
+  const ascii = (start: number, end: number) => String.fromCharCode(...bytes.subarray(start, end));
+  if (
+    bytes.length >= 16 &&
+    ascii(4, 8) === "ftyp" &&
+    (["avif", "avis"].includes(ascii(8, 12)) ||
+      Array.from({ length: Math.floor((Math.min(bytes.length, 64) - 16) / 4) }, (_, index) =>
+        ascii(16 + index * 4, 20 + index * 4),
+      ).some((brand) => brand === "avif" || brand === "avis"))
+  ) {
+    return "image/avif";
+  }
   if (
     bytes.length >= 5 &&
     bytes[0] === 0x25 &&
@@ -53,6 +65,12 @@ export function normalizeEventAttachmentFileName(fileName: string, contentType: 
   const safeName = basename.replace(/[\u0000-\u001f\u007f]/g, "_").trim();
   const stem = (safeName.replace(/\.[^.]*$/, "") || "attachment").slice(0, 150);
   return `${stem}.${extension}`;
+}
+
+export function normalizeEventAttachmentOriginalFileName(fileName: string): string {
+  const basename = fileName.replaceAll("\\", "/").split("/").pop() ?? "";
+  const safeName = basename.replace(/[\u0000-\u001f\u007f]/g, "_").trim();
+  return (safeName || "attachment").slice(0, 180);
 }
 
 export function eventAttachmentContentDisposition(fileName: string): string {

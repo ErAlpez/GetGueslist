@@ -8,35 +8,50 @@ import { saveEventLogoAction, type EventLogoState } from "@/app/dashboard/events
 import { usePreferences } from "@/components/preferences-provider";
 import { FormSaveSuccess } from "@/components/form-save-success";
 import { ConfirmButton } from "@/components/confirm-button";
-import { eventLogoPrefix, maxEventLogoDataLength } from "@/lib/event-logo";
+import { eventLogoInputPrefix, maxEventLogoDataLength } from "@/lib/event-logo";
 
 const initialState: EventLogoState = {};
-const acceptedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+const acceptedTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
 const maxUploadBytes = 8 * 1024 * 1024;
 
 export function EventLogoForm({ eventId, logo }: { eventId: string; logo: string | null }) {
   const { t } = usePreferences();
   const router = useRouter();
-  const [state, formAction, pending] = useActionState(saveEventLogoAction, initialState);
+  const [state, dispatchFormAction, pending] = useActionState(saveEventLogoAction, initialState);
   const [imageData, setImageData] = useState("");
   const [processing, setProcessing] = useState(false);
   const [clientError, setClientError] = useState("");
   const [showFeedback, setShowFeedback] = useState(false);
   const requestId = useRef(0);
+  const previewObjectUrl = useRef<string | null>(null);
+  const [submittedImageData, setSubmittedImageData] = useState("");
+
+  function formAction(formData: FormData) {
+    setSubmittedImageData(String(formData.get("imageData") ?? ""));
+    dispatchFormAction(formData);
+  }
 
   useEffect(() => {
-    if (state.success) router.refresh();
+    if (!state.success) return;
+    router.refresh();
   }, [router, state]);
+
+  useEffect(() => () => {
+    requestId.current += 1;
+    if (previewObjectUrl.current) URL.revokeObjectURL(previewObjectUrl.current);
+  }, []);
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
     const currentRequest = ++requestId.current;
+    if (previewObjectUrl.current) URL.revokeObjectURL(previewObjectUrl.current);
+    previewObjectUrl.current = null;
     setImageData("");
     setClientError("");
     setShowFeedback(false);
     if (!acceptedTypes.has(file.type)) {
-      setClientError(t("Choose a JPEG, PNG, or WebP image."));
+      setClientError(t("Choose a JPEG, PNG, WebP, or AVIF image."));
       setProcessing(false);
       return;
     }
@@ -48,9 +63,14 @@ export function EventLogoForm({ eventId, logo }: { eventId: string; logo: string
 
     setProcessing(true);
     const objectUrl = URL.createObjectURL(file);
+    previewObjectUrl.current = objectUrl;
+    const releaseObjectUrl = () => {
+      URL.revokeObjectURL(objectUrl);
+      if (previewObjectUrl.current === objectUrl) previewObjectUrl.current = null;
+    };
     const source = new window.Image();
     source.onload = () => {
-      URL.revokeObjectURL(objectUrl);
+      releaseObjectUrl();
       if (currentRequest !== requestId.current) return;
       const fail = () => {
         setClientError(t("This image could not be processed. Try another image."));
@@ -67,7 +87,7 @@ export function EventLogoForm({ eventId, logo }: { eventId: string; logo: string
       try {
         context.drawImage(source, 0, 0, canvas.width, canvas.height);
         let processed = canvas.toDataURL("image/webp", 0.85);
-        if (!processed.startsWith(eventLogoPrefix)) return fail();
+        if (!processed.startsWith(eventLogoInputPrefix)) return fail();
         if (processed.length > maxEventLogoDataLength) processed = canvas.toDataURL("image/webp", 0.65);
         if (processed.length > maxEventLogoDataLength) {
           setClientError(t("This image is too large after processing. Choose another image."));
@@ -80,7 +100,7 @@ export function EventLogoForm({ eventId, logo }: { eventId: string; logo: string
       }
     };
     source.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
+      releaseObjectUrl();
       if (currentRequest !== requestId.current) return;
       setClientError(t("This image could not be processed. Try another image."));
       setProcessing(false);
@@ -89,7 +109,8 @@ export function EventLogoForm({ eventId, logo }: { eventId: string; logo: string
   }
 
   const savedLogo = state.logo !== undefined ? state.logo : logo;
-  const preview = imageData || savedLogo;
+  const visibleImageData = state.success && submittedImageData === imageData ? "" : imageData;
+  const preview = visibleImageData || savedLogo;
   return (
     <form action={formAction} className="event-logo-form" onSubmit={() => setShowFeedback(true)}>
       <div className="event-logo-preview" role="img" aria-label={t("Event logo preview")}>
@@ -99,14 +120,14 @@ export function EventLogoForm({ eventId, logo }: { eventId: string; logo: string
         <strong>{t("Event logo")}</strong>
         <p>{t("Display your event logo on the public registration form.")}</p>
         <input name="eventId" type="hidden" value={eventId} />
-        <input name="imageData" type="hidden" value={imageData} />
+        <input name="imageData" type="hidden" value={visibleImageData} />
         <div className="event-logo-actions">
           <label className="button button-light profile-picture-choose">
-            <input accept="image/jpeg,image/png,image/webp" className="profile-picture-file-input" disabled={pending}
+            <input accept="image/jpeg,image/png,image/webp,image/avif" className="profile-picture-file-input" disabled={pending}
               onChange={handleFileChange} onClick={(event) => { event.currentTarget.value = ""; }} type="file" />
             <Upload aria-hidden="true" size={14} /> {t("Choose logo")}
           </label>
-          <button className="button button-dark app-primary-button" disabled={!imageData || imageData === savedLogo || processing || pending} type="submit">
+          <button className="button button-dark app-primary-button" disabled={!visibleImageData || visibleImageData === savedLogo || processing || pending} type="submit">
             {pending ? <LoaderCircle aria-hidden="true" className="spin" size={14} /> : <Save aria-hidden="true" size={14} />} {t("Save logo")}
           </button>
           <ConfirmButton aria-label={t("Remove logo")} className="button button-light event-logo-remove"
@@ -119,7 +140,7 @@ export function EventLogoForm({ eventId, logo }: { eventId: string; logo: string
         </div>
         {processing && <p className="event-logo-hint" role="status">{t("Processing image...")}</p>}
         {(clientError || (showFeedback && !pending && state.error)) && <p aria-live="polite" className="form-message form-error">{clientError || (state.error ? t(state.error) : "")}</p>}
-        <small>{t("JPEG, PNG or WebP, up to 8 MB.")}</small>
+        <small>{t("JPEG, PNG, WebP or AVIF, up to 8 MB.")}</small>
       </div>
     </form>
   );

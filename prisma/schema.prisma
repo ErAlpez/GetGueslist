@@ -454,36 +454,40 @@ model Event {
 }
 
 model EventAttachment {
-  id           String   @id @default(cuid())
-  eventId      String
-  uploadedById String?
-  fileName     String
-  contentType  String
-  size         Int
-  data         Bytes?
-  storagePath  String?
-  event        Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  uploadedBy   user?    @relation("EventAttachmentUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
-  createdAt    DateTime @default(now())
+  id               String   @id @default(cuid())
+  eventId          String
+  uploadedById     String?
+  fileName         String
+  originalFileName String
+  contentType      String
+  size             Int
+  data             Bytes?
+  storagePath      String?
+  event            Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  uploadedBy       user?    @relation("EventAttachmentUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt        DateTime @default(now())
 
   @@index([eventId, createdAt])
   @@index([uploadedById])
+  @@index([eventId, originalFileName])
 }
 
 model WorkspaceFile {
-  id           String    @id @default(cuid())
-  workspaceId  String
-  uploadedById String?
-  fileName     String
-  contentType  String
-  size         Int
-  storagePath  String
-  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  uploadedBy   user?     @relation("WorkspaceFileUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
-  createdAt    DateTime  @default(now())
+  id               String    @id @default(cuid())
+  workspaceId      String
+  uploadedById     String?
+  fileName         String
+  originalFileName String
+  contentType      String
+  size             Int
+  storagePath      String
+  workspace        Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  uploadedBy       user?     @relation("WorkspaceFileUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt        DateTime  @default(now())
 
   @@index([workspaceId, createdAt])
   @@index([uploadedById])
+  @@index([workspaceId, originalFileName])
 }
 
 model EventSettings {

@@ -12,6 +12,7 @@ import {
   detectEventAttachmentContentType,
   maxEventAttachmentBytes,
   maxEventAttachmentsPerEvent,
+  normalizeEventAttachmentOriginalFileName,
   normalizeEventAttachmentFileName,
 } from "@/lib/event-attachment";
 import {
@@ -19,7 +20,8 @@ import {
   downloadSupabaseObject,
   uploadSupabaseObject,
 } from "@/lib/supabase-storage";
-import { eventLogoPrefix, maxEventLogoDataLength } from "@/lib/event-logo";
+import { eventLogoInputPrefix, eventLogoPrefix, maxEventLogoDataLength } from "@/lib/event-logo";
+import { convertImageToAvif } from "@/lib/image-optimization";
 import { getPrisma } from "@/lib/prisma";
 import { readRegistrationQuestionOptions, registrationQuestionTypes } from "@/lib/registration-form";
 import { getWorkspaceContext } from "@/lib/workspace";
@@ -536,10 +538,11 @@ export async function saveEventLogoAction(
   if (!remove) {
     const raw = formData.get("imageData");
     if (typeof raw !== "string" || raw.length > maxEventLogoDataLength ||
+        !raw.startsWith(eventLogoInputPrefix) ||
         !/^data:image\/webp;base64,[A-Za-z0-9+/]+={0,2}$/.test(raw)) {
       return { error: "Choose a logo before saving." };
     }
-    const encoded = raw.slice(eventLogoPrefix.length);
+    const encoded = raw.slice(eventLogoInputPrefix.length);
     const bytes = Buffer.from(encoded, "base64");
     if (encoded !== bytes.toString("base64") || bytes.length < 20 ||
         bytes.toString("ascii", 0, 4) !== "RIFF" ||
@@ -548,7 +551,16 @@ export async function saveEventLogoAction(
         !["VP8 ", "VP8L", "VP8X"].includes(bytes.toString("ascii", 12, 16))) {
       return { error: "That logo could not be saved. Choose another image." };
     }
-    logo = raw;
+    try {
+      const avif = await convertImageToAvif(bytes, { maxDimension: 512, quality: 65 });
+      logo = `${eventLogoPrefix}${avif.toString("base64")}`;
+      if (logo.length > maxEventLogoDataLength) {
+        return { error: "This image is too large after compression. Choose another image." };
+      }
+    } catch (error) {
+      console.error("Event logo AVIF conversion failed.", error);
+      return { error: "That logo could not be processed. Choose another image." };
+    }
   }
 
   const prisma = getPrisma();
@@ -601,10 +613,25 @@ export async function uploadEventAttachmentAction(
   }
 
   const data = Buffer.from(await file.arrayBuffer());
-  const contentType = detectEventAttachmentContentType(data);
-  if (!contentType) {
-    return { error: "This file type isn’t allowed. Upload a PDF, JPEG, PNG, or WebP image." };
+  const uploadedContentType = detectEventAttachmentContentType(data);
+  if (!uploadedContentType) {
+    return { error: "This file type isn’t allowed. Upload a PDF, JPEG, PNG, WebP, or AVIF image." };
   }
+  let contentType = uploadedContentType;
+  let storedData = data;
+  if (uploadedContentType.startsWith("image/")) {
+    try {
+      storedData = await convertImageToAvif(data, { maxDimension: 2048, quality: 60 });
+    } catch (error) {
+      console.error("Event attachment AVIF conversion failed.", error);
+      return { error: "This image could not be processed. Choose another image." };
+    }
+    if (storedData.length > maxEventAttachmentBytes) {
+      return { error: "This image is too large after compression. Choose another image." };
+    }
+    contentType = "image/avif";
+  }
+  const originalFileName = normalizeEventAttachmentOriginalFileName(file.name);
   const fileName = normalizeEventAttachmentFileName(file.name, contentType);
   const prisma = getPrisma();
   const event = await prisma.event.findFirst({
@@ -612,21 +639,46 @@ export async function uploadEventAttachmentAction(
     select: { id: true },
   });
   if (!event) notFound();
+  const existing = await prisma.eventAttachment.findFirst({
+    where: {
+      eventId: event.id,
+      originalFileName: { equals: originalFileName, mode: "insensitive" },
+    },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      fileName: true,
+      originalFileName: true,
+      contentType: true,
+      size: true,
+      data: true,
+      storagePath: true,
+    },
+  });
   const attachmentCount = await prisma.eventAttachment.count({ where: { eventId: event.id } });
-  if (attachmentCount >= maxEventAttachmentsPerEvent) {
+  if (!existing && attachmentCount >= maxEventAttachmentsPerEvent) {
     return { error: "This event has reached its attachment limit." };
   }
 
-  const attachmentId = randomUUID();
-  const storagePath = `workspaces/${context.workspace.id}/events/${event.id}/${attachmentId}/${fileName}`;
+  const attachmentId = existing?.id ?? randomUUID();
+  const storagePath = `workspaces/${context.workspace.id}/events/${event.id}/${attachmentId}/${randomUUID()}/${fileName}`;
+  let previousBytes: Uint8Array | null = null;
+  if (existing?.storagePath) {
+    try {
+      previousBytes = await downloadSupabaseObject(existing.storagePath);
+    } catch (error) {
+      console.error("Previous event attachment could not be backed up for replacement.", error);
+      return { error: "The previous file could not be replaced safely. Try again later." };
+    }
+  }
   try {
-    await uploadSupabaseObject(storagePath, data, contentType);
+    await uploadSupabaseObject(storagePath, storedData, contentType);
   } catch (error) {
     console.error("Event attachment upload to Supabase Storage failed.", error);
     return { error: "File storage is unavailable or not configured. Try again after checking Supabase Storage settings." };
   }
 
-  let result: "NOT_FOUND" | "LIMIT_REACHED" | "SAVED";
+  let result: "NOT_FOUND" | "LIMIT_REACHED" | "CONFLICT" | "SAVED";
   try {
     result = await prisma.$transaction(async (transaction) => {
       const currentEvent = await transaction.event.findFirst({
@@ -635,25 +687,54 @@ export async function uploadEventAttachmentAction(
       });
       if (!currentEvent) return "NOT_FOUND";
 
-      const currentAttachmentCount = await transaction.eventAttachment.count({ where: { eventId: currentEvent.id } });
-      if (currentAttachmentCount >= maxEventAttachmentsPerEvent) return "LIMIT_REACHED";
+      if (existing) {
+        const currentAttachment = await transaction.eventAttachment.findFirst({
+          where: { id: existing.id, eventId: currentEvent.id },
+          select: { id: true, storagePath: true },
+        });
+        if (!currentAttachment || currentAttachment.storagePath !== existing.storagePath) return "CONFLICT";
+        await transaction.eventAttachment.update({
+          where: { id: existing.id },
+          data: {
+            fileName,
+            originalFileName,
+            contentType,
+            size: storedData.length,
+            data: null,
+            storagePath,
+            uploadedById: context.user.id,
+          },
+        });
+      } else {
+        const sameNameAttachment = await transaction.eventAttachment.findFirst({
+          where: {
+            eventId: currentEvent.id,
+            originalFileName: { equals: originalFileName, mode: "insensitive" },
+          },
+          select: { id: true },
+        });
+        if (sameNameAttachment) return "CONFLICT";
+        const currentAttachmentCount = await transaction.eventAttachment.count({ where: { eventId: currentEvent.id } });
+        if (currentAttachmentCount >= maxEventAttachmentsPerEvent) return "LIMIT_REACHED";
 
-      await transaction.eventAttachment.create({
-        data: {
-          id: attachmentId,
-          eventId: event.id,
-          uploadedById: context.user.id,
-          fileName,
-          contentType,
-          size: data.length,
-          storagePath,
-        },
-      });
+        await transaction.eventAttachment.create({
+          data: {
+            id: attachmentId,
+            eventId: event.id,
+            uploadedById: context.user.id,
+            fileName,
+            originalFileName,
+            contentType,
+            size: storedData.length,
+            storagePath,
+          },
+        });
+      }
       await transaction.activityLog.create({
         data: {
           workspaceId: context.workspace.id,
           actorId: context.user.id,
-          action: "event.attachment_uploaded",
+          action: existing ? "event.attachment_replaced" : "event.attachment_uploaded",
           entityType: "event",
           entityId: event.id,
         },
@@ -685,10 +766,42 @@ export async function uploadEventAttachmentAction(
   if (result === "LIMIT_REACHED") {
     return { error: "This event has reached its attachment limit." };
   }
+  if (result === "CONFLICT") {
+    return { error: "Another file upload happened at the same time. Refresh and try again." };
+  }
+
+  if (existing?.storagePath) {
+    try {
+      await deleteSupabaseObject(existing.storagePath);
+    } catch (error) {
+      console.error("Previous event attachment cleanup failed.", error);
+      try {
+        if (!previousBytes) throw new Error("The previous event attachment backup is unavailable.");
+        await uploadSupabaseObject(existing.storagePath, previousBytes, existing.contentType);
+        const restored = await prisma.eventAttachment.updateMany({
+          where: { id: existing.id, eventId: event.id, storagePath },
+          data: {
+            fileName: existing.fileName,
+            originalFileName: existing.originalFileName,
+            contentType: existing.contentType,
+            size: existing.size,
+            data: existing.data,
+            storagePath: existing.storagePath,
+          },
+        });
+        if (restored.count !== 1) throw new Error("The event attachment changed before rollback.");
+        await deleteSupabaseObject(storagePath);
+      } catch (restoreError) {
+        console.error("Event attachment replacement rollback failed.", restoreError);
+        throw new Error("The previous event attachment could not be safely restored.", { cause: error });
+      }
+      return { error: "The previous file could not be removed from storage, so the replacement was rolled back." };
+    }
+  }
 
   revalidatePath(`/dashboard/events/${eventId}`);
   revalidatePath("/dashboard/files");
-  return { success: "File uploaded." };
+  return { success: existing ? "File replaced." : "File uploaded." };
 }
 
 export async function deleteEventAttachmentAction(

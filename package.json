@@ -11,6 +11,7 @@
     "test": "node --import ./tests/register-aliases.mjs --test tests/*.test.mjs",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
+    "db:images:avif": "node --env-file-if-exists=.env scripts/migrate-existing-images-to-avif.mjs",
     "db:seed": "node --env-file-if-exists=.env prisma/seed.ts"
   },
   "dependencies": {

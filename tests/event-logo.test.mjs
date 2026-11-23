@@ -24,9 +24,10 @@ const logo = "data:image/webp;base64,UklGRkAAAABXRUJQVlA4WAoAAAAQAAAAAAAAAAAAQUx
 const logoLib = loadTypeScript("src/lib/event-logo.ts");
 const eventAttachment = loadTypeScript("src/lib/event-attachment.ts");
 const followupSchedule = loadTypeScript("src/lib/automated-followup-schedule.ts");
+const storedLogo = `${logoLib.eventLogoPrefix}${Buffer.from("encoded-avif").toString("base64")}`;
 
 function harness({ role = "ADMIN", workspace = "workspace-1", branding = { color: "green" } } = {}) {
-  const calls = { lookups: [], updates: [], logs: [], paths: [] };
+  const calls = { lookups: [], updates: [], logs: [], paths: [], conversions: [] };
   const transaction = {
     event: {
       findFirst: async (args) => {
@@ -50,6 +51,12 @@ function harness({ role = "ADMIN", workspace = "workspace-1", branding = { color
     "@/lib/automated-followup-schedule": followupSchedule,
     "@/lib/event-attachment": eventAttachment,
     "@/lib/event-logo": logoLib,
+    "@/lib/image-optimization": {
+      convertImageToAvif: async (...args) => {
+        calls.conversions.push(args);
+        return Buffer.from("encoded-avif");
+      },
+    },
     "@/lib/supabase-storage": {
       uploadSupabaseObject: async () => {},
       downloadSupabaseObject: async () => new Uint8Array(),
@@ -75,12 +82,13 @@ function harness({ role = "ADMIN", workspace = "workspace-1", branding = { color
 test("saves a logo without overwriting other event branding", async () => {
   const { calls, save } = harness();
   const result = await save(logo);
-  assert.equal(result.logo, logo);
+  assert.equal(result.logo, storedLogo);
   assert.deepEqual(calls.lookups[0], { id: "event-1", workspaceId: "workspace-1", archivedAt: null });
-  assert.deepEqual(calls.updates[0].update.customBranding, { color: "green", logo });
+  assert.deepEqual(calls.updates[0].update.customBranding, { color: "green", logo: storedLogo });
   assert.equal(calls.logs[0].data.action, "event.logo_updated");
   assert.deepEqual(calls.paths, ["/dashboard/events/event-1", "/register/event-1"]);
-  assert.equal(logoLib.readEventLogo(calls.updates[0].update.customBranding), logo);
+  assert.equal(calls.conversions.length, 1);
+  assert.equal(logoLib.readEventLogo(calls.updates[0].update.customBranding), storedLogo);
 });
 
 test("removes the logo and preserves other branding", async () => {
@@ -89,6 +97,10 @@ test("removes the logo and preserves other branding", async () => {
   assert.equal(result.logo, null);
   assert.deepEqual(calls.updates[0].update.customBranding, { color: "green", logo: null });
   assert.equal(logoLib.readEventLogo(calls.updates[0].update.customBranding), null);
+});
+
+test("continues to read logos stored in the legacy WebP format", () => {
+  assert.equal(logoLib.readEventLogo({ logo }), logo);
 });
 
 test("rejects malformed or oversized image data without writing", async () => {
