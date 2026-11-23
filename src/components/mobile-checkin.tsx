@@ -7,6 +7,7 @@ import { Camera, Check, LoaderCircle, LogOut, Pause, ShieldCheck, X } from "luci
 import { localizeNode } from "@/lib/localization";
 import { queueOfflineCheckIn, readOfflineQueue, syncOfflineCheckIns } from "@/lib/offline-checkin";
 import { endMobileCheckIn, pairMobileCheckIn, validateCheckIn } from "@/lib/api";
+import { BrandMark } from "@/components/brand-mark";
 import "./mobile-checkin.css";
 
 type CheckInResult = {
@@ -358,7 +359,7 @@ export function MobileCheckinPairing() {
   return localizeNode((
     <main className="mobile-checkin-page">
       <section className="mobile-checkin-card">
-        <div className="mobile-checkin-brand"><span>V</span> VenuGuestPass</div>
+        <div className="mobile-checkin-brand"><BrandMark className="mobile-checkin-brand-mark" /> VenuGuestPass</div>
         <div className="mobile-checkin-symbol"><ShieldCheck aria-hidden="true" size={23} /></div>
         <h1>Phone check-in</h1>
         <p className="mobile-checkin-intro">This phone can scan tickets for one event without opening the workspace dashboard.</p>
@@ -404,7 +405,7 @@ export function MobileCheckinSession({
   return localizeNode((
     <main className="mobile-checkin-page">
       <section className="mobile-checkin-card">
-        <div className="mobile-checkin-brand"><span>V</span> VenuGuestPass</div>
+        <div className="mobile-checkin-brand"><BrandMark className="mobile-checkin-brand-mark" /> VenuGuestPass</div>
         <div className="mobile-checkin-session-heading">
           <div>
             <p className="mobile-checkin-label">SCANNER-ONLY ACCESS</p>

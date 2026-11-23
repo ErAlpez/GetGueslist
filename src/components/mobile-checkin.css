@@ -28,16 +28,12 @@
   letter-spacing: .12em;
 }
 
-.mobile-checkin-brand > span {
-  display: grid;
+.mobile-checkin-brand-mark {
+  display: block;
   width: 26px;
   height: 26px;
-  place-items: center;
-  border-radius: 8px;
-  color: white;
-  background: #317f6c;
-  font-size: 13px;
-  letter-spacing: 0;
+  flex: 0 0 auto;
+  object-fit: cover;
 }
 
 .mobile-checkin-symbol {

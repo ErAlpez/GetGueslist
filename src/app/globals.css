@@ -2030,8 +2030,8 @@ html[data-theme="dark"] .feedback-message-label textarea:focus {
 }
 
 .app-shell .app-brand .brand-mark {
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
   border-radius: 5px;
 }
 
@@ -2503,8 +2503,8 @@ html[data-theme="dark"] .feedback-message-label textarea:focus {
   }
 
   .app-shell .app-brand .brand-mark {
-    width: 24px;
-    height: 24px;
+    width: 30px;
+    height: 30px;
   }
 
   html[data-theme="dark"] .app-shell .app-sidebar {
@@ -2835,8 +2835,8 @@ html[data-theme="dark"] .app-shell .topbar-search {
 }
 
 .public-registration-brand .brand-mark {
-  width: 28px;
-  height: 28px;
+  width: 44px;
+  height: 44px;
 }
 
 .public-registration-card {
