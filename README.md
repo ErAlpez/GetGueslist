@@ -12,7 +12,7 @@ Requirements: Node.js 22.18+ and a PostgreSQL database.
    npm install
    ```
 
-2. Copy `.env.example` to `.env` and set `DATABASE_URL`, `BETTER_AUTH_SECRET`, and `TICKET_SIGNING_SECRET`. Both secrets must be independently generated random values of at least 32 characters.
+2. Copy `.env.example` to `.env` and set `DATABASE_URL`, `DIRECT_URL`, `BETTER_AUTH_SECRET`, and `TICKET_SIGNING_SECRET`. For Supabase, use the ORM-provided transaction-pooler URL for `DATABASE_URL` and session-pooler URL for `DIRECT_URL`; Prisma migrations use `DIRECT_URL`. Both secrets must be independently generated random values of at least 32 characters. Configure both database URLs in your production environment.
 
    ```bash
    cp .env.example .env
