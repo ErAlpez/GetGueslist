@@ -32,6 +32,8 @@ Requirements: Node.js 22.18+ and a PostgreSQL database.
 
    Demo sign-in requires a reachable PostgreSQL database. If the account cannot sign in, confirm the migration completed and rerun `npm run db:seed`; a successful seed prints `Seeded local demo account`.
 
+   Vercel Preview deployments from the `paddle-sandbox-preview` branch apply pending migrations and seed plan and role records before building. This is limited to that Preview branch; Production builds do not run this step. Demo-account seeding is disabled by this step.
+
 4. Start the development server:
 
    ```bash
