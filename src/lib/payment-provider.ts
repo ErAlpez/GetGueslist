@@ -243,7 +243,9 @@ export function getPaddlePriceDetails(priceId: string) {
 
 export function getPaddleCheckoutConfig(): PaddleCheckoutConfig | null {
   const clientToken = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN?.trim();
-  if (!clientToken) return null;
+  const apiKey = process.env.PADDLE_API_KEY?.trim();
+  const webhookSecret = process.env.PADDLE_WEBHOOK_SECRET?.trim();
+  if (!clientToken || !apiKey || !webhookSecret) return null;
 
   try {
     return {

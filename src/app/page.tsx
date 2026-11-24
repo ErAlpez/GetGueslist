@@ -38,6 +38,7 @@ import { getPreferences } from "@/lib/preferences";
 import { getCurrentSession } from "@/lib/auth";
 import { landingNavigationItems } from "@/lib/landing-navigation";
 import { getPlanFeatureLabels } from "@/lib/plan-features";
+import { getPaddleCheckoutConfig } from "@/lib/payment-provider";
 import { getPrisma } from "@/lib/prisma";
 import { getAnnualDiscountPercent } from "@/lib/currency-format";
 import { localizeNode, translate } from "@/lib/localization";
@@ -207,6 +208,7 @@ export default async function Home({
   const authMode = params.auth === "sign-up" ? "sign-up" : "sign-in";
   const openAuthModal = params.auth === "sign-in" || params.auth === "sign-up";
   const showDemoAccount = params.demo === "account";
+  const paddleCheckoutAvailable = Boolean(getPaddleCheckoutConfig());
   const annualDiscountPercent = plans.reduce((maximumDiscount, plan) => {
     if (plan.code === "FREE") return maximumDiscount;
 
@@ -431,7 +433,11 @@ export default async function Home({
                   </ul>
                   {plan.code === "FREE"
                     ? <LandingAuthTrigger className="button button-dark pricing-cta pricing-plan-cta" mode="sign-up">Get started free <ArrowRight size={15} /></LandingAuthTrigger>
-                    : <button className="button button-dark pricing-cta pricing-plan-cta" disabled type="button">Paid plan coming soon</button>}
+                    : !paddleCheckoutAvailable
+                      ? <button className="button button-dark pricing-cta pricing-plan-cta" disabled type="button">Paid plan coming soon</button>
+                      : session
+                        ? <Link className="button button-dark pricing-cta pricing-plan-cta" href="/dashboard/billing">Choose {plan.name} <ArrowRight size={15} /></Link>
+                        : <LandingAuthTrigger className="button button-dark pricing-cta pricing-plan-cta" mode="sign-up">Create account to upgrade <ArrowRight size={15} /></LandingAuthTrigger>}
                 </article>
               );
             })}

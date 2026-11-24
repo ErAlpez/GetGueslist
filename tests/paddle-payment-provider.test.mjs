@@ -173,8 +173,10 @@ test("Paddle checkout rejects an amount where a price ID is required", async () 
 test("Paddle checkout configuration exposes configured IDs and the client token", () => {
   const previousEnvironment = { ...process.env };
   Object.assign(process.env, {
+    PADDLE_API_KEY: "sandbox-api-key",
     NEXT_PUBLIC_PADDLE_CLIENT_TOKEN: "sandbox-client-token",
     PADDLE_ENVIRONMENT: "sandbox",
+    PADDLE_WEBHOOK_SECRET: "sandbox-webhook-secret",
     PADDLE_ONE_TIME_PRICE_STARTER_MONTHLY: "pri_starter_monthly",
     PADDLE_ONE_TIME_PRICE_STARTER_ANNUAL: "pri_starter_annual",
     PADDLE_ONE_TIME_PRICE_PROFESSIONAL_MONTHLY: "pri_professional_monthly",
@@ -196,6 +198,31 @@ test("Paddle checkout configuration exposes configured IDs and the client token"
         },
       },
     });
+  } finally {
+    process.env = previousEnvironment;
+  }
+});
+
+test("Paddle checkout stays unavailable without server credentials or webhook verification", () => {
+  const previousEnvironment = { ...process.env };
+  Object.assign(process.env, {
+    PADDLE_API_KEY: "sandbox-api-key",
+    NEXT_PUBLIC_PADDLE_CLIENT_TOKEN: "sandbox-client-token",
+    PADDLE_ENVIRONMENT: "sandbox",
+    PADDLE_WEBHOOK_SECRET: "sandbox-webhook-secret",
+    PADDLE_ONE_TIME_PRICE_STARTER_MONTHLY: "pri_starter_monthly",
+    PADDLE_ONE_TIME_PRICE_STARTER_ANNUAL: "pri_starter_annual",
+    PADDLE_ONE_TIME_PRICE_PROFESSIONAL_MONTHLY: "pri_professional_monthly",
+    PADDLE_ONE_TIME_PRICE_PROFESSIONAL_ANNUAL: "pri_professional_annual",
+  });
+
+  try {
+    for (const missingVariable of ["PADDLE_API_KEY", "PADDLE_WEBHOOK_SECRET"]) {
+      const value = process.env[missingVariable];
+      delete process.env[missingVariable];
+      assert.equal(getPaddleCheckoutConfig(), null);
+      process.env[missingVariable] = value;
+    }
   } finally {
     process.env = previousEnvironment;
   }
