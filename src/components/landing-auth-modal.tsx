@@ -2,8 +2,19 @@
 
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { X } from "lucide-react";
-import { AuthForm } from "@/components/auth-form";
+
+const AuthForm = dynamic(
+  () => import("@/components/auth-form").then((module) => module.AuthForm),
+  {
+    loading: () => (
+      <div aria-busy="true" aria-label="Loading authentication form" className="landing-auth-form-loading" role="status">
+        <span aria-hidden="true" className="landing-auth-form-spinner" />
+      </div>
+    ),
+  },
+);
 
 type AuthMode = "sign-in" | "sign-up";
 type OpenAuthModal = (mode: AuthMode) => void;
@@ -28,6 +39,7 @@ export function LandingAuthModal({
 }: LandingAuthModalProps) {
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [isSwitchingMode, setIsSwitchingMode] = useState(false);
+  const [hasOpened, setHasOpened] = useState(openInitially && !authenticated);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const modeChangeTimeout = useRef<number | null>(null);
 
@@ -100,6 +112,7 @@ export function LandingAuthModal({
     if (!dialog.open) {
       dialog.showModal();
     }
+    setHasOpened(true);
   }
 
   function closeModal() {
@@ -137,15 +150,17 @@ export function LandingAuthModal({
             >
               <X aria-hidden="true" size={18} />
             </button>
-            <div className={`landing-auth-experience${isSwitchingMode ? " is-switching-mode" : ""}`}>
-              <AuthForm
-                autoDismissSuccess={false}
-                key={mode}
-                mode={mode}
-                onModeChange={handleModeChange}
-                showDemoAccount={showDemoAccount}
-              />
-            </div>
+            {(hasOpened || (openInitially && !authenticated)) && (
+              <div className={`landing-auth-experience${isSwitchingMode ? " is-switching-mode" : ""}`}>
+                <AuthForm
+                  autoDismissSuccess={false}
+                  key={mode}
+                  mode={mode}
+                  onModeChange={handleModeChange}
+                  showDemoAccount={showDemoAccount}
+                />
+              </div>
+            )}
           </div>
         </dialog>
       )}

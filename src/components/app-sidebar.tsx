@@ -54,11 +54,21 @@ export function AppSidebar({
   const pathname = usePathname();
   const { t } = usePreferences();
   const [collapsed, setCollapsed] = useState(false);
+  const [prefetchedRoutes, setPrefetchedRoutes] = useState<Set<string>>(() => new Set());
   const navRef = useRef<HTMLElement>(null);
   const indicatorRef = useRef<HTMLSpanElement>(null);
   const collapseLabel = t(collapsed ? "Expand sidebar" : "Collapse sidebar");
   const visibleNavigation = navigation.filter(({ section }) => workspaceRoleCanAccessSection(workspaceRole, section));
   const visibleWorkspaceNavigation = workspaceNavigation.filter(({ section }) => workspaceRoleCanAccessSection(workspaceRole, section));
+
+  function prefetchOnIntent(href: string) {
+    setPrefetchedRoutes((current) => {
+      if (current.has(href)) return current;
+      const next = new Set(current);
+      next.add(href);
+      return next;
+    });
+  }
 
   useLayoutEffect(() => {
     const nav = navRef.current;
@@ -96,7 +106,15 @@ export function AppSidebar({
   return (
     <aside className={`app-sidebar${collapsed ? " is-collapsed" : ""}`}>
       <div className="sidebar-brand-row">
-        <Link aria-label="VenuGuestPass home" className="app-brand" data-tooltip={collapsed ? t("VenuGuestPass home") : undefined} href="/dashboard">
+        <Link
+          aria-label="VenuGuestPass home"
+          className="app-brand"
+          data-tooltip={collapsed ? t("VenuGuestPass home") : undefined}
+          href="/dashboard"
+          onFocus={() => prefetchOnIntent("/dashboard")}
+          onPointerEnter={() => prefetchOnIntent("/dashboard")}
+          prefetch={prefetchedRoutes.has("/dashboard") ? true : "auto"}
+        >
           <BrandMark /><span className="app-brand-name">VenuGuestPass</span>
         </Link>
         <button
@@ -118,7 +136,17 @@ export function AppSidebar({
             {visibleNavigation.map(({ label, href, icon: Icon }) => {
               const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(`${href}/`));
               return (
-                <Link aria-current={active ? "page" : undefined} aria-label={t(label)} className={`app-nav-link${active ? " active" : ""}`} data-tooltip={collapsed ? t(label) : undefined} href={href} key={href}>
+                <Link
+                  aria-current={active ? "page" : undefined}
+                  aria-label={t(label)}
+                  className={`app-nav-link${active ? " active" : ""}`}
+                  data-tooltip={collapsed ? t(label) : undefined}
+                  href={href}
+                  key={href}
+                  onFocus={() => prefetchOnIntent(href)}
+                  onPointerEnter={() => prefetchOnIntent(href)}
+                  prefetch={prefetchedRoutes.has(href) ? true : "auto"}
+                >
                   <Icon size={16} strokeWidth={1.8} /><span>{t(label)}</span>
                 </Link>
               );
@@ -130,7 +158,21 @@ export function AppSidebar({
             <span className="app-nav-label app-nav-label-spaced">{t("MANAGE")}</span>
             {visibleWorkspaceNavigation.map(({ label, href, icon: Icon }) => {
               const active = pathname === href;
-              return <Link aria-current={active ? "page" : undefined} aria-label={t(label)} className={`app-nav-link${active ? " active" : ""}`} data-tooltip={collapsed ? t(label) : undefined} href={href} key={href}><Icon size={16} strokeWidth={1.8} /><span>{t(label)}</span></Link>;
+              return (
+                <Link
+                  aria-current={active ? "page" : undefined}
+                  aria-label={t(label)}
+                  className={`app-nav-link${active ? " active" : ""}`}
+                  data-tooltip={collapsed ? t(label) : undefined}
+                  href={href}
+                  key={href}
+                  onFocus={() => prefetchOnIntent(href)}
+                  onPointerEnter={() => prefetchOnIntent(href)}
+                  prefetch={prefetchedRoutes.has(href) ? true : "auto"}
+                >
+                  <Icon size={16} strokeWidth={1.8} /><span>{t(label)}</span>
+                </Link>
+              );
             })}
           </>
         )}
@@ -143,6 +185,9 @@ export function AppSidebar({
               className={`app-nav-link${pathname.startsWith("/dashboard/admin/plans") ? " active" : ""}`}
               data-tooltip={collapsed ? t("Plan management") : undefined}
               href="/dashboard/admin/plans"
+              onFocus={() => prefetchOnIntent("/dashboard/admin/plans")}
+              onPointerEnter={() => prefetchOnIntent("/dashboard/admin/plans")}
+              prefetch={prefetchedRoutes.has("/dashboard/admin/plans") ? true : "auto"}
             >
               <LockKeyhole size={16} strokeWidth={1.8} /><span>{t("Plan management")}</span>
             </Link>

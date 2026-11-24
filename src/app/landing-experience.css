@@ -2928,6 +2928,38 @@ html[data-theme="dark"] .landing-page .footer-bottom {
   transition: opacity .24s ease;
 }
 
+.landing-page .landing-auth-form-loading {
+  display: grid;
+  min-height: min(460px, 64vh);
+  place-items: center;
+  border: 1px solid rgba(226, 234, 226, .8);
+  border-radius: 12px;
+  color: #64736a;
+  background: rgba(255, 255, 255, .96);
+  font-size: 12px;
+}
+
+.landing-page .landing-auth-form-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(68, 109, 84, .2);
+  border-top-color: #446d54;
+  border-radius: 50%;
+  animation: landing-auth-form-spin .8s linear infinite;
+}
+
+@keyframes landing-auth-form-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-page .landing-auth-form-spinner {
+    animation: none;
+  }
+}
+
 .landing-page .landing-auth-dialog[open] .landing-auth-modal-content {
   opacity: 1;
   transition-delay: .025s;
