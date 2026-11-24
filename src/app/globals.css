@@ -366,6 +366,10 @@ button, a, summary { -webkit-tap-highlight-color: transparent; }
   animation: form-save-success-fade-out .35s ease 3s forwards;
 }
 
+.form-save-success-persistent {
+  animation: none;
+}
+
 @keyframes form-save-success-fade-out {
   to { opacity: 0; transform: translateY(-3px); visibility: hidden; }
 }
