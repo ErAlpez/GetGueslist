@@ -107,6 +107,8 @@ export default async function BillingPage() {
   );
   const hasPaidPlanSyncIssue = hasActivePaddleSubscription && subscription?.plan.code === "FREE";
   const PlanIcon = subscription?.plan.code === "FREE" ? Gift : Sparkles;
+  const subscriptionDate = subscription?.scheduledCancellationAt ?? subscription?.renewalDate;
+  const subscriptionDateLabel = subscription?.scheduledCancellationAt ? "Access ends" : "Renewal date";
   const usagePercent = eventLimit == null
     ? null
     : eventLimit === 0
@@ -133,7 +135,7 @@ export default async function BillingPage() {
             <div className="billing-usage-heading attendee-limit"><span>Attendee limit per event</span><strong>{subscription?.plan.attendeePerEventLimit != null ? <AnimatedMetric locale={locale} value={subscription.plan.attendeePerEventLimit} /> : "Unlimited"}</strong></div>
           </div>
           <div className="billing-period"><span>Billing period</span><strong>{subscription?.billingPeriodStart ? new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(subscription.billingPeriodStart) : "Not available"}{subscription?.billingPeriodEnd ? ` – ${new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(subscription.billingPeriodEnd)}` : ""}</strong></div>
-          <div className="billing-period"><span>Renewal date</span><strong>{subscription?.renewalDate ? new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(subscription.renewalDate) : "Not scheduled"}</strong></div>
+          <div className="billing-period"><span>{subscriptionDateLabel}</span><strong>{subscriptionDate ? new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(subscriptionDate) : "Not scheduled"}</strong></div>
           {hasActivePaddleSubscription && (
             <PaddleSubscriptionRenewalControl
               locale={locale}
