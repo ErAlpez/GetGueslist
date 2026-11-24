@@ -195,7 +195,7 @@ export async function upgradeStarterToMaxAction(
   formData: FormData,
 ): Promise<PaddleUpgradeActionState> {
   if (formData.get("confirmPlanUpgrade") !== "yes") {
-    return { status: "error", message: "Confirm the immediate prorated upgrade to Max." };
+    return { status: "error", message: "Confirm the full-price upgrade to Max." };
   }
 
   const context = await requireWorkspacePermission("billing.manage");
@@ -267,6 +267,6 @@ export async function upgradeStarterToMaxAction(
   revalidatePath("/dashboard/billing");
   return {
     status: "success",
-    message: "Paddle accepted the upgrade. The prorated charge is immediate; Max access starts when the subscription webhook syncs.",
+    message: "Paddle accepted the upgrade. The full Max price is charged immediately; Max access starts when the subscription webhook syncs.",
   };
 }

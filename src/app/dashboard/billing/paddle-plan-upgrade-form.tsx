@@ -48,7 +48,7 @@ export function PaddlePlanUpgradeForm({
         <form action={action} className="plan-upgrade-confirmation">
           <input name="confirmPlanUpgrade" type="hidden" value="yes" />
           <p>
-            Paddle will charge the prorated difference immediately. Your current monthly or annual billing cycle stays the same.
+            Paddle will charge the full Max price for your billing period immediately. Your current billing cycle stays the same.
           </p>
           <button className="plan-upgrade-button" disabled={pending || disabled} type="submit">
             {pending ? "Submitting upgrade…" : "Confirm upgrade"}

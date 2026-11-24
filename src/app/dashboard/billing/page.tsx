@@ -168,7 +168,7 @@ export default async function BillingPage() {
             {hasPaidPlanSyncIssue
               ? "Paddle reports an active subscription, but the plan is still Free. Check Paddle webhook delivery; cancellation remains available here to prevent future renewals."
               : subscription?.plan.code === "STARTER"
-                ? "You can upgrade Starter to Max with an immediate prorated charge. Your current billing cycle stays the same, and Max access begins after Paddle confirms the update."
+                ? "You can upgrade Starter to Max with the full Max price charged immediately. Your current billing cycle stays the same, and Max access begins after Paddle confirms the update."
               : subscription?.scheduledCancellationAt
                 ? "Auto-renew is off. Your plan remains active through the renewal date; make a manual payment after it ends to keep access."
                 : "This existing subscription renews automatically through Paddle unless you turn off auto-renew in the billing period section above."}

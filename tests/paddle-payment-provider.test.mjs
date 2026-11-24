@@ -320,7 +320,7 @@ test("Paddle price lookup distinguishes one-time prices from existing recurring 
   }
 });
 
-test("Paddle subscription upgrades use the matching Max price and immediate proration", async () => {
+test("Paddle subscription upgrades use the matching Max price and charge the full price immediately", async () => {
   const previousEnvironment = { ...process.env };
   const previousFetch = globalThis.fetch;
   const subscriptionId = "sub_abcdefghijklmnopqrstuvwxyz";
@@ -352,7 +352,7 @@ test("Paddle subscription upgrades use the matching Max price and immediate pror
     assert.equal(requestOptions.headers.Authorization, "Bearer sandbox-api-key");
     assert.deepEqual(JSON.parse(requestOptions.body), {
       items: [{ price_id: "pri_professional_annual", quantity: 1 }],
-      proration_billing_mode: "prorated_immediately",
+      proration_billing_mode: "full_immediately",
       custom_data: {
         workspaceId: "workspace-123",
         planCode: "PROFESSIONAL",

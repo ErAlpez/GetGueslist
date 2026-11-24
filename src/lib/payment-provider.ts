@@ -183,7 +183,7 @@ export async function upgradePaddleSubscription(
       },
       body: JSON.stringify({
         items: [{ price_id: priceId, quantity: 1 }],
-        proration_billing_mode: "prorated_immediately",
+        proration_billing_mode: "full_immediately",
         custom_data: {
           workspaceId,
           planCode: "PROFESSIONAL",
