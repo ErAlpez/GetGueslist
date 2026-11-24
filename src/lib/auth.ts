@@ -6,34 +6,18 @@ import { createAuthMiddleware } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
 import { twoFactor } from "better-auth/plugins";
 import { headers } from "next/headers";
+import { getTrustedAuthOrigins, resolveAuthBaseURL } from "@/lib/auth-origin";
 import { getPrisma } from "@/lib/prisma";
-
-function getTrustedOrigins(baseURL: string) {
-  const parsedBaseURL = new URL(baseURL);
-  const origins = new Set([parsedBaseURL.origin]);
-  const loopbackHosts = ["localhost", "127.0.0.1", "[::1]"];
-
-  if (process.env.NODE_ENV === "development") {
-    const port = parsedBaseURL.port || process.env.PORT || "3000";
-    for (const protocol of ["http:", "https:"]) {
-      for (const hostname of loopbackHosts) {
-        origins.add(new URL(`${protocol}//${hostname}:${port}`).origin);
-      }
-    }
-  }
-
-  return [...origins];
-}
 
 function createAuth(secret: string) {
   const prisma = getPrisma();
-  const baseURL = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
+  const baseURL = resolveAuthBaseURL();
 
   return betterAuth({
     appName: "VenuGuestPass",
     baseURL,
     secret,
-    trustedOrigins: getTrustedOrigins(baseURL),
+    trustedOrigins: getTrustedAuthOrigins(baseURL),
     database: prismaAdapter(prisma, { provider: "postgresql" }),
     rateLimit: {
       enabled: true,
