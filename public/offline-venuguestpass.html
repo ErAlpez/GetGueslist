@@ -6,85 +6,149 @@
     <meta name="theme-color" content="#1f3a2f">
     <title>Offline attendees | VenuGuestPass</title>
     <style>
-      :root { color-scheme: light; font-family: system-ui, sans-serif; color: #23352a; background: #f5f8f5; }
+      :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #23352a; background: #f3f6f3; }
       * { box-sizing: border-box; }
-      body { margin: 0; padding: 28px 16px; }
-      main { width: min(100%, 900px); margin: 0 auto; }
-      header, section { margin-bottom: 18px; padding: 20px; border: 1px solid #dfe8df; border-radius: 12px; background: #fff; }
-      h1 { margin: 0 0 6px; font-size: 24px; }
-      h2 { margin: 0 0 8px; font-size: 17px; }
-      p, small { color: #66766b; line-height: 1.55; }
-      #status { min-height: 24px; color: #225b3d; font-weight: 600; }
-      form, .offline-form-grid { display: grid; gap: 12px; }
+      body { min-height: 100vh; margin: 0; padding: 24px; }
+      .offline-app { width: min(100%, 1080px); margin: 0 auto; }
+      .offline-topbar { display: flex; min-height: 56px; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
+      .offline-brand { display: flex; align-items: center; gap: 10px; }
+      .offline-brand img { width: 36px; height: 36px; object-fit: contain; }
+      .offline-brand-copy { display: grid; gap: 1px; }
+      .offline-brand-copy strong { color: #20372a; font-size: 14px; letter-spacing: -.01em; }
+      .offline-brand-copy small { color: #728075; font-size: 12px; }
+      .offline-mode { display: inline-flex; align-items: center; gap: 8px; padding: 7px 11px; border: 1px solid #dce5dc; border-radius: 999px; color: #526457; background: #fff; font-size: 12px; font-weight: 650; }
+      .offline-mode::before { width: 8px; height: 8px; border-radius: 50%; background: #d89032; content: ""; }
+      main { width: 100%; }
+      .offline-hero, section { padding: 24px; border: 1px solid #e0e8e1; border-radius: 16px; background: #fff; box-shadow: 0 5px 18px rgb(34 53 40 / 4%); }
+      .offline-hero { position: relative; overflow: hidden; margin-bottom: 18px; border-color: #244e3a; color: #fff; background: linear-gradient(115deg, #193c2d 0%, #286247 100%); box-shadow: 0 12px 28px rgb(24 60 43 / 14%); }
+      .offline-hero::after { position: absolute; top: -90px; right: -30px; width: 280px; height: 280px; border: 1px solid rgb(255 255 255 / 10%); border-radius: 50%; box-shadow: 0 0 0 36px rgb(255 255 255 / 4%), 0 0 0 72px rgb(255 255 255 / 3%); content: ""; pointer-events: none; }
+      .offline-hero-copy { position: relative; z-index: 1; max-width: 720px; }
+      .offline-eyebrow { margin: 0 0 8px; color: #b7d9c2; font-size: 11px; font-weight: 750; letter-spacing: .12em; text-transform: uppercase; }
+      h1 { margin: 0 0 8px; font-size: clamp(24px, 3vw, 30px); letter-spacing: -.035em; line-height: 1.2; }
+      h2 { margin: 0; color: #263b2e; font-size: 17px; letter-spacing: -.02em; }
+      p, small { color: #68786d; line-height: 1.55; }
+      .offline-hero-copy > p:not(.offline-eyebrow) { max-width: 620px; margin: 0; color: #d5e5d9; font-size: 14px; }
+      #status { min-height: 24px; margin: 14px 0 16px; color: #e0f3e5; font-size: 13px; font-weight: 600; }
+      .offline-content-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: 18px; }
+      section { min-width: 0; }
+      .offline-section-heading { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+      .offline-section-icon { display: grid; width: 34px; height: 34px; flex: 0 0 34px; place-items: center; border-radius: 10px; color: #286247; background: #edf5ef; }
+      .offline-section-icon svg { width: 17px; height: 17px; }
+      section > p { margin: 0 0 16px; font-size: 13px; }
+      #snapshot-time { margin: 0 0 16px; font-size: 12px; }
+      form, .offline-form-grid { display: grid; gap: 14px; }
       .offline-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      label { display: grid; gap: 5px; font-size: 13px; font-weight: 600; }
-      input, select { width: 100%; min-height: 40px; padding: 8px 10px; border: 1px solid #cbd8ce; border-radius: 7px; color: inherit; background: #fff; font: inherit; }
-      button, a.button { display: inline-flex; min-height: 40px; align-items: center; justify-content: center; padding: 9px 14px; border: 0; border-radius: 7px; color: #fff; background: #276c4c; font: inherit; font-weight: 650; text-decoration: none; cursor: pointer; }
-      .offline-list { display: grid; gap: 8px; margin-top: 12px; }
-      .offline-row { display: grid; gap: 3px; padding: 10px; border: 1px solid #e6ece6; border-radius: 8px; }
-      .offline-row small { font-size: 12px; }
-      .offline-empty { padding: 18px; color: #748276; text-align: center; }
+      label { display: grid; gap: 6px; color: #405146; font-size: 12px; font-weight: 650; }
+      input, select { width: 100%; min-height: 42px; padding: 9px 11px; border: 1px solid #d5dfd7; border-radius: 9px; color: #23352a; background: #fff; font: inherit; font-size: 14px; transition: border-color .15s ease, box-shadow .15s ease; }
+      input:focus-visible, select:focus-visible { border-color: #32724f; outline: none; box-shadow: 0 0 0 3px rgb(50 114 79 / 14%); }
+      button, a.button { display: inline-flex; min-height: 42px; align-items: center; justify-content: center; padding: 10px 15px; border: 1px solid transparent; border-radius: 9px; color: #fff; background: #286247; font: inherit; font-size: 13px; font-weight: 650; text-decoration: none; cursor: pointer; transition: background .15s ease, transform .15s ease; }
+      button:hover, a.button:hover { background: #204e39; }
+      button:focus-visible, a.button:focus-visible { outline: 3px solid #9ed1ae; outline-offset: 3px; }
+      button:active, a.button:active { transform: translateY(1px); }
       .offline-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+      .offline-hero a.button { position: relative; z-index: 1; color: #214e38; background: #f1f8f2; }
+      .offline-hero a.button:hover { background: #fff; }
+      .offline-list { display: grid; gap: 8px; margin-top: 12px; }
+      .offline-row { display: grid; gap: 4px; padding: 12px 13px; border: 1px solid #e6ece7; border-radius: 10px; background: #fbfcfb; }
+      .offline-row strong { color: #2a3d30; font-size: 13px; }
+      .offline-row small { overflow-wrap: anywhere; font-size: 12px; }
+      .offline-empty { display: grid; min-height: 112px; place-items: center; margin: 12px 0 0; padding: 18px; border: 1px dashed #dce5de; border-radius: 11px; color: #748276; background: #fafcfa; font-size: 13px; text-align: center; }
+      #add-section { margin-top: 18px; }
+      #add-section h2 { margin-bottom: 18px; }
       [hidden] { display: none !important; }
-      @media (max-width: 600px) {
+      @media (max-width: 760px) {
+        body { padding: 16px; }
+        .offline-content-grid { grid-template-columns: 1fr; }
+      }
+      @media (max-width: 520px) {
+        .offline-topbar { margin-bottom: 16px; }
+        .offline-brand img { width: 32px; height: 32px; }
+        .offline-mode { padding: 6px 9px; font-size: 11px; }
+        .offline-hero, section { padding: 18px; border-radius: 13px; }
+        .offline-hero { margin-bottom: 14px; }
+        .offline-content-grid { gap: 14px; }
         .offline-form-grid { grid-template-columns: 1fr; }
-        header, section { padding: 15px; }
+        #add-section { margin-top: 14px; }
       }
     </style>
     <script defer src="/offline-venuguestpass.js"></script>
   </head>
   <body>
-    <main>
-      <header>
-        <h1 id="workspace-name">Offline attendee list</h1>
-        <p>Showing the last attendee snapshot saved on this device. New guests are queued locally and checked by the server when you reconnect.</p>
-        <p aria-live="polite" id="status" role="status">Loading your saved attendee list…</p>
-        <div class="offline-actions">
-          <a class="button" href="/dashboard/attendees">Try the online attendee list</a>
+    <div class="offline-app">
+      <div class="offline-topbar">
+        <div class="offline-brand">
+          <img alt="" height="36" src="/venuguestpass-pwa-192.png" width="36">
+          <span class="offline-brand-copy"><strong>VenuGuestPass</strong><small>Attendee workspace</small></span>
         </div>
-      </header>
-      <section id="snapshot-section">
-        <h2>Saved attendees</h2>
-        <p id="snapshot-time"></p>
-        <label>Search saved attendees <input autocomplete="off" id="search" type="search"></label>
-        <div aria-live="polite" class="offline-list" id="registrations"></div>
-      </section>
-      <section>
-        <h2>Waiting to sync</h2>
-        <p>Queued guests stay on this device until the server confirms the registration.</p>
-        <div aria-live="polite" class="offline-list" id="pending"></div>
-      </section>
-      <section id="add-section">
-        <h2>Add a guest offline</h2>
-        <form id="offline-add">
-          <label>Event <select id="event-id" name="eventId" required></select></label>
-          <div class="offline-form-grid">
-            <label>First name <input autocomplete="given-name" maxlength="100" name="firstName" required></label>
-            <label>Last name <input autocomplete="family-name" maxlength="100" name="lastName" required></label>
-            <label>Email <input autocomplete="email" name="email" required type="email"></label>
-            <label>Phone <input autocomplete="tel" maxlength="40" name="phone" type="tel"></label>
-            <label>Age <input max="150" min="0" name="age" type="number"></label>
-            <label>Gender
-              <select name="gender"><option value="">Choose an option</option><option value="MALE">Male</option><option value="FEMALE">Female</option></select>
-            </label>
-            <label>Category
-              <select name="category">
-                <option value="GENERAL">General</option>
-                <option value="VIP">VIP</option>
-                <option value="SPEAKER">Speaker</option>
-                <option value="SPONSOR">Sponsor</option>
-                <option value="ORGANIZER">Organizer</option>
-                <option value="MEDIA">Media</option>
-                <option value="STAFF">Staff</option>
-                <option value="VOLUNTEER">Volunteer</option>
-                <option value="GUEST">Guest</option>
-                <option value="WALK_IN">Walk-in</option>
-              </select>
-            </label>
+        <span class="offline-mode">Offline mode</span>
+      </div>
+      <main>
+        <header class="offline-hero">
+          <div class="offline-hero-copy">
+            <p class="offline-eyebrow">Workspace snapshot</p>
+            <h1 id="workspace-name">Offline attendee list</h1>
+            <p>Showing the last attendee snapshot saved on this device. New guests are queued locally and checked by the server when you reconnect.</p>
+            <p aria-live="polite" id="status" role="status">Loading your saved attendee list…</p>
+            <div class="offline-actions">
+              <a class="button" href="/dashboard/attendees">Try the online attendee list</a>
+            </div>
           </div>
-          <button type="submit">Queue guest registration</button>
-        </form>
-      </section>
-    </main>
+        </header>
+        <div class="offline-content-grid">
+          <section id="snapshot-section">
+            <div class="offline-section-heading">
+              <span aria-hidden="true" class="offline-section-icon">
+                <svg fill="none" viewBox="0 0 24 24"><path d="M8 5.5h8M8 9.5h8M8 13.5h5M6.5 3.75h11A1.75 1.75 0 0 1 19.25 5.5v13A1.75 1.75 0 0 1 17.5 20.25h-11A1.75 1.75 0 0 1 4.75 18.5v-13A1.75 1.75 0 0 1 6.5 3.75Z" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7"/></svg>
+              </span>
+              <h2>Saved attendees</h2>
+            </div>
+            <p id="snapshot-time"></p>
+            <label>Search saved attendees <input autocomplete="off" id="search" type="search"></label>
+            <div aria-live="polite" class="offline-list" id="registrations"></div>
+          </section>
+          <section>
+            <div class="offline-section-heading">
+              <span aria-hidden="true" class="offline-section-icon">
+                <svg fill="none" viewBox="0 0 24 24"><path d="M12 7.25v5l3.25 2M20.25 12a8.25 8.25 0 1 1-2.42-5.83M20.25 5.75v4.5h-4.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7"/></svg>
+              </span>
+              <h2>Waiting to sync</h2>
+            </div>
+            <p>Queued guests stay on this device until the server confirms the registration.</p>
+            <div aria-live="polite" class="offline-list" id="pending"></div>
+          </section>
+        </div>
+        <section id="add-section">
+          <h2>Add a guest offline</h2>
+          <form id="offline-add">
+            <label>Event <select id="event-id" name="eventId" required></select></label>
+            <div class="offline-form-grid">
+              <label>First name <input autocomplete="given-name" maxlength="100" name="firstName" required></label>
+              <label>Last name <input autocomplete="family-name" maxlength="100" name="lastName" required></label>
+              <label>Email <input autocomplete="email" name="email" required type="email"></label>
+              <label>Phone <input autocomplete="tel" maxlength="40" name="phone" type="tel"></label>
+              <label>Age <input max="150" min="0" name="age" type="number"></label>
+              <label>Gender
+                <select name="gender"><option value="">Choose an option</option><option value="MALE">Male</option><option value="FEMALE">Female</option></select>
+              </label>
+              <label>Category
+                <select name="category">
+                  <option value="GENERAL">General</option>
+                  <option value="VIP">VIP</option>
+                  <option value="SPEAKER">Speaker</option>
+                  <option value="SPONSOR">Sponsor</option>
+                  <option value="ORGANIZER">Organizer</option>
+                  <option value="MEDIA">Media</option>
+                  <option value="STAFF">Staff</option>
+                  <option value="VOLUNTEER">Volunteer</option>
+                  <option value="GUEST">Guest</option>
+                  <option value="WALK_IN">Walk-in</option>
+                </select>
+              </label>
+            </div>
+            <button type="submit">Queue guest registration</button>
+          </form>
+        </section>
+      </main>
+    </div>
   </body>
 </html>
