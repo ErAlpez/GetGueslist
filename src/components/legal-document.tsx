@@ -43,7 +43,7 @@ export function LegalDocument({
                 <h2 id="legal-contact-heading">Contact</h2>
                 <p>
                   For questions about VenuGuestPass or your information, email{" "}
-                  <a href="mailto:hello@guestlist.com">hello@guestlist.com</a>.
+                  <a href="mailto:hello@guestlist.app">hello@guestlist.app</a>.
                 </p>
                 <Link href={companion.href}>{companion.label}</Link>
               </section>

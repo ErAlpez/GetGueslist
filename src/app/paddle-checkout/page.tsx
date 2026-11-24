@@ -1,4 +1,5 @@
 import { PaddleCheckoutAutostart } from "@/components/paddle-checkout-autostart";
+import { getPrisma } from "@/lib/prisma";
 
 export default async function PaddleCheckoutPage({
   searchParams,
@@ -7,10 +8,21 @@ export default async function PaddleCheckoutPage({
   const environment = process.env.PADDLE_ENVIRONMENT?.trim().toLowerCase() === "live"
     ? "live"
     : "sandbox";
+  const checkoutTransactionId = typeof transactionId === "string"
+    && /^txn_[a-z\d]{26}$/i.test(transactionId)
+    ? transactionId
+    : null;
+  const subscription = checkoutTransactionId
+    ? await getPrisma().subscription.findFirst({
+        where: { provider: "paddle", providerCheckoutId: checkoutTransactionId },
+        select: { providerCustomerId: true },
+      })
+    : null;
 
   return (
     <PaddleCheckoutAutostart
       clientToken={process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN?.trim() ?? ""}
+      customerId={subscription?.providerCustomerId ?? null}
       environment={environment}
       transactionId={
         typeof transactionId === "string"

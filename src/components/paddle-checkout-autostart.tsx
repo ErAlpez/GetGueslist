@@ -10,11 +10,13 @@ import "./paddle-checkout-autostart.css";
 
 export function PaddleCheckoutAutostart({
   clientToken,
+  customerId,
   environment,
   transactionId,
   usePaymentLink,
 }: {
   clientToken: string;
+  customerId: string | null;
   environment: "sandbox" | "live";
   transactionId: string;
   usePaymentLink: boolean;
@@ -50,16 +52,19 @@ export function PaddleCheckoutAutostart({
       const { paddle, unsubscribe } = initializePaddle(clientToken, environment, (event) => {
         if (event.name === "checkout.completed") {
           setStatus("success");
-          setMessage("Payment received. Your plan will update after Paddle confirms the subscription.");
+          setMessage("Payment received. Your plan will update after Paddle confirms the payment.");
           window.Paddle?.Checkout.close();
         }
-      });
+      }, customerId);
       unsubscribeRef.current = unsubscribe;
       initialized.current = true;
       if (!usePaymentLink) paddle.Checkout.open({ transactionId });
-    } catch {
+    } catch (error) {
+      console.error("Paddle checkout initialization failed.", error);
       setStatus("error");
-      setMessage("Paddle checkout could not load. Please try again or return to billing.");
+      setMessage(error instanceof Error && error.message.includes("already initialized")
+        ? "Paddle checkout was initialized for another customer. Reload this page and try again."
+        : "Paddle checkout could not load. Please try again or return to billing.");
     }
   };
 

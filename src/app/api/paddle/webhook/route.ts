@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPrisma } from "@/lib/prisma";
 import {
+  getPaddleApiBaseUrl,
   getPaddleBillingPeriodEnd,
+  getPaddleEnvironment,
   getPaddlePriceDetails,
 } from "@/lib/payment-provider";
 import { mapPaddleSubscriptionStatus, verifyPaddleWebhookSignature } from "@/lib/paddle-webhook-utils";
+import { isPaddleWebhookIpAllowed } from "@/lib/paddle-ip-allowlist";
 
 type PaddleCustomData = {
   workspaceId?: unknown;
@@ -75,6 +78,23 @@ export async function POST(request: NextRequest) {
   const payload = await request.text();
   if (!verifyPaddleWebhookSignature(payload, request.headers.get("paddle-signature"), secret)) {
     return NextResponse.json({ error: "Invalid Paddle webhook signature." }, { status: 401 });
+  }
+
+  const sourceIp = request.headers.get("x-forwarded-for")?.trim();
+  if (!sourceIp || sourceIp.includes(",")) {
+    return NextResponse.json({ error: "Paddle webhook source IP is missing or invalid." }, { status: 403 });
+  }
+
+  let allowedSourceIp: boolean;
+  try {
+    const ipsEndpoint = `${getPaddleApiBaseUrl(getPaddleEnvironment())}/ips`;
+    allowedSourceIp = await isPaddleWebhookIpAllowed(sourceIp, ipsEndpoint);
+  } catch (error) {
+    console.error("Could not verify the Paddle webhook source IP.", error);
+    return NextResponse.json({ error: "Paddle webhook IP verification is temporarily unavailable." }, { status: 503 });
+  }
+  if (!allowedSourceIp) {
+    return NextResponse.json({ error: "Paddle webhook source IP is not allowed." }, { status: 403 });
   }
 
   let event: PaddleWebhookEvent;

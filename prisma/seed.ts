@@ -3,7 +3,6 @@ import { PrismaClient, WorkspaceRole } from "@prisma/client";
 import { hashPassword } from "better-auth/crypto";
 
 const prisma = new PrismaClient();
-const annualPriceCents = (monthlyPriceCents: number) => monthlyPriceCents * 10;
 
 const plans = [
   {
@@ -30,8 +29,8 @@ const plans = [
     code: "STARTER",
     name: "Starter",
     description: "For growing event programs",
-    monthlyPriceCents: 9900,
-    yearlyPriceCents: annualPriceCents(9900),
+    monthlyPriceCents: 199,
+    yearlyPriceCents: 1990,
     activeEventLimit: 3,
     attendeePerEventLimit: 500,
     features: [
@@ -49,8 +48,8 @@ const plans = [
     code: "PROFESSIONAL",
     name: "Max",
     description: "For teams running events at scale",
-    monthlyPriceCents: 49900,
-    yearlyPriceCents: annualPriceCents(49900),
+    monthlyPriceCents: 599,
+    yearlyPriceCents: 5890,
     activeEventLimit: null,
     attendeePerEventLimit: null,
     features: [

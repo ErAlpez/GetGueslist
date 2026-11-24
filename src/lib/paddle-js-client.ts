@@ -7,6 +7,7 @@ export type PaddleInstance = {
   Initialize: (options: {
     token: string;
     eventCallback: (event: PaddleEvent) => void;
+    pwCustomer?: { id: string };
   }) => void;
   Checkout: {
     open: (options: { transactionId: string }) => void;
@@ -17,6 +18,7 @@ export type PaddleInstance = {
 type PaddleIntegration = {
   token: string;
   environment: "sandbox" | "live";
+  customerId: string | null;
   listeners: Set<(event: PaddleEvent) => void>;
 };
 
@@ -31,22 +33,33 @@ export function initializePaddle(
   token: string,
   environment: "sandbox" | "live",
   listener?: (event: PaddleEvent) => void,
+  customerId?: string | null,
 ) {
   const paddle = window.Paddle;
   if (!paddle) throw new Error("Paddle.js has not loaded.");
 
+  const normalizedCustomerId = customerId?.trim() || null;
+  if (normalizedCustomerId && !/^ctm_[a-z\d]{26}$/i.test(normalizedCustomerId)) {
+    throw new Error("The stored Paddle customer ID is invalid.");
+  }
+
   let integration = window.__venuguestpassPaddle;
-  if (integration && (integration.token !== token || integration.environment !== environment)) {
-    throw new Error("Paddle.js was already initialized with a different environment or token.");
+  if (integration && (
+    integration.token !== token
+    || integration.environment !== environment
+    || (integration.customerId ?? null) !== normalizedCustomerId
+  )) {
+    throw new Error("Paddle.js was already initialized with a different environment, token, or customer.");
   }
 
   if (!integration) {
-    integration = { token, environment, listeners: new Set() };
+    integration = { token, environment, customerId: normalizedCustomerId, listeners: new Set() };
     window.__venuguestpassPaddle = integration;
     try {
       if (environment === "sandbox") paddle.Environment.set("sandbox");
       paddle.Initialize({
         token,
+        ...(normalizedCustomerId ? { pwCustomer: { id: normalizedCustomerId } } : {}),
         eventCallback: (event) => {
           window.__venuguestpassPaddle?.listeners.forEach((activeListener) => activeListener(event));
         },

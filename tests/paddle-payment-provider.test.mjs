@@ -51,7 +51,7 @@ test("PayMongo is not an available payment provider", () => {
   }
 });
 
-test("Paddle checkout uses the sandbox price and attaches trusted workspace metadata", async () => {
+test("Paddle checkout uses the sandbox price and reuses the known customer", async () => {
   const previousEnvironment = { ...process.env };
   const previousFetch = globalThis.fetch;
   Object.assign(process.env, {
@@ -84,6 +84,7 @@ test("Paddle checkout uses the sandbox price and attaches trusted workspace meta
       successUrl: "https://example.test/success",
       cancelUrl: "https://example.test/cancel",
       checkoutUrl: "https://example.test/paddle-checkout",
+      customerId: "ctm_abcdefghijklmnopqrstuvwxyz",
     });
 
     assert.equal(requestUrl, "https://sandbox-api.paddle.com/transactions");
@@ -91,6 +92,7 @@ test("Paddle checkout uses the sandbox price and attaches trusted workspace meta
     assert.deepEqual(JSON.parse(requestOptions.body), {
       collection_mode: "automatic",
       items: [{ price_id: "pri_starter_monthly", quantity: 1 }],
+      customer_id: "ctm_abcdefghijklmnopqrstuvwxyz",
       custom_data: {
         workspaceId: "workspace-123",
         planCode: "STARTER",

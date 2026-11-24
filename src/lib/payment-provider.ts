@@ -12,6 +12,7 @@ export type CheckoutRequest = {
   successUrl: string;
   cancelUrl: string;
   checkoutUrl: string;
+  customerId?: string | null;
 };
 
 export type CheckoutSession = {
@@ -93,7 +94,7 @@ export function getPaddleBillingPeriodEnd(start: Date, billingPeriod: PaddleBill
   return end;
 }
 
-function getPaddleEnvironment(): "sandbox" | "live" {
+export function getPaddleEnvironment(): "sandbox" | "live" {
   const environment = process.env.PADDLE_ENVIRONMENT?.trim().toLowerCase() || "sandbox";
   if (environment !== "sandbox" && environment !== "live") {
     throw new Error('PADDLE_ENVIRONMENT must be either "sandbox" or "live".');
@@ -101,7 +102,7 @@ function getPaddleEnvironment(): "sandbox" | "live" {
   return environment;
 }
 
-function getPaddleApiBaseUrl(environment = getPaddleEnvironment()) {
+export function getPaddleApiBaseUrl(environment = getPaddleEnvironment()) {
   return environment === "sandbox"
     ? "https://sandbox-api.paddle.com"
     : "https://api.paddle.com";
@@ -338,6 +339,7 @@ class PaddlePaymentProvider implements PaymentProvider {
       body: JSON.stringify({
         collection_mode: "automatic",
         items: [{ price_id: priceId, quantity: 1 }],
+        ...(input.customerId ? { customer_id: input.customerId } : {}),
         custom_data: {
           workspaceId: input.workspaceId,
           planCode: input.planCode,

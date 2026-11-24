@@ -29,6 +29,9 @@ const mocks = {
     })[status] ?? null,
     verifyPaddleWebhookSignature: () => true,
   },
+  "@/lib/paddle-ip-allowlist": {
+    isPaddleWebhookIpAllowed: async (sourceIp) => sourceIp !== "203.0.113.1",
+  },
   "@/lib/prisma": { getPrisma: () => prisma },
 };
 const localRequire = (name) => Object.hasOwn(mocks, name) ? mocks[name] : require(name);
@@ -36,10 +39,16 @@ const loaded = { exports: {} };
 new Function("require", "module", "exports", output)(localRequire, loaded, loaded.exports);
 const { POST } = loaded.exports;
 
-function makeRequest(event) {
+function makeRequest(event, sourceIp = "34.237.3.244") {
   return {
     text: async () => JSON.stringify(event),
-    headers: { get: (name) => name === "paddle-signature" ? "verified" : null },
+    headers: {
+      get: (name) => name === "paddle-signature"
+        ? "verified"
+        : name === "x-forwarded-for"
+          ? sourceIp
+          : null,
+    },
   };
 }
 
@@ -118,6 +127,20 @@ test("canceled recurring Paddle subscriptions return to the Free plan", async ()
   Object.assign(process.env, {
     PADDLE_WEBHOOK_SECRET: "webhook-secret",
     PADDLE_PRICE_STARTER_MONTHLY: "pri_starter_recurring_monthly",
+  });
+
+  test("signed Paddle webhooks from unlisted IPs are rejected", async () => {
+    const previousSecret = process.env.PADDLE_WEBHOOK_SECRET;
+    process.env.PADDLE_WEBHOOK_SECRET = "webhook-secret";
+
+    try {
+      const response = await POST(makeRequest(makeEvent("transaction.completed", {}), "203.0.113.1"));
+      assert.equal(response.status, 403);
+      assert.deepEqual(response.body, { error: "Paddle webhook source IP is not allowed." });
+    } finally {
+      if (previousSecret === undefined) delete process.env.PADDLE_WEBHOOK_SECRET;
+      else process.env.PADDLE_WEBHOOK_SECRET = previousSecret;
+    }
   });
   let planLookup;
   let subscriptionUpdate;

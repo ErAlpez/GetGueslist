@@ -51,6 +51,7 @@ export async function startPlanCheckoutAction(formData: FormData) {
     where: { workspaceId: context.workspace.id },
     select: {
       provider: true,
+      providerCustomerId: true,
       providerSubscriptionId: true,
       providerCheckoutId: true,
       status: true,
@@ -93,6 +94,9 @@ export async function startPlanCheckoutAction(formData: FormData) {
       successUrl: `${baseUrl}/dashboard/billing?checkout=success`,
       cancelUrl: `${baseUrl}/dashboard/billing?checkout=cancelled`,
       checkoutUrl: `${baseUrl}/paddle-checkout`,
+      customerId: existingSubscription?.provider === "paddle"
+        ? existingSubscription.providerCustomerId
+        : null,
     });
   } catch (error) {
     if (error instanceof PaymentProviderUnavailableError) throw error;
@@ -103,7 +107,9 @@ export async function startPlanCheckoutAction(formData: FormData) {
     where: { workspaceId: context.workspace.id },
     data: {
       provider: session.provider,
-      providerCustomerId: null,
+      providerCustomerId: existingSubscription?.provider === "paddle"
+        ? existingSubscription.providerCustomerId
+        : null,
       providerSubscriptionId: null,
       providerCheckoutId: session.providerSessionId,
     },
