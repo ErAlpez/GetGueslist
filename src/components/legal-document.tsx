@@ -10,6 +10,12 @@ import "./legal-document.css";
 
 type Session = Awaited<ReturnType<typeof getCurrentSession>>;
 
+const legalPolicies = [
+  { href: "/terms", label: "Terms of Service" },
+  { href: "/privacy", label: "Privacy Policy" },
+  { href: "/refund-policy", label: "Refund and Cancellation Policy" },
+];
+
 export function LegalDocument({
   title,
   children,
@@ -21,10 +27,6 @@ export function LegalDocument({
   locale: Locale;
   session: Session;
 }) {
-  const companion = title === "Privacy Policy"
-    ? { href: "/terms", label: "Terms of Service" }
-    : { href: "/privacy", label: "Privacy Policy" };
-
   return (
     <main className="landing-page legal-page" dir={locale === "ar" ? "rtl" : "ltr"}>
       <LandingAuthModal authenticated={Boolean(session)}>
@@ -35,7 +37,7 @@ export function LegalDocument({
             <article className="legal-document" lang="en">
               <p className="legal-eyebrow">VENUGUESTPASS · LEGAL</p>
               <h1>{title}</h1>
-              <p className="legal-updated">Last updated: November 17, 2026</p>
+              <p className="legal-updated">Last updated: November 26, 2026</p>
 
               <div className="legal-copy">{children}</div>
 
@@ -43,9 +45,13 @@ export function LegalDocument({
                 <h2 id="legal-contact-heading">Contact</h2>
                 <p>
                   For questions about VenuGuestPass or your information, email{" "}
-                  <a href="mailto:hello@guestlist.com">hello@guestlist.com</a>.
+                  <a href="mailto:hello@guestlist.app">hello@guestlist.app</a>.
                 </p>
-                <Link href={companion.href}>{companion.label}</Link>
+                <nav aria-label="Legal policies" className="legal-policy-links">
+                  {legalPolicies.map((policy) => (
+                    <Link href={policy.href} key={policy.href}>{policy.label}</Link>
+                  ))}
+                </nav>
               </section>
             </article>
           </div>

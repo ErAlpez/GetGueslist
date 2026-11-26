@@ -138,7 +138,13 @@ html[data-theme="dark"] .legal-placeholder {
   margin: 0 0 12px;
 }
 
-.legal-contact > a {
+.legal-policy-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+}
+
+.legal-policy-links a {
   font-size: 14px;
   font-weight: 650;
 }

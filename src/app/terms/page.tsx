@@ -5,7 +5,7 @@ import { getPreferences } from "@/lib/preferences";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
-  description: "Terms for people registering for or attending events through VenuGuestPass.",
+  description: "Terms for using VenuGuestPass event tools and paid plans.",
   robots: { index: true, follow: true },
 };
 
@@ -69,6 +69,15 @@ export default async function TermsPage() {
           VenuGuestPass may not always be available or error-free. We may restrict access when needed to protect users or
           the service, prevent misuse, or comply with law. Nothing in these Terms limits rights that cannot be limited
           under applicable law.
+        </p>
+      </section>
+
+      <section>
+        <h2>7. Paid plans</h2>
+        <p>
+          Paid plan access lasts for the period shown at checkout. If a renewal is canceled, access continues through the
+          paid-through date shown in your account. See the{" "}
+          <a href="/refund-policy">Refund and Cancellation Policy</a> for details.
         </p>
       </section>
     </LegalDocument>

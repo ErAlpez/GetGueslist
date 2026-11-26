@@ -104,6 +104,10 @@ export default async function PrivacyPage() {
             view events.
           </li>
           <li>
+            Paddle, which processes paid-plan transactions and billing. We receive the transaction, subscription, and
+            customer identifiers and payment status needed to reconcile purchases and manage plan access.
+          </li>
+          <li>
             If a workspace owner opts in and an administrator approves a 5-star review, the review message, owner name,
             and workspace name are displayed on the public homepage.
           </li>

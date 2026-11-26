@@ -401,7 +401,7 @@ export default async function Home({
         <div className="center-heading">
           <div className="section-kicker">SIMPLE, TRANSPARENT PRICING</div>
           <h2>A plan for every <span>event program.</span></h2>
-          <p className="section-lead">Choose the capacity and tools that fit your team, with clear monthly and annual pricing.</p>
+          <p className="section-lead">Choose monthly or annual access for your team. Plans do not renew automatically; your paid features remain available until the access end date.</p>
         </div>
         <PlanPricingPeriod annualDiscountPercent={annualDiscountPercent}>
           <div className="pricing-plan-grid">
@@ -486,7 +486,7 @@ export default async function Home({
           <div className="footer-col"><span>VENUGUESTPASS</span><a href="#faq">About the platform</a><a href="#faq">FAQs</a><Link href="/login">Sign in</Link><Link href="/sign-up">Get started</Link></div>
           <div className="footer-note"><div className="footer-note-mark">✳</div><strong>Thoughtful events<br />start with thoughtful details.</strong><span>One guest at a time.</span></div>
         </div>
-        <div className="footer-bottom"><span>© {new Date().getFullYear()} VenuGuestPass. All rights reserved.</span><div><Link href="/privacy">Privacy</Link><span aria-hidden="true">|</span><Link href="/terms">Terms</Link></div></div>
+        <div className="footer-bottom"><span>© {new Date().getFullYear()} VenuGuestPass. All rights reserved.</span><div><Link href="/privacy">Privacy</Link><span aria-hidden="true">|</span><Link href="/terms">Terms</Link><span aria-hidden="true">|</span><Link href="/refund-policy">Refunds</Link></div></div>
       </footer>
       </div>
       </LandingSections>
