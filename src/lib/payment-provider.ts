@@ -93,15 +93,15 @@ export function getPaddleBillingPeriodEnd(start: Date, billingPeriod: PaddleBill
   return end;
 }
 
-function getPaddleEnvironment(): "sandbox" | "live" {
-  const environment = process.env.PADDLE_ENVIRONMENT?.trim().toLowerCase() || "sandbox";
+export function getPaddleEnvironment(): "sandbox" | "live" {
+  const environment = process.env.PADDLE_ENVIRONMENT?.trim().toLowerCase() || "live";
   if (environment !== "sandbox" && environment !== "live") {
     throw new Error('PADDLE_ENVIRONMENT must be either "sandbox" or "live".');
   }
   return environment;
 }
 
-function getPaddleApiBaseUrl(environment = getPaddleEnvironment()) {
+export function getPaddleApiBaseUrl(environment = getPaddleEnvironment()) {
   return environment === "sandbox"
     ? "https://sandbox-api.paddle.com"
     : "https://api.paddle.com";

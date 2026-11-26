@@ -10,11 +10,13 @@ import "./paddle-checkout-autostart.css";
 
 export function PaddleCheckoutAutostart({
   clientToken,
+  customerId,
   environment,
   transactionId,
   usePaymentLink,
 }: {
   clientToken: string;
+  customerId: string | null;
   environment: "sandbox" | "live";
   transactionId: string;
   usePaymentLink: boolean;
@@ -53,7 +55,7 @@ export function PaddleCheckoutAutostart({
           setMessage("Payment received. Your plan will update after Paddle confirms the subscription.");
           window.Paddle?.Checkout.close();
         }
-      });
+      }, customerId);
       unsubscribeRef.current = unsubscribe;
       initialized.current = true;
       if (!usePaymentLink) paddle.Checkout.open({ transactionId });

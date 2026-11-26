@@ -15,6 +15,8 @@ const output = ts.transpileModule(source, {
 }).outputText;
 
 let prisma;
+let allowedSourceIp = true;
+let requestedIpEndpoint = "";
 const mocks = {
   "next/server": {
     NextResponse: {
@@ -29,6 +31,12 @@ const mocks = {
     })[status] ?? null,
     verifyPaddleWebhookSignature: () => true,
   },
+  "@/lib/paddle-ip-allowlist": {
+    isPaddleWebhookIpAllowed: async (address, endpoint) => {
+      requestedIpEndpoint = endpoint;
+      return address === "34.237.3.244" && allowedSourceIp;
+    },
+  },
   "@/lib/prisma": { getPrisma: () => prisma },
 };
 const localRequire = (name) => Object.hasOwn(mocks, name) ? mocks[name] : require(name);
@@ -36,10 +44,16 @@ const loaded = { exports: {} };
 new Function("require", "module", "exports", output)(localRequire, loaded, loaded.exports);
 const { POST } = loaded.exports;
 
-function makeRequest(event) {
+function makeRequest(event, sourceIp = "34.237.3.244") {
   return {
     text: async () => JSON.stringify(event),
-    headers: { get: (name) => name === "paddle-signature" ? "verified" : null },
+    headers: {
+      get: (name) => name === "paddle-signature"
+        ? "verified"
+        : name === "x-forwarded-for"
+          ? sourceIp
+          : null,
+    },
   };
 }
 
@@ -93,6 +107,7 @@ test("paid one-time Paddle transaction activates the selected plan through the p
     })));
 
     assert.equal(response.status, 200);
+    assert.equal(requestedIpEndpoint, "https://api.paddle.com/ips");
     assert.deepEqual(response.body, { received: true, updated: true });
     assert.deepEqual(subscriptionUpdate.where, {
       id: "workspace-subscription",
@@ -106,6 +121,23 @@ test("paid one-time Paddle transaction activates the selected plan through the p
     assert.equal(subscriptionUpdate.data.billingPeriodEnd.toISOString(), "2026-02-01T00:00:00.000Z");
     assert.equal(subscriptionUpdate.data.renewalDate.toISOString(), "2026-02-01T00:00:00.000Z");
     assert.equal(invoiceRows.data[0].providerTransactionId, transactionId);
+  } finally {
+    process.env = previousEnvironment;
+  }
+});
+
+test("Paddle webhooks from unlisted IP addresses are rejected", async () => {
+  const previousEnvironment = { ...process.env };
+  process.env.PADDLE_WEBHOOK_SECRET = "webhook-secret";
+  prisma = {};
+
+  try {
+    const response = await POST(
+      makeRequest(makeEvent("transaction.completed", {}), "203.0.113.1"),
+    );
+
+    assert.equal(response.status, 403);
+    assert.deepEqual(response.body, { error: "Paddle webhook source IP is not allowed." });
   } finally {
     process.env = previousEnvironment;
   }

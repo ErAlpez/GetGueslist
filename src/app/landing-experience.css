@@ -232,7 +232,7 @@ html[data-theme="dark"] .landing-page .site-header .language-option[aria-selecte
   top: 50%;
   right: 0;
   display: flex;
-  gap: 12px;
+  gap: 5px;
   margin: 0;
   transform: translateY(-50%);
 }

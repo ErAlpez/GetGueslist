@@ -103,7 +103,6 @@ export async function startPlanCheckoutAction(formData: FormData) {
     where: { workspaceId: context.workspace.id },
     data: {
       provider: session.provider,
-      providerCustomerId: null,
       providerSubscriptionId: null,
       providerCheckoutId: session.providerSessionId,
     },
