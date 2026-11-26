@@ -14,6 +14,19 @@
   gap: 12px;
 }
 
+.super-admin-health-live-control {
+  display: grid;
+  justify-items: end;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 10px;
+  text-align: right;
+}
+
+.super-admin-health-live-control .is-error {
+  color: #a34a44;
+}
+
 .super-admin-health-overview-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -847,6 +860,11 @@ html[data-theme="dark"] .review-consent.is-granted {
 }
 
 @media (max-width: 760px) {
+  .super-admin-health-live-control {
+    justify-items: start;
+    text-align: left;
+  }
+
   .super-admin-operations-grid,
   .super-admin-people-grid {
     grid-template-columns: minmax(0, 1fr);

@@ -8,7 +8,6 @@ const hourInMs = 60 * 60 * 1000;
 const retentionPeriodInMs = 7 * dayInMs;
 
 export type SuperAdminHealthStatus = "healthy" | "attention" | "not-configured" | "unknown";
-type RecordedHealthStatus = Exclude<SuperAdminHealthStatus, "unknown">;
 
 export type SuperAdminHealthServiceId =
   | "database"
@@ -21,7 +20,7 @@ export type SuperAdminHealthCheck = {
   id: SuperAdminHealthServiceId;
   name: string;
   provider: string;
-  status: RecordedHealthStatus;
+  status: SuperAdminHealthStatus;
   label: string;
   detail: string;
   latencyMs: number | null;
@@ -29,10 +28,10 @@ export type SuperAdminHealthCheck = {
 
 const serviceDefinitions: Array<Pick<SuperAdminHealthCheck, "id" | "name" | "provider">> = [
   { id: "database", name: "Database", provider: "PostgreSQL" },
-  { id: "billing", name: "Billing", provider: "Not connected" },
+  { id: "billing", name: "Billing", provider: "Paddle" },
   { id: "resend", name: "Email delivery", provider: "Resend" },
   { id: "file-storage", name: "File storage", provider: "Supabase Storage" },
-  { id: "rate-limiting", name: "Rate limiting", provider: "Not configured" },
+  { id: "rate-limiting", name: "Rate limiting", provider: "Better Auth · PostgreSQL" },
 ];
 
 function elapsedMilliseconds(startedAt: number) {
@@ -42,6 +41,62 @@ function elapsedMilliseconds(startedAt: number) {
 function statusFromValue(value: string): SuperAdminHealthStatus {
   if (value === "healthy" || value === "attention" || value === "not-configured") return value;
   return "unknown";
+}
+
+function checkBillingConfiguration(): SuperAdminHealthCheck {
+  const service = serviceDefinitions[1];
+  const provider = process.env.PAYMENT_PROVIDER?.trim().toLowerCase() || "paddle";
+  if (provider !== "paddle") {
+    return {
+      ...service,
+      status: "attention",
+      label: "Unsupported provider",
+      detail: `PAYMENT_PROVIDER is set to an unsupported value: ${provider}.`,
+      latencyMs: null,
+    };
+  }
+  const apiKey = process.env.PADDLE_API_KEY?.trim();
+  const webhookSecret = process.env.PADDLE_WEBHOOK_SECRET?.trim();
+  const environment = process.env.PADDLE_ENVIRONMENT?.trim().toLowerCase() || "live";
+  if (environment !== "sandbox" && environment !== "live") {
+    return {
+      ...service,
+      status: "attention",
+      label: "Invalid configuration",
+      detail: 'PADDLE_ENVIRONMENT must be either "sandbox" or "live".',
+      latencyMs: null,
+    };
+  }
+  const priceKeys = [
+    "PADDLE_PRICE_STARTER_MONTHLY",
+    "PADDLE_PRICE_STARTER_ANNUAL",
+    "PADDLE_PRICE_PROFESSIONAL_MONTHLY",
+    "PADDLE_PRICE_PROFESSIONAL_ANNUAL",
+    "PADDLE_ONE_TIME_PRICE_STARTER_MONTHLY",
+    "PADDLE_ONE_TIME_PRICE_STARTER_ANNUAL",
+    "PADDLE_ONE_TIME_PRICE_PROFESSIONAL_MONTHLY",
+    "PADDLE_ONE_TIME_PRICE_PROFESSIONAL_ANNUAL",
+  ];
+  const checkoutConfigured = Boolean(process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN?.trim())
+    && priceKeys.every((key) => process.env[key]?.trim().startsWith("pri_"));
+
+  if (!apiKey || !webhookSecret || !checkoutConfigured) {
+    return {
+      ...service,
+      status: "not-configured",
+      label: "Incomplete configuration",
+      detail: "Paddle API, checkout, and webhook settings must all be configured.",
+      latencyMs: null,
+    };
+  }
+
+  return {
+    ...service,
+    status: "unknown",
+    label: "Configured · API not probed",
+    detail: "Paddle credentials are configured. This monitor does not create transactions or require additional API read permissions.",
+    latencyMs: null,
+  };
 }
 
 async function checkDatabase(): Promise<SuperAdminHealthCheck> {
@@ -219,20 +274,16 @@ export async function collectSuperAdminHealthChecks(fetcher: typeof fetch = fetc
 
   return [
     database,
-    {
-      ...serviceDefinitions[1],
-      status: "not-configured",
-      label: "Not connected",
-      detail: "No payment provider is connected, so paid checkout is unavailable.",
-      latencyMs: null,
-    },
+    checkBillingConfiguration(),
     resend,
     storage,
     {
       ...serviceDefinitions[4],
-      status: "not-configured",
-      label: "Not configured",
-      detail: "No application rate-limiting provider or middleware is configured.",
+      status: database.status === "healthy" ? "unknown" : database.status,
+      label: database.status === "healthy" ? "Configured · DB-backed" : database.label,
+      detail: database.status === "healthy"
+        ? "Better Auth rate limiting is enabled and stored in PostgreSQL. Database availability is reported separately."
+        : "Better Auth rate limiting uses PostgreSQL, but its database backend is unavailable or not configured.",
       latencyMs: null,
     },
   ];
@@ -305,8 +356,8 @@ export async function getSuperAdminHealthDashboard(
     return {
       ...service,
       status: latest ? statusFromValue(latest.status) : "unknown" as const,
-      label: latest?.label ?? "Awaiting first check",
-      detail: latest?.detail ?? "The scheduled monitor has not recorded a result yet.",
+      label: latest?.label ?? "No check in last 24 hours",
+      detail: latest?.detail ?? "No check was recorded for this service in the last 24 hours.",
       lastCheckedAt: latest?.checkedAt ?? null,
       ...summarizeChecks(serviceSamples),
       sampleCount: serviceSamples.length,
@@ -337,3 +388,5 @@ export async function getSuperAdminHealthDashboard(
     hourlyAvailability,
   };
 }
+
+export type SuperAdminHealthDashboard = Awaited<ReturnType<typeof getSuperAdminHealthDashboard>>;

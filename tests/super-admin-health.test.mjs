@@ -41,6 +41,19 @@ async function withEnvironment(values, callback) {
     "SUPABASE_URL",
     "NEXT_PUBLIC_SUPABASE_URL",
     "SUPABASE_SERVICE_ROLE_KEY",
+    "PAYMENT_PROVIDER",
+    "PADDLE_ENVIRONMENT",
+    "PADDLE_API_KEY",
+    "NEXT_PUBLIC_PADDLE_CLIENT_TOKEN",
+    "PADDLE_WEBHOOK_SECRET",
+    "PADDLE_PRICE_STARTER_MONTHLY",
+    "PADDLE_PRICE_STARTER_ANNUAL",
+    "PADDLE_PRICE_PROFESSIONAL_MONTHLY",
+    "PADDLE_PRICE_PROFESSIONAL_ANNUAL",
+    "PADDLE_ONE_TIME_PRICE_STARTER_MONTHLY",
+    "PADDLE_ONE_TIME_PRICE_STARTER_ANNUAL",
+    "PADDLE_ONE_TIME_PRICE_PROFESSIONAL_MONTHLY",
+    "PADDLE_ONE_TIME_PRICE_PROFESSIONAL_ANNUAL",
   ];
   const previous = new Map(keys.map((key) => [key, process.env[key]]));
   for (const key of keys) {
@@ -78,7 +91,36 @@ test("labels platform providers and exposes missing service configuration", asyn
     assert.equal(byId.get("resend").status, "not-configured");
     assert.equal(byId.get("file-storage").provider, "Supabase Storage");
     assert.equal(byId.get("file-storage").status, "not-configured");
-    assert.equal(byId.get("rate-limiting").status, "not-configured");
+    assert.equal(byId.get("rate-limiting").provider, "Better Auth · PostgreSQL");
+    assert.equal(byId.get("rate-limiting").status, "unknown");
+    assert.equal(byId.get("rate-limiting").label, "Configured · DB-backed");
+  });
+});
+
+test("reports Paddle configuration without claiming that the API was probed", async () => {
+  const paddleIds = {
+    PAYMENT_PROVIDER: "paddle",
+    PADDLE_ENVIRONMENT: "live",
+    PADDLE_API_KEY: "test-api-key",
+    NEXT_PUBLIC_PADDLE_CLIENT_TOKEN: "test-client-token",
+    PADDLE_WEBHOOK_SECRET: "test-webhook-secret",
+    PADDLE_PRICE_STARTER_MONTHLY: "pri_starter_monthly",
+    PADDLE_PRICE_STARTER_ANNUAL: "pri_starter_annual",
+    PADDLE_PRICE_PROFESSIONAL_MONTHLY: "pri_professional_monthly",
+    PADDLE_PRICE_PROFESSIONAL_ANNUAL: "pri_professional_annual",
+    PADDLE_ONE_TIME_PRICE_STARTER_MONTHLY: "pri_one_time_starter_monthly",
+    PADDLE_ONE_TIME_PRICE_STARTER_ANNUAL: "pri_one_time_starter_annual",
+    PADDLE_ONE_TIME_PRICE_PROFESSIONAL_MONTHLY: "pri_one_time_professional_monthly",
+    PADDLE_ONE_TIME_PRICE_PROFESSIONAL_ANNUAL: "pri_one_time_professional_annual",
+  };
+  await withEnvironment(paddleIds, async () => {
+    const { collectSuperAdminHealthChecks } = loadHealth();
+    const billing = (await collectSuperAdminHealthChecks()).find(({ id }) => id === "billing");
+
+    assert.equal(billing.provider, "Paddle");
+    assert.equal(billing.status, "unknown");
+    assert.equal(billing.label, "Configured · API not probed");
+    assert.equal(billing.latencyMs, null);
   });
 });
 
@@ -235,5 +277,17 @@ test("summarizes rolling 24-hour availability, incidents, latency, and hourly tr
     assert.equal(dashboard.hourlyAvailability[23].availabilityPercent, 75);
     assert.equal(dashboard.services.find((service) => service.id === "resend").availabilityPercent, 50);
     assert.equal(dashboard.services.find((service) => service.id === "resend").averageLatencyMs, 35);
+  });
+});
+
+test("reports no recent run without implying the monitor has never run", async () => {
+  await withEnvironment({}, async () => {
+    const { getSuperAdminHealthDashboard } = loadHealth();
+    const dashboard = await getSuperAdminHealthDashboard(undefined, new Date("2026-11-19T12:00:00.000Z"));
+
+    assert.equal(dashboard.runCount, 0);
+    assert.equal(dashboard.lastCheckedAt, null);
+    assert.equal(dashboard.availabilityPercent, null);
+    assert.ok(dashboard.services.every(({ label }) => label === "No check in last 24 hours"));
   });
 });

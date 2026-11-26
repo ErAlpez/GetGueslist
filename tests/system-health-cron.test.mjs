@@ -87,3 +87,10 @@ test("accepts the protected cron token and returns sanitized service results", a
     }]);
   });
 });
+
+test("keeps the background health cron compatible with Vercel Hobby's daily limit", () => {
+  const vercelConfig = JSON.parse(fs.readFileSync(path.join(root, "vercel.json"), "utf8"));
+  const healthCron = vercelConfig.crons.find(({ path: cronPath }) => cronPath === "/api/cron/system-health");
+
+  assert.equal(healthCron?.schedule, "0 1 * * *");
+});

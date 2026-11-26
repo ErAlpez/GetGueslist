@@ -1,9 +1,14 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 
 export function MotionEnhancements() {
+  const pathname = usePathname();
+
   useEffect(() => {
+    if (pathname.startsWith("/dashboard")) return;
+
     const selector = ".hero-content, .hero-preview, .section, .module-section, .analytics-band, .final-cta, .app-panel, .stat-card, .auth-card, .event-detail-hero, .form-section, .ticket-card, .pricing-card, .feature-card, .step-card, .audience-card, .analytics-card, .faq-item, .preview-stat, .preview-panel, .module-chip, .checkin-visual, .page-heading-row, .checkin-event-filter";
 
     if (!("IntersectionObserver" in window)) {
@@ -50,7 +55,7 @@ export function MotionEnhancements() {
       mutations.disconnect();
       observer.disconnect();
     };
-  }, []);
+  }, [pathname]);
 
   return null;
 }

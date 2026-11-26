@@ -5,13 +5,9 @@ import {
   CalendarDays,
   CircleDashed,
   CreditCard,
-  Database,
   Globe2,
-  HardDrive,
-  Mail,
   MapPin,
   Search,
-  ShieldAlert,
   ShieldCheck,
   UsersRound,
 } from "lucide-react";
@@ -23,6 +19,7 @@ import { requireSuperAdmin } from "@/lib/super-admin";
 import { getSuperAdminHealthDashboard } from "@/lib/super-admin-health";
 import { SuperAdminPlanEditor } from "@/components/super-admin-plan-editor";
 import { SuperAdminSubscriptionEditor } from "@/components/super-admin-subscription-editor";
+import { SuperAdminHealthPanel } from "@/components/super-admin-health-panel";
 import { StatisticCircle } from "@/components/statistic-circle";
 import { moderatePlatformReviewAction } from "@/app/dashboard/admin/plans/review-actions";
 import "./plan-management.css";
@@ -30,13 +27,6 @@ import "./plan-management.css";
 const pageSize = 25;
 const reviewPageSize = 20;
 const reviewStatuses = ["PENDING", "APPROVED", "HIDDEN", "ALL"] as const;
-const systemHealthIcons = {
-  database: Database,
-  billing: CreditCard,
-  resend: Mail,
-  "file-storage": HardDrive,
-  "rate-limiting": ShieldAlert,
-} as const;
 
 function formatRevenue(amountCents: number, currency: string, locale: string) {
   if (!/^[A-Z]{3}$/.test(currency)) return `${amountCents / 100} ${currency}`;
@@ -181,17 +171,6 @@ export default async function SuperAdminPlansPage({ searchParams }: PageProps) {
   const pageViewCount = websitePageViews._sum.views ?? 0;
   const currencyNames = new Intl.DisplayNames(locale, { type: "region" });
   const numberFormat = new Intl.NumberFormat(locale);
-  const healthPercentFormat = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 });
-  const healthAvailability = healthDashboard.availabilityPercent === null
-    ? "No data"
-    : `${healthPercentFormat.format(healthDashboard.availabilityPercent)}%`;
-  const healthAverageLatency = healthDashboard.averageLatencyMs === null
-    ? "No data"
-    : `${numberFormat.format(healthDashboard.averageLatencyMs)} ms`;
-  const healthLastChecked = healthDashboard.lastCheckedAt
-    ? new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" }).format(healthDashboard.lastCheckedAt)
-    : "Awaiting first scheduled run";
-  const healthTimeFormat = new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" });
   const reviewPageHref = (pageNumber: number) => {
     const search = new URLSearchParams();
     if (query) search.set("q", query);
@@ -324,79 +303,7 @@ export default async function SuperAdminPlansPage({ searchParams }: PageProps) {
         </div>
       </section>
 
-      <section aria-labelledby="system-health-heading" className="super-admin-analytics-section">
-        <div className="panel-heading-row super-admin-section-heading">
-          <div><h2 id="system-health-heading">System health</h2><p>Scheduled every five minutes · last run: {healthLastChecked} · rolling 24-hour metrics</p></div>
-        </div>
-        <div aria-label="24-hour system health statistics" className="super-admin-health-overview-grid">
-          <article className="super-admin-health-metric">
-            <span>Service availability</span>
-            <strong className={healthDashboard.availabilityPercent !== null && healthDashboard.availabilityPercent < 99 ? "is-low" : ""}>{healthAvailability}</strong>
-            <small>Target: 99% or higher</small>
-          </article>
-          <article className="super-admin-health-metric">
-            <span>Scheduled runs</span>
-            <strong>{numberFormat.format(healthDashboard.runCount)}</strong>
-            <small>Recorded in the last 24 hours</small>
-          </article>
-          <article className="super-admin-health-metric">
-            <span>Failed probes</span>
-            <strong className={healthDashboard.failedChecks ? "is-low" : ""}>{numberFormat.format(healthDashboard.failedChecks)}</strong>
-            <small>Configured services only</small>
-          </article>
-          <article className="super-admin-health-metric">
-            <span>Average probe latency</span>
-            <strong>{healthAverageLatency}</strong>
-            <small>Database, email, and storage checks</small>
-          </article>
-        </div>
-        <section className="app-panel super-admin-health-trend">
-          <div className="panel-heading-row">
-            <div><h3>Hourly availability</h3><p>Successful probes across configured services.</p></div>
-            <span>Last 24 hours</span>
-          </div>
-          {healthDashboard.observedChecks ? (
-            <>
-              <div aria-label="Hourly service availability over the previous 24 hours" className="super-admin-health-bars" role="img">
-                {healthDashboard.hourlyAvailability.map((hour) => {
-                  const availability = hour.availabilityPercent;
-                  const state = availability === null ? "is-empty" : availability < 99 ? "is-low" : "is-healthy";
-                  const label = availability === null ? "No checks" : `${healthPercentFormat.format(availability)}% availability`;
-                  return (
-                    <span aria-hidden="true" className={`super-admin-health-bar ${state}`} key={hour.startedAt.toISOString()} title={`${healthTimeFormat.format(hour.startedAt)}: ${label} (${hour.observedChecks} probes)`}>
-                      <i style={{ height: `${Math.max(3, availability ?? 0)}%` }} />
-                    </span>
-                  );
-                })}
-              </div>
-              <div className="super-admin-health-chart-axis"><span>24 hours ago</span><span>Now</span></div>
-            </>
-          ) : <p className="super-admin-health-empty">No scheduled samples yet. Verify Vercel Cron and CRON_SECRET are configured; the chart populates after its first run.</p>}
-        </section>
-        <div aria-label="System health checks" className="super-admin-health-grid">
-          {healthDashboard.services.map((check) => {
-            const HealthIcon = systemHealthIcons[check.id];
-            return (
-              <article aria-label={`${check.name} (${check.provider}): ${check.label}`} className="super-admin-health-card" key={check.id}>
-                <div className="super-admin-health-card-heading">
-                  <span aria-hidden="true" className="super-admin-health-icon"><HealthIcon size={17} /></span>
-                  <div>
-                    <h3>{check.name}</h3>
-                    <small className="super-admin-health-provider">{check.provider}</small>
-                    <span className={`super-admin-health-status is-${check.status}`}>{check.label}</span>
-                  </div>
-                </div>
-                <p>{check.detail}</p>
-                <div className="super-admin-health-card-stats">
-                  <span><small>24h availability</small><strong>{check.availabilityPercent === null ? "—" : `${healthPercentFormat.format(check.availabilityPercent)}%`}</strong></span>
-                  <span><small>Avg latency</small><strong>{check.averageLatencyMs === null ? "—" : `${numberFormat.format(check.averageLatencyMs)} ms`}</strong></span>
-                  <span><small>Samples</small><strong>{numberFormat.format(check.sampleCount)}</strong></span>
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      </section>
+      <SuperAdminHealthPanel initialDashboard={healthDashboard} locale={locale} />
 
       <section className="app-panel super-admin-reviews">
         <div className="panel-heading-row">
