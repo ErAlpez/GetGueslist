@@ -60,7 +60,7 @@ export function PlanPricingPeriod({
         Annual
       </button>
       <span className="plan-pricing-save">
-        {annualDiscountPercent ? "2 Months Free" : "Annual pricing"}
+        {annualDiscountPercent ? `Save up to ${annualDiscountPercent}% annually` : "Annual pricing"}
       </span>
     </div>
   );
@@ -101,7 +101,7 @@ export function PlanPrice({
   const unit = isFree
     ? "forever"
     : isAnnual
-      ? `/ year${annualDiscountPercent ? " · 2 Months Free" : ""}`
+      ? `/ year${annualDiscountPercent ? ` · save ${annualDiscountPercent}%` : ""}`
       : "/ month";
 
   return (
