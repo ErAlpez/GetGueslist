@@ -161,7 +161,7 @@ button, a, summary { -webkit-tap-highlight-color: transparent; }
 .center-heading .section-lead { margin-top: 11px; font-size: 12px; }
 .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 55px; }
 .step-card { position: relative; min-height: 193px; padding: 19px 21px; border: 1px solid #e7ebe6; border-radius: 8px; background: rgba(255,255,255,.53); }
-.step-number { position: absolute; top: 18px; right: 20px; color: #a2ada5; font-size: 9px; font-weight: 700; letter-spacing: .1em; }
+.step-number { position: absolute; top: 18px; right: 20px; color: #a2ada5; font-size: 14px; font-weight: 700; letter-spacing: .1em; }
 .step-icon { display: grid; width: 40px; height: 40px; place-items: center; border: 1px solid #dcebe1; border-radius: 10px; color: #43856e; background: #edf5ee; }
 .step-icon.lilac-step { border-color: #e5e0ee; color: #8476a5; background: #f1eff7; }.step-icon.peach-step { border-color: #eee1d4; color: #b17c4d; background: #f8f0e8; }
 .step-card h3 { margin: 19px 0 7px; color: #35433d; font-size: 14px; font-weight: 650; }
