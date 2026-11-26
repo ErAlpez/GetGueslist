@@ -530,14 +530,14 @@ html[data-theme="dark"] .landing-page .feature-card h3 {
 .landing-page .feature-card p,
 .landing-page .step-card p {
   min-height: 0;
-  font-size: 12px !important;
+  font-size: 14px !important;
   line-height: 1.5;
 }
 
 .landing-page .feature-card .text-link,
 .landing-page .module-copy .text-link,
 .landing-page .audience-copy .text-link {
-  font-size: 12px !important;
+  font-size: 14px !important;
 }
 
 .landing-page .module-copy button.text-link {

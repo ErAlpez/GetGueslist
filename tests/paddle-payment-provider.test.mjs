@@ -20,8 +20,10 @@ const {
   getPaymentProvider,
   getPaymentProviderName,
   getPaddleCheckoutConfig,
+  getPaddleApiBaseUrl,
   getPaddleBillingPeriodFromDates,
   getPaddleBillingPeriodEnd,
+  getPaddleEnvironment,
   getPaddlePriceDetails,
   isPaddleSubscriptionId,
   schedulePaddleSubscriptionCancellation,
@@ -37,6 +39,19 @@ test("Paddle is the default billing provider when no provider is selected", () =
   } finally {
     if (previousProvider === undefined) delete process.env.PAYMENT_PROVIDER;
     else process.env.PAYMENT_PROVIDER = previousProvider;
+  }
+});
+
+test("Paddle defaults to Live when no environment is selected", () => {
+  const previousEnvironment = process.env.PADDLE_ENVIRONMENT;
+  delete process.env.PADDLE_ENVIRONMENT;
+
+  try {
+    assert.equal(getPaddleEnvironment(), "live");
+    assert.equal(getPaddleApiBaseUrl(), "https://api.paddle.com");
+  } finally {
+    if (previousEnvironment === undefined) delete process.env.PADDLE_ENVIRONMENT;
+    else process.env.PADDLE_ENVIRONMENT = previousEnvironment;
   }
 });
 

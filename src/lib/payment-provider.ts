@@ -95,7 +95,7 @@ export function getPaddleBillingPeriodEnd(start: Date, billingPeriod: PaddleBill
 }
 
 export function getPaddleEnvironment(): "sandbox" | "live" {
-  const environment = process.env.PADDLE_ENVIRONMENT?.trim().toLowerCase() || "sandbox";
+  const environment = process.env.PADDLE_ENVIRONMENT?.trim().toLowerCase() || "live";
   if (environment !== "sandbox" && environment !== "live") {
     throw new Error('PADDLE_ENVIRONMENT must be either "sandbox" or "live".');
   }
