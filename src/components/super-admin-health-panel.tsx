@@ -97,7 +97,7 @@ export function SuperAdminHealthPanel({
           <p>Live checks every five minutes while this page is open · Vercel background cron: daily · last recorded run: {healthLastChecked} · rolling 24-hour metrics</p>
         </div>
         <div className="super-admin-health-live-control">
-          <button className="button button-light" disabled={isRunning} onClick={() => void refresh(true)} type="button">
+          <button className="button button-dark" disabled={isRunning} onClick={() => void refresh(true)} type="button">
             {isRunning ? "Checking…" : "Check now"}
           </button>
           <span aria-live="polite" className={error ? "is-error" : ""} role={error ? "alert" : undefined}>{refreshStatus}</span>
