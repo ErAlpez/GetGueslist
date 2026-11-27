@@ -400,7 +400,7 @@ export function NotificationPopover() {
               <span className="notification-empty-icon">
                 <Inbox aria-hidden="true" size={19} />
               </span>
-              <strong>{t("You're all caught up")}</strong>
+              <strong>{t("You're all caught up")}</strong>{" "}
               <p>{t("Your new notifications will appear here.")}</p>
             </div>
           ) : null}
