@@ -314,6 +314,7 @@ export function NotificationPopover() {
         aria-haspopup="dialog"
         aria-label={`${t(unreadCount > 0 ? "Notifications, new activity" : "Notifications")}${unreadCount > 0 ? ` (${unreadCount})` : ""}`}
         className={`notification-trigger${open ? " is-open" : ""}`}
+        data-toast-managed="true"
         onClick={toggleOpen}
         ref={triggerRef}
         title={t("Notifications")}
