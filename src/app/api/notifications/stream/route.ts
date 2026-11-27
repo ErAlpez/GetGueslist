@@ -5,6 +5,7 @@ import { workspaceRoleCanAccessSection } from "@/lib/workspace-roles";
 
 const pollInterval = 5_000;
 const heartbeatInterval = 15_000;
+const streamLifetime = 240_000; // Close before Vercel's 300-second function timeout.
 
 export async function GET() {
   const context = await getWorkspaceContext();
@@ -40,14 +41,22 @@ export async function GET() {
   const encoder = new TextEncoder();
   let cancelled = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let closeTimer: ReturnType<typeof setTimeout> | undefined;
 
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
       let cursorAt = initialActivity?.createdAt ?? new Date(0);
       let idsAtCursor = new Set(initialCursorActivities.map((activity) => activity.id));
       let lastHeartbeatAt = Date.now();
+      const closeStream = () => {
+        if (cancelled) return;
+        cancelled = true;
+        if (timer) clearTimeout(timer);
+        controller.close();
+      };
 
       controller.enqueue(encoder.encode("retry: 3000\n\nevent: sync\ndata: {}\n\n"));
+      closeTimer = setTimeout(closeStream, streamLifetime);
 
       const poll = async () => {
         try {
@@ -101,6 +110,7 @@ export async function GET() {
     cancel() {
       cancelled = true;
       if (timer) clearTimeout(timer);
+      if (closeTimer) clearTimeout(closeTimer);
     },
   });
 
