@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { RegistrationFormBuilder } from "@/components/registration-form-builder";
 import { EventModulesManager } from "@/components/event-modules-manager";
+
+export const maxDuration = 60;
 import { EventCheckpointsManager } from "@/components/event-checkpoints-manager";
 import { EventAttachmentsManager } from "@/components/event-attachments-manager";
 import { EventMoreMenu } from "@/components/event-more-menu";

@@ -10,6 +10,8 @@ import { localizeNode } from "@/lib/localization";
 import { exclusiveDateEnd, parseDateParam } from "@/lib/date-range";
 import { VenuGuestPassDateRange } from "@/components/venuguestpass-date-range";
 import { GuestCsvImport } from "@/components/guest-csv-import";
+
+export const maxDuration = 60;
 import { DownloadButton } from "@/components/download-button";
 import { AnimatedMetric } from "@/components/animated-metric";
 import { VenuGuestPassOfflineCache } from "@/components/venuguestpass-offline-cache";
@@ -140,7 +142,7 @@ export default async function AttendeesPage({ searchParams }: AttendeesPageProps
   let exportControl = <span className="plan-gated-label">CSV export requires Starter</span>;
   if (canExportCsv) {
     if (requestedEventId || canExportWorkspace) {
-      exportControl = <DownloadButton href="/api/guestlist/export" label="Export CSV" useFormFilters />;
+      exportControl = <DownloadButton backgroundJob href="/api/guestlist/export" label="Export CSV" useFormFilters />;
     } else {
       exportControl = <span className="plan-gated-label">Select an event to export; workspace-wide exports require Max</span>;
     }

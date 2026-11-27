@@ -1,8 +1,10 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import { useActionToastFeedback } from "@/components/toast-provider";
+import { useActionState, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { updateToast, useActionToastFeedback } from "@/components/toast-provider";
 import { Check, LoaderCircle, Mail, Nfc, Settings2, Utensils, CalendarClock, UserCheck } from "lucide-react";
+import { beginBackgroundJobToast, watchBackgroundJob } from "@/components/background-job-toast";
 import {
   sendEventInvitationsAction,
   updateEventModuleAction,
@@ -72,10 +74,12 @@ function ModuleCard({
   moduleRecord: Module;
   canManage: boolean;
 }) {
+  const router = useRouter();
   const [state, formAction, pending] = useActionState(updateEventModuleAction, initialState);
   useActionToastFeedback(pending, state);
-  const [sendState, sendAction, sending] = useActionState(sendEventInvitationsAction, initialState);
-  useActionToastFeedback(sending, sendState);
+  const [sending, startSending] = useTransition();
+  const [invitationJobRunning, setInvitationJobRunning] = useState(false);
+  const [invitationError, setInvitationError] = useState("");
   const [enabled, setEnabled] = useState(moduleRecord.enabled);
   const settings = readSettings(moduleRecord.settings);
   const meta = moduleMeta[moduleRecord.key as keyof typeof moduleMeta];
@@ -151,15 +155,51 @@ function ModuleCard({
       )}
 
       {canManage && enabled && moduleRecord.key === "invitations" && (
-        <form action={sendAction} className="event-module-send">
+        <form
+          className="event-module-send"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (sending || invitationJobRunning) return;
+            setInvitationError("");
+            const toastId = beginBackgroundJobToast("Sending event invitations...");
+            const formData = new FormData(event.currentTarget);
+            startSending(async () => {
+              try {
+                const queued = await sendEventInvitationsAction(initialState, formData);
+                if (queued.error) {
+                  updateToast(toastId, queued.error, "error");
+                  setInvitationError(queued.error);
+                  return;
+                }
+                if (!queued.jobId) throw new Error("Could not queue event invitations.");
+                setInvitationJobRunning(true);
+                void watchBackgroundJob(queued.jobId, toastId, (job) => {
+                  const result = readInvitationResult(job.result);
+                  if (!result) return "Event invitations sent.";
+                  return `Sent ${result.sentCount} event invitation${result.sentCount === 1 ? "" : "s"}${result.failedCount ? `; ${result.failedCount} failed` : ""}.`;
+                }).then((job) => {
+                  if (job.status === "COMPLETED") router.refresh();
+                  else setInvitationError(job.error ?? "Could not send event invitations.");
+                }).catch((error: unknown) => {
+                  setInvitationError(error instanceof Error ? error.message : "Could not check the invitation job.");
+                }).finally(() => setInvitationJobRunning(false));
+              } catch (error) {
+                console.error("Could not queue event invitations:", error);
+                const message = "Could not queue event invitations. Please try again.";
+                updateToast(toastId, message, "error");
+                setInvitationError(message);
+              }
+            });
+          }}
+        >
           <input name="eventId" type="hidden" value={eventId} />
           <input name="recipients" type="hidden" value={recipients.split(/[\n,]+/).map((item) => item.trim()).filter(Boolean).join("\n")} />
           <input name="subject" type="hidden" value={subject} />
           <input name="message" type="hidden" value={message} />
-          <button className="button button-dark app-primary-button" disabled={sending} type="submit">
-            {sending ? <LoaderCircle className="spin" size={13} /> : <Mail size={13} />} Send invitations
+          <button className="button button-dark app-primary-button" data-toast-managed="true" disabled={sending || invitationJobRunning} type="submit">
+            {sending || invitationJobRunning ? <LoaderCircle className="spin" size={13} /> : <Mail size={13} />} Send invitations
           </button>
-          {sendState.error && <p className="form-message form-error" role="alert">{sendState.error}</p>}
+          {invitationError && <p className="form-message form-error" role="alert">{invitationError}</p>}
         </form>
       )}
 
@@ -177,4 +217,11 @@ function ModuleCard({
       )}
     </article>
   );
+}
+
+function readInvitationResult(value: unknown): { sentCount: number; failedCount: number } | null {
+  if (typeof value !== "object" || value === null || !("sentCount" in value) || !("failedCount" in value)) return null;
+  return typeof value.sentCount === "number" && typeof value.failedCount === "number"
+    ? { sentCount: value.sentCount, failedCount: value.failedCount }
+    : null;
 }

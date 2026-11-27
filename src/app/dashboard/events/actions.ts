@@ -27,6 +27,7 @@ import { readRegistrationQuestionOptions, registrationQuestionTypes } from "@/li
 import { getWorkspaceContext } from "@/lib/workspace";
 import { workspaceRoleHasPermission } from "@/lib/workspace-roles";
 import { workspaceHasFeature } from "@/lib/plan-features";
+import { enqueueEventInvitations } from "@/lib/background-jobs";
 
 export type EventFormState = {
   error?: string;
@@ -55,6 +56,7 @@ export type EventAttachmentActionState = {
 
 export type EventModuleState = {
   error?: string;
+  jobId?: string;
   success?: string;
 };
 
@@ -1274,40 +1276,13 @@ export async function sendEventInvitationsAction(
   });
   if (!event) notFound();
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
-  const registrationUrl = `${baseUrl.replace(/\/$/, "")}/register/${event.id}`;
-  const { sendAuthEmail } = await import("@/lib/email");
-  let sent = 0;
-  for (const recipient of uniqueRecipients) {
-    try {
-      await sendAuthEmail({
-        to: recipient,
-        subject: `${subject} — ${event.name}`,
-        url: registrationUrl,
-        message,
-      });
-      sent += 1;
-    } catch (error) {
-      console.error(`Event invitation email failed for ${recipient}:`, error);
-    }
-  }
-  if (!sent) return { error: "No invitations could be sent. Check email configuration." };
-
-  await prisma.eventModule.upsert({
-    where: { eventId_key: { eventId: event.id, key: "invitations" } },
-    create: {
-      eventId: event.id,
-      key: "invitations",
-      enabled: true,
-      settings: { recipients: uniqueRecipients, subject, message, sentAt: new Date().toISOString(), sent },
-    },
-    update: {
-      enabled: true,
-      settings: { recipients: uniqueRecipients, subject, message, sentAt: new Date().toISOString(), sent },
-    },
+  const job = await enqueueEventInvitations(context.workspace.id, context.user.id, {
+    eventId: event.id,
+    recipients: uniqueRecipients,
+    subject,
+    message,
   });
-  revalidatePath(`/dashboard/events/${eventId}`);
-  return { success: `Sent ${sent} event invitation${sent === 1 ? "" : "s"}.` };
+  return { jobId: job.id };
 }
 
 export async function archiveEventAction(formData: FormData) {

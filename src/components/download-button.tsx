@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Download, Square } from "lucide-react";
+import { Download, LoaderCircle, Square } from "lucide-react";
 import { usePreferences } from "@/components/preferences-provider";
 import { downloadResource } from "@/lib/api";
+import { beginBackgroundJobToast, watchBackgroundJob } from "@/components/background-job-toast";
+import { dismissToast, updateToast } from "@/components/toast-provider";
 
 class DownloadError extends Error {}
 
@@ -11,6 +13,7 @@ export function DownloadButton({
   href,
   label,
   useFormFilters = false,
+  backgroundJob = false,
   contentType = "text/csv",
   filename = "attendees-export.csv",
   className,
@@ -18,6 +21,7 @@ export function DownloadButton({
   href: string;
   label: string;
   useFormFilters?: boolean;
+  backgroundJob?: boolean;
   contentType?: string;
   filename?: string;
   className?: string;
@@ -37,6 +41,7 @@ export function DownloadButton({
 
   async function handleClick(button: HTMLButtonElement) {
     if (controllerRef.current) {
+      if (backgroundJob && state === "loading") return;
       controllerRef.current.abort();
       controllerRef.current = null;
       setState("idle");
@@ -52,6 +57,7 @@ export function DownloadButton({
     setProgress(null);
     setStatus(t("Preparing download..."));
     setError("");
+    const toastId = backgroundJob ? beginBackgroundJobToast("Preparing attendee export...") : null;
 
     try {
       const url = new URL(href, window.location.origin);
@@ -63,20 +69,33 @@ export function DownloadButton({
         }
       }
 
-      const response = await downloadResource(url, { signal: controller.signal });
-      if (!response.ok) {
-        let message = `${t("Download failed.")} (${response.status})`;
-        const responseType = response.headers.get("content-type")?.toLowerCase() ?? "";
-        if (responseType.includes("application/json")) {
-          const payload: unknown = await response.json();
-          if (typeof payload === "object" && payload !== null && "error" in payload && typeof payload.error === "string") {
-            message = t(payload.error);
-          }
-        } else {
-          const responseMessage = await response.text();
-          if (responseMessage.trim()) message = t(responseMessage.trim());
+      let response: Response;
+      if (backgroundJob) {
+        response = await downloadResource(url, { method: "POST", signal: controller.signal });
+        if (!response.ok) {
+          throw new DownloadError(await readResponseError(response, t("Export request failed.")));
         }
-        throw new DownloadError(message);
+        const queued: unknown = await response.json();
+        if (!isRecord(queued) || typeof queued.jobId !== "string") {
+          throw new DownloadError(t("The export job could not be started."));
+        }
+
+        setStatus(t("Waiting for export..."));
+        if (!toastId) throw new DownloadError(t("The export job could not be tracked."));
+        const job = await watchBackgroundJob(queued.jobId, toastId, () => t("Export is ready. Downloading..."));
+        if (job.status !== "COMPLETED") {
+          throw new DownloadError(job.error || t("The export could not be completed."));
+        }
+        response = await downloadResource(
+          `/api/background-jobs/${encodeURIComponent(queued.jobId)}/download`,
+          { signal: controller.signal },
+        );
+      } else {
+        response = await downloadResource(url, { signal: controller.signal });
+      }
+
+      if (!response.ok) {
+        throw new DownloadError(await readResponseError(response, t("Download failed.")));
       }
       const responseType = response.headers.get("content-type")?.toLowerCase() ?? "";
       if (!responseType.startsWith(contentType.toLowerCase())) {
@@ -123,16 +142,24 @@ export function DownloadButton({
 
       setState("done");
       setStatus(t("Download started."));
+      if (toastId) updateToast(toastId, t("CSV export downloaded."), "success");
       resetTimerRef.current = setTimeout(() => {
         setState("idle");
         setStatus("");
         resetTimerRef.current = null;
       }, 2_500);
     } catch (caught) {
-      if (controller.signal.aborted) return;
+      if (controller.signal.aborted) {
+        if (toastId) {
+          dismissToast(toastId);
+        }
+        return;
+      }
       setState("idle");
       setStatus("");
-      setError(caught instanceof DownloadError ? caught.message : t("Could not download the file. Please try again."));
+      const message = caught instanceof DownloadError ? caught.message : t("Could not download the file. Please try again.");
+      if (toastId) updateToast(toastId, message, "error");
+      setError(message);
     } finally {
       if (controllerRef.current === controller) controllerRef.current = null;
     }
@@ -141,10 +168,12 @@ export function DownloadButton({
   return (
     <div className={`download-action-wrap${className ? ` ${className}` : ""}`}>
       <button
-        aria-label={state === "loading" ? t("Cancel download") : t(label)}
+        aria-label={state === "loading" ? t(backgroundJob ? "Preparing export..." : "Cancel download") : t(label)}
         className={`download-action is-${state}`}
+        data-toast-managed={backgroundJob ? "true" : undefined}
+        disabled={backgroundJob && state === "loading"}
         onClick={(event) => void handleClick(event.currentTarget)}
-        title={state === "loading" ? t("Cancel download") : undefined}
+        title={state === "loading" && !backgroundJob ? t("Cancel download") : undefined}
         type="button"
       >
         {state === "loading" ? (
@@ -153,7 +182,7 @@ export function DownloadButton({
             className={`download-action-progress${progress === null ? " is-indeterminate" : ""}`}
             style={progress === null ? undefined : { background: `conic-gradient(var(--green, #277b68) ${progress}%, transparent ${progress}%)` }}
           >
-            <span><Square fill="currentColor" size={12} /></span>
+            <span>{backgroundJob ? <LoaderCircle className="app-toast-spinner" size={15} /> : <Square fill="currentColor" size={12} />}</span>
           </span>
         ) : state === "done" ? (
           <span>{t("Done!")}</span>
@@ -170,4 +199,20 @@ export function DownloadButton({
       {error && <span className="download-action-error" role="alert">{error}</span>}
     </div>
   );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+async function readResponseError(response: Response, fallback: string) {
+  const responseType = response.headers.get("content-type")?.toLowerCase() ?? "";
+  if (responseType.includes("application/json")) {
+    const payload: unknown = await response.json();
+    if (isRecord(payload) && typeof payload.error === "string") return payload.error;
+  } else {
+    const responseMessage = await response.text();
+    if (responseMessage.trim()) return responseMessage.trim();
+  }
+  return `${fallback} (${response.status})`;
 }

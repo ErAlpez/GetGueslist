@@ -1,8 +1,10 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LoaderCircle, Upload, X } from "lucide-react";
+import { beginBackgroundJobToast, watchBackgroundJob } from "@/components/background-job-toast";
+import { updateToast } from "@/components/toast-provider";
 import {
   importGuestsFromCsvAction,
   previewGuestCsvImportAction,
@@ -32,7 +34,9 @@ export function GuestCsvImport({
   const [result, setResult] = useState<GuestCsvImportState | null>(null);
   const [actionError, setActionError] = useState("");
   const [pendingAction, setPendingAction] = useState<"preview" | "import" | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const isPending = pendingAction !== null;
+  const [jobRunning, setJobRunning] = useState(false);
+  const isBusy = isPending || jobRunning;
   const [isOpen, setIsOpen] = useState(false);
 
   const runPreview = () => {
@@ -44,7 +48,7 @@ export function GuestCsvImport({
     setActionError("");
     setResult(null);
     setPendingAction("preview");
-    startTransition(async () => {
+    void (async () => {
       try {
         const formData = new FormData();
         formData.set("eventId", eventId);
@@ -56,21 +60,43 @@ export function GuestCsvImport({
       } finally {
         setPendingAction(null);
       }
-    });
+    })();
   };
 
   const runImport = () => {
-    if (!eventId || !file) return;
+    if (!eventId || !file || jobRunning) return;
 
     setActionError("");
     setResult(null);
     setPendingAction("import");
-    startTransition(async () => {
+    setJobRunning(true);
+    const toastId = beginBackgroundJobToast("Importing guests...");
+    void (async () => {
       try {
         const formData = new FormData();
         formData.set("eventId", eventId);
         formData.set("file", file);
-        const importResult = await importGuestsFromCsvAction(formData);
+        const queued = await importGuestsFromCsvAction(formData);
+        if (queued.error) {
+          updateToast(toastId, queued.error, "error");
+          setResult(queued);
+          setPendingAction(null);
+          return;
+        }
+        if (!queued.jobId) throw new Error("Could not queue the guest import.");
+        setPendingAction(null);
+        const completed = await watchBackgroundJob(queued.jobId, toastId, (job) => {
+          const result = readImportResult(job.result);
+          if (!result) return "Guest import completed.";
+          return `Imported ${result.importedCount} ${result.importedCount === 1 ? "guest" : "guests"}${result.skippedRows.length ? `; ${result.skippedRows.length} row${result.skippedRows.length === 1 ? "" : "s"} skipped` : ""}.`;
+        });
+        if (completed.status === "FAILED") {
+          setResult({ error: completed.error ?? "The guest import could not be completed." });
+          return;
+        }
+
+        const importResult = readImportResult(completed.result);
+        if (!importResult) throw new Error("The guest import result was invalid.");
         setResult(importResult);
         if (importResult.importedCount) {
           setFile(null);
@@ -80,11 +106,14 @@ export function GuestCsvImport({
         }
       } catch (error) {
         console.error("Could not import guest CSV:", error);
-        setActionError("Could not import this file. Check your connection and try again.");
+        const message = "Could not import this file. Check your connection and try again.";
+        updateToast(toastId, message, "error");
+        setActionError(message);
       } finally {
         setPendingAction(null);
+        setJobRunning(false);
       }
-    });
+    })();
   };
 
   const rows = preview?.rows ?? [];
@@ -117,7 +146,7 @@ export function GuestCsvImport({
           <label className="guest-csv-import-field">
             Event
             <select
-              disabled={isPending || events.length === 0}
+              disabled={isBusy || events.length === 0}
               onChange={(event) => {
                 setEventId(event.target.value);
                 setPreview(null);
@@ -134,7 +163,7 @@ export function GuestCsvImport({
             CSV file
             <input
               accept=".csv,text/csv"
-              disabled={isPending}
+              disabled={isBusy}
               onChange={(event) => {
                 setFile(event.target.files?.[0] ?? null);
                 setPreview(null);
@@ -147,7 +176,7 @@ export function GuestCsvImport({
           </label>
           <button
             className="button button-light guest-csv-import-preview"
-            disabled={isPending || !eventId || !file}
+            disabled={isBusy || !eventId || !file}
             onClick={runPreview}
             type="button"
           >
@@ -181,11 +210,12 @@ export function GuestCsvImport({
               </div>
               <button
                 className="button button-dark app-primary-button guest-csv-import-submit"
-                disabled={isPending || readyCount === 0}
+                data-toast-managed="true"
+                disabled={isBusy || readyCount === 0}
                 onClick={runImport}
                 type="button"
               >
-                {isPending && pendingAction === "import" && <LoaderCircle className="spin" size={14} />}
+                {(pendingAction === "import" || jobRunning) && <LoaderCircle className="spin" size={14} />}
                 Import {readyCount} {readyCount === 1 ? "guest" : "guests"}
               </button>
             </div>
@@ -208,4 +238,21 @@ export function GuestCsvImport({
       )}
     </div>
   );
+}
+
+function readImportResult(value: unknown): { importedCount: number; skippedRows: Array<{ rowNumber: number; message: string }> } | null {
+  if (typeof value !== "object" || value === null || !("importedCount" in value) || !("skippedRows" in value)) {
+    return null;
+  }
+  const { importedCount, skippedRows } = value;
+  if (
+    typeof importedCount !== "number"
+    || !Array.isArray(skippedRows)
+    || !skippedRows.every((issue) => typeof issue === "object" && issue !== null
+      && "rowNumber" in issue && typeof issue.rowNumber === "number"
+      && "message" in issue && typeof issue.message === "string")
+  ) {
+    return null;
+  }
+  return { importedCount, skippedRows };
 }

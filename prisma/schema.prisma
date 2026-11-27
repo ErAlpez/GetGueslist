@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
@@ -99,6 +99,19 @@ enum AutomatedEmailStatus {
   SKIPPED
 }
 
+enum BackgroundJobType {
+  GUEST_CSV_IMPORT
+  EVENT_INVITATIONS
+  ATTENDEE_EXPORT
+}
+
+enum BackgroundJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
 model user {
   id                       String                @id
   name                     String
@@ -123,6 +136,7 @@ model user {
   submittedPlatformReviews PlatformReview[]      @relation("PlatformReviewOwner")
   moderatedPlatformReviews PlatformReview[]      @relation("PlatformReviewModerator")
   superAdminAuditLogs      SuperAdminAuditLog[]
+  backgroundJobs           BackgroundJob[]
 
   @@map("users")
 }
@@ -175,14 +189,14 @@ model verification {
 }
 
 model twoFactor {
-  id                     String   @id
-  userId                 String
-  user                   user     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  secret                 String
-  backupCodes            String
-  verified               Boolean  @default(true)
-  failedVerificationCount Int     @default(0)
-  lockedUntil            DateTime?
+  id                      String    @id
+  userId                  String
+  user                    user      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  secret                  String
+  backupCodes             String
+  verified                Boolean   @default(true)
+  failedVerificationCount Int       @default(0)
+  lockedUntil             DateTime?
 
   @@index([userId])
   @@map("two_factors")
@@ -220,6 +234,7 @@ model Workspace {
   checkinDevices        CheckinDevice[]
   mobileCheckinAccesses MobileCheckinAccess[]
   files                 WorkspaceFile[]
+  backgroundJobs        BackgroundJob[]
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt
 
@@ -356,25 +371,25 @@ model SystemHealthSample {
 }
 
 model Subscription {
-  id                     String                 @id @default(cuid())
-  workspaceId            String                 @unique
-  planId                 String
-  status                 SubscriptionStatus     @default(ACTIVE)
-  billingPeriodStart     DateTime               @default(now())
-  billingPeriodEnd       DateTime?
-  renewalDate            DateTime?
-  provider               String                 @default("manual")
-  providerCustomerId     String?
-  providerSubscriptionId String?                @unique
-  providerCheckoutId     String?
-  providerEventAt        DateTime?
+  id                      String                 @id @default(cuid())
+  workspaceId             String                 @unique
+  planId                  String
+  status                  SubscriptionStatus     @default(ACTIVE)
+  billingPeriodStart      DateTime               @default(now())
+  billingPeriodEnd        DateTime?
+  renewalDate             DateTime?
+  provider                String                 @default("manual")
+  providerCustomerId      String?
+  providerSubscriptionId  String?                @unique
+  providerCheckoutId      String?
+  providerEventAt         DateTime?
   scheduledCancellationAt DateTime?
-  workspace              Workspace              @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  plan                   Plan                   @relation(fields: [planId], references: [id], onDelete: Restrict)
-  invoices               SubscriptionInvoice[]
-  paymentMethods         BillingPaymentMethod[]
-  createdAt              DateTime               @default(now())
-  updatedAt              DateTime               @updatedAt
+  workspace               Workspace              @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  plan                    Plan                   @relation(fields: [planId], references: [id], onDelete: Restrict)
+  invoices                SubscriptionInvoice[]
+  paymentMethods          BillingPaymentMethod[]
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
 
   @@index([planId, status])
 }
@@ -582,6 +597,32 @@ model AutomatedEmailDelivery {
   @@unique([registrationId, kind])
   @@index([status, scheduledAt])
   @@index([status, nextAttemptAt])
+}
+
+model BackgroundJob {
+  id             String              @id @default(cuid())
+  workspaceId    String
+  createdById    String
+  type           BackgroundJobType
+  status         BackgroundJobStatus @default(PENDING)
+  payload        Json?
+  result         Json?
+  error          String?
+  progress       Int                 @default(0)
+  processedItems Int                 @default(0)
+  attempts       Int                 @default(0)
+  lockedAt       DateTime?
+  expiresAt      DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  workspace      Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy      user                @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([status, lockedAt])
+  @@index([workspaceId, createdById, createdAt])
+  @@index([expiresAt])
 }
 
 model EventFeedback {

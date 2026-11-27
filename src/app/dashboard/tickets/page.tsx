@@ -90,7 +90,7 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
       <div className="page-heading-row">
         <div><div className="page-kicker">TICKETING</div><h1>Tickets</h1><p>Unique QR tickets issued to your guests.</p></div>
         {canExportCsv && (selectedEvent || canExportWorkspace)
-          ? <DownloadButton href={selectedEvent ? `/api/guestlist/export?event=${encodeURIComponent(selectedEvent.id)}` : "/api/guestlist/export"} label="Export attendees" />
+          ? <DownloadButton backgroundJob href={selectedEvent ? `/api/guestlist/export?event=${encodeURIComponent(selectedEvent.id)}` : "/api/guestlist/export"} label="Export attendees" />
           : <span className="plan-gated-label">{canExportCsv ? "Workspace-wide CSV export requires Max; select an event to export one." : "CSV export requires Starter."}</span>}
       </div>
       {!canViewTicketStatus && <p className="plan-gated-label ticket-status-gate">Ticket status visibility requires Max</p>}

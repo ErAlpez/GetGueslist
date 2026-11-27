@@ -29,8 +29,12 @@ function scheduleToastDismiss(id: string, delay: number) {
   timers.set(id, setTimeout(() => dismissToast(id), delay));
 }
 
-export function showToast(message: string, kind: ToastKind = "loading") {
-  if (kind === "loading") {
+export function showToast(
+  message: string,
+  kind: ToastKind = "loading",
+  options: { deduplicate?: boolean } = {},
+) {
+  if (kind === "loading" && options.deduplicate !== false) {
     const existing = toastItems.find((toast) => toast.kind === kind && toast.message === message);
     if (existing) return existing.id;
   }

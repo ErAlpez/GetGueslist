@@ -137,7 +137,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
 
   return localizeNode((
     <div className="reports-page">
-      <div className="page-heading-row"><div><div className="page-kicker">INSIGHTS</div><h1>Reports & analytics</h1><p>Registration and attendance from your workspace data.</p></div>{canExportCsv && (selectedEventId || canExportWorkspace) ? <DownloadButton href={exportHref} label="Export CSV" /> : <span className="plan-gated-label">{canExportCsv ? "Workspace-wide CSV export requires Max." : "CSV export requires Starter."}</span>}</div>
+      <div className="page-heading-row"><div><div className="page-kicker">INSIGHTS</div><h1>Reports & analytics</h1><p>Registration and attendance from your workspace data.</p></div>{canExportCsv && (selectedEventId || canExportWorkspace) ? <DownloadButton backgroundJob href={exportHref} label="Export CSV" /> : <span className="plan-gated-label">{canExportCsv ? "Workspace-wide CSV export requires Max." : "CSV export requires Starter."}</span>}</div>
       <form action="/dashboard/reports" className="venuguestpass-toolbar report-filters">
         <label>Event<select aria-label="Filter by event" defaultValue={selectedEventId} name="event">{canViewMultiEventReports ? <option value="">All events</option> : null}{events.map((event) => <option key={event.id} value={event.id}>{event.name}</option>)}</select></label>
         <label>Category<select aria-label="Filter by category" defaultValue={category ?? ""} name="category"><option value="">All categories</option>{categories.map((item) => <option key={item} value={item}>{item.replaceAll("_", " ")}</option>)}</select></label>
