@@ -4212,10 +4212,6 @@ html[data-theme="dark"] .app-shell .checkin-event-filter label {
   border-radius: 12px;
 }
 
-.app-shell .settings-form {
-  gap: 18px;
-}
-
 .app-shell .settings-form .form-grid {
   gap: 16px;
 }

@@ -18,7 +18,11 @@ const AuthForm = dynamic(
 
 type AuthMode = "sign-in" | "sign-up";
 type OpenAuthModal = (mode: AuthMode) => void;
-type LandingAuthContextValue = { authenticated: boolean; openModal: OpenAuthModal };
+type LandingAuthContextValue = {
+  authenticated: boolean;
+  openModal: OpenAuthModal;
+  preloadForm: () => void;
+};
 
 const OpenAuthModalContext = createContext<LandingAuthContextValue | null>(null);
 
@@ -102,6 +106,7 @@ export function LandingAuthModal({
   function openModal(nextMode: AuthMode) {
     if (authenticated) return;
     cancelModeChange();
+    preloadForm();
     setMode(nextMode);
 
     const dialog = dialogRef.current;
@@ -115,6 +120,10 @@ export function LandingAuthModal({
     setHasOpened(true);
   }
 
+  function preloadForm() {
+    if (!authenticated) setHasOpened(true);
+  }
+
   function closeModal() {
     cancelModeChange();
     const dialog = dialogRef.current;
@@ -124,7 +133,7 @@ export function LandingAuthModal({
   }
 
   return (
-    <OpenAuthModalContext.Provider value={{ authenticated, openModal }}>
+    <OpenAuthModalContext.Provider value={{ authenticated, openModal, preloadForm }}>
       {children}
       {!authenticated && (
         <dialog
@@ -189,6 +198,8 @@ export function LandingAuthTrigger({ children, className, mode }: LandingAuthTri
       aria-haspopup="dialog"
       className={className}
       onClick={() => authContext.openModal(mode)}
+      onFocus={authContext.preloadForm}
+      onPointerEnter={authContext.preloadForm}
       type="button"
     >
       {children}
