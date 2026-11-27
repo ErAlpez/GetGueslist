@@ -17,6 +17,7 @@ import { workspaceRoleHasPermission } from "@/lib/workspace-roles";
 import { getPreferences } from "@/lib/preferences";
 import { localizeNode, type Locale } from "@/lib/localization";
 import { AnimatedMetric } from "@/components/animated-metric";
+import { DashboardGreeting } from "@/components/dashboard-greeting";
 import { DashboardLoadingContent } from "@/components/dashboard-loading-content";
 import { StatisticCircle, StatisticIconCircle } from "@/components/statistic-circle";
 import "./dashboard.css";
@@ -37,7 +38,7 @@ export default async function DashboardPage() {
         <div className="page-heading-row">
           <div>
             <div className="page-kicker">OVERVIEW</div>
-            <h1>Good morning, {firstName}</h1>
+            <DashboardGreeting firstName={firstName} />
             <p>Here’s the latest from {context.workspace.name}.</p>
           </div>
           {canManageEvents && <Link className="button button-dark app-primary-button" href="/dashboard/events/new"><Plus size={16} /> Create event</Link>}
