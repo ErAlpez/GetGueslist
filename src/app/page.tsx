@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
 import {
@@ -21,7 +22,6 @@ import {
   Settings2,
   ShieldCheck,
   Sparkles,
-  Star,
   Ticket,
   UsersRound,
   Zap,
@@ -31,16 +31,13 @@ import { LandingSections } from "@/components/landing-sections";
 import { LandingAuthModal, LandingAuthTrigger } from "@/components/landing-auth-modal";
 import { StatisticCircle } from "@/components/statistic-circle";
 import {
-  PlanPrice,
-  PlanPricingPeriod,
-} from "@/components/plan-pricing-period";
+  LandingPricingSection,
+  LandingReviewsSection,
+} from "@/components/landing-data-sections";
 import { getPreferences } from "@/lib/preferences";
 import { getCurrentSession } from "@/lib/auth";
 import { landingNavigationItems } from "@/lib/landing-navigation";
-import { getPlanFeatureLabels } from "@/lib/plan-features";
-import { getPrisma } from "@/lib/prisma";
-import { getAnnualDiscountPercent } from "@/lib/currency-format";
-import { localizeNode, translate } from "@/lib/localization";
+import { localizeNode, translate, type Locale } from "@/lib/localization";
 import "./landing.css";
 import "./landing-experience.css";
 
@@ -192,27 +189,14 @@ export default async function Home({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const [{ locale }, session, params, plans, reviews] = await Promise.all([
+  const [{ locale }, session, params] = await Promise.all([
     getPreferences(),
     getCurrentSession(),
     searchParams,
-    getPrisma().plan.findMany({ where: { isActive: true }, orderBy: { monthlyPriceCents: "asc" } }),
-    getPrisma().platformReview.findMany({
-      where: { rating: 5, status: "APPROVED", publicationConsent: true },
-      select: { id: true, authorName: true, workspaceName: true, message: true },
-      orderBy: [{ moderatedAt: "desc" }, { createdAt: "desc" }],
-      take: 6,
-    }),
   ]);
   const authMode = params.auth === "sign-up" ? "sign-up" : "sign-in";
   const openAuthModal = params.auth === "sign-in" || params.auth === "sign-up";
   const showDemoAccount = params.demo === "account";
-  const annualDiscountPercent = plans.reduce((maximumDiscount, plan) => {
-    if (plan.code === "FREE") return maximumDiscount;
-
-    const discount = getAnnualDiscountPercent(plan.monthlyPriceCents, plan.yearlyPriceCents);
-    return Math.max(maximumDiscount, discount ?? 0);
-  }, 0) || null;
 
   return localizeNode((
     <main className="landing-page">
@@ -397,77 +381,13 @@ export default async function Home({
         </div>
       </section>
 
-      <section className="section pricing-section" id="pricing">
-        <div className="center-heading">
-          <div className="section-kicker">SIMPLE, TRANSPARENT PRICING</div>
-          <h2>A plan for every <span>event program.</span></h2>
-          <p className="section-lead">Choose monthly or annual access for your team. Plans do not renew automatically; your paid features remain available until the access end date.</p>
-        </div>
-        <PlanPricingPeriod annualDiscountPercent={annualDiscountPercent}>
-          <div className="pricing-plan-grid">
-            {plans.map((plan) => {
-              const monthlyPriceMinor = plan.monthlyPriceCents;
-              const annualPriceMinor = plan.yearlyPriceCents;
-              const currencyCode = "USD";
+      <Suspense fallback={<LandingPricingFallback locale={locale} />}>
+        <LandingPricingSection locale={locale} />
+      </Suspense>
 
-              return (
-                <article className={`pricing-plan-card${plan.code === "PROFESSIONAL" ? " is-popular" : ""}`} key={plan.id}>
-                  <span className="pricing-plan-badge">{plan.code === "PROFESSIONAL" ? "MOST POPULAR" : `${plan.name.toUpperCase()} PLAN`}</span>
-                  <h3>{plan.name}</h3>
-                  <p>{plan.description}</p>
-                  <PlanPrice
-                    annualPriceMinor={annualPriceMinor}
-                    className="pricing-plan-monthly"
-                    currencyCode={currencyCode}
-                    locale={locale}
-                    monthlyPriceMinor={monthlyPriceMinor}
-                  />
-                  <div className="pricing-plan-limits">
-                    <span><strong>{plan.activeEventLimit ?? "Unlimited"}</strong> active events</span>
-                    <span><strong>{plan.attendeePerEventLimit?.toLocaleString(locale) ?? "Unlimited"}</strong> attendees per event</span>
-                  </div>
-                  <ul className="pricing-plan-features">
-                    {getPlanFeatureLabels(plan.features).map((feature) => <li key={feature}><Check size={14} />{feature}</li>)}
-                  </ul>
-                  {plan.code === "FREE"
-                    ? <LandingAuthTrigger className="button button-dark pricing-cta pricing-plan-cta" mode="sign-up">Get started free <ArrowRight size={15} /></LandingAuthTrigger>
-                    : <button className="button button-dark pricing-cta pricing-plan-cta" disabled type="button">Paid plan coming soon</button>}
-                </article>
-              );
-            })}
-          </div>
-        </PlanPricingPeriod>
-        <div className="pricing-plan-note">
-          <CreditCard aria-hidden="true" className="pricing-plan-note-icon" size={12} />
-          <span className="pricing-plan-note-copy">Find the plan that fits your events. Grow with tools designed for every stage.</span>
-        </div>
-      </section>
-
-      <section className="section reviews-section" id="reviews">
-        <div className="center-heading">
-          <div className="section-kicker">FROM EVENT TEAMS</div>
-          <h2>Kind words from <span>our community.</span></h2>
-          <p className="section-lead">Shared by workspace owners and published with their permission.</p>
-        </div>
-        {reviews.length ? (
-          <div className="public-review-grid">
-            {reviews.map((review) => (
-              <article className="public-review-card" key={review.id}>
-                <div aria-label="5 out of 5 stars" className="public-review-stars" role="img">
-                  {Array.from({ length: 5 }, (_, index) => <Star aria-hidden="true" fill="currentColor" key={index} size={15} />)}
-                </div>
-                <blockquote>{review.message}</blockquote>
-                <div className="public-review-author">
-                  <strong>{review.authorName}</strong>
-                  <span>{review.workspaceName}</span>
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <p className="public-review-empty">Owner reviews will appear here when shared and approved.</p>
-        )}
-      </section>
+      <Suspense fallback={<LandingReviewsFallback locale={locale} />}>
+        <LandingReviewsSection locale={locale} />
+      </Suspense>
 
       <section className="section faq-section" id="faq">
         <div className="faq-heading"><div className="section-kicker">GOOD QUESTIONS</div><h2>Before the<br /><span>first guest arrives.</span></h2><p>Something else on your mind? <a href="mailto:support@venuguestpass.com">Talk to us <ArrowUpRight size={13} /></a></p></div>
@@ -493,5 +413,31 @@ export default async function Home({
       </div>
       </LandingAuthModal>
     </main>
+  ), locale);
+}
+
+function LandingPricingFallback({ locale }: { locale: Locale }) {
+  return localizeNode((
+    <section aria-busy="true" aria-label="Loading plans" className="section pricing-section" id="pricing">
+      <div className="center-heading">
+        <div className="section-kicker">SIMPLE, TRANSPARENT PRICING</div>
+        <h2>A plan for every <span>event program.</span></h2>
+        <p className="section-lead">Choose monthly or annual access for your team. Plans do not renew automatically; your paid features remain available until the access end date.</p>
+        <p aria-live="polite" className="section-lead" role="status">Loading plans…</p>
+      </div>
+    </section>
+  ), locale);
+}
+
+function LandingReviewsFallback({ locale }: { locale: Locale }) {
+  return localizeNode((
+    <section aria-busy="true" aria-label="Loading reviews" className="section reviews-section" id="reviews">
+      <div className="center-heading">
+        <div className="section-kicker">FROM EVENT TEAMS</div>
+        <h2>Kind words from <span>our community.</span></h2>
+        <p className="section-lead">Shared by workspace owners and published with their permission.</p>
+        <p aria-live="polite" className="section-lead" role="status">Loading reviews…</p>
+      </div>
+    </section>
   ), locale);
 }

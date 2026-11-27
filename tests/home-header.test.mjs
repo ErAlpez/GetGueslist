@@ -54,6 +54,10 @@ async function renderHome(session) {
       LandingAuthModal: ({ children }) => React.createElement(React.Fragment, null, children),
       LandingAuthTrigger: ({ children }) => React.createElement("a", { href: "/login" }, children),
     },
+    "@/components/landing-data-sections": {
+      LandingPricingSection: () => null,
+      LandingReviewsSection: () => null,
+    },
     "@/components/account-menu": {
       AccountMenu: ({ name, email, image, showOverview }) => React.createElement(
         "button",
@@ -63,8 +67,8 @@ async function renderHome(session) {
     },
     "@/lib/preferences": { getPreferences: async () => ({ locale: "en" }) },
     "@/lib/prisma": { getPrisma: () => ({
-      plan: { findMany: async () => [] },
-      platformReview: { findMany: async () => [] },
+      plan: { findMany: () => { throw new Error("Pricing queries must not block the homepage shell"); } },
+      platformReview: { findMany: () => { throw new Error("Review queries must not block the homepage shell"); } },
     }) },
     "@/lib/auth": { getCurrentSession: async () => session },
     "@/lib/localization": { localizeNode: (node) => node, translate: (_locale, text) => text },
@@ -82,6 +86,11 @@ async function renderHeader(session) {
   const html = await renderHome(session);
   return html.match(/<header class="site-header">[\s\S]*?<\/header>/)[0];
 }
+
+test("homepage shell renders without waiting for pricing or review database queries", async () => {
+  const html = await renderHome(null);
+  assert.ok(html.length > 0);
+});
 
 test("signed-out header retains sign-in and sign-up links", async () => {
   const header = await renderHeader(null);
