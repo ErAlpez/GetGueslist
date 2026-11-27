@@ -344,12 +344,6 @@ html[data-theme="dark"] .landing-page .site-header .language-option[aria-selecte
   outline: none;
 }
 
-.landing-page .landing-slide .motion-reveal {
-  opacity: 1;
-  translate: none;
-  transition: none;
-}
-
 .landing-page .landing-navigation {
   z-index: 2;
   display: flex;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef } from "react";
+import { useActionToastFeedback } from "@/components/toast-provider";
 import { Download, FileText, Image, LoaderCircle, Trash2, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
@@ -42,6 +43,7 @@ function WorkspaceFileRow({ file, canManage }: { file: FileSummary; canManage: b
   const { locale, t } = usePreferences();
   const router = useRouter();
   const [state, formAction, pending] = useActionState(deleteWorkspaceFileAction, initialState);
+  useActionToastFeedback(pending, state);
   const date = new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(file.createdAt);
   const FileIcon = file.contentType.startsWith("image/") ? Image : FileText;
 
@@ -90,6 +92,7 @@ function EventAttachmentRow({ attachment, canManage }: { attachment: EventAttach
   const { locale, t } = usePreferences();
   const router = useRouter();
   const [state, formAction, pending] = useActionState(deleteEventAttachmentAction, initialAttachmentState);
+  useActionToastFeedback(pending, state);
   const date = new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(attachment.createdAt);
   const FileIcon = attachment.contentType.startsWith("image/") ? Image : FileText;
 
@@ -148,6 +151,7 @@ export function WorkspaceFileLibrary({
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [state, formAction, pending] = useActionState(uploadWorkspaceFileAction, initialState);
+  useActionToastFeedback(pending, state);
 
   useEffect(() => {
     if (!state.success) return;

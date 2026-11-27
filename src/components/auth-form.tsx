@@ -6,7 +6,6 @@ import { useState, type FormEvent } from "react";
 import { ArrowLeft, ArrowRight, Check, LoaderCircle, LockKeyhole, UserRound } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { BrandMark } from "@/components/brand-mark";
-import { FormSaveSuccess } from "@/components/form-save-success";
 import { usePreferences } from "@/components/preferences-provider";
 import { getSignInErrorMessage } from "@/lib/auth-errors";
 import { localizeNode } from "@/lib/localization";
@@ -19,7 +18,6 @@ type AuthFormProps = {
   authError?: string;
   onModeChange?: (mode: "sign-in" | "sign-up") => void;
   showDemoAccount?: boolean;
-  autoDismissSuccess?: boolean;
 };
 
 const headings: Record<AuthMode, { title: string; description: string }> = {
@@ -59,12 +57,10 @@ export function AuthForm({
   authError,
   onModeChange,
   showDemoAccount = false,
-  autoDismissSuccess = true,
 }: AuthFormProps) {
   const router = useRouter();
   const { locale, t } = usePreferences();
   const [message, setMessage] = useState(authError ?? "");
-  const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState("");
   const [resendingVerification, setResendingVerification] = useState(false);
@@ -93,8 +89,6 @@ export function AuthForm({
       const otpResult = await authClient.twoFactor.sendOtp();
       if (otpResult.error) {
         setMessage(t(otpResult.error.message ?? "We couldn’t send your sign-in code."));
-      } else {
-        setSuccess(t("A six-digit sign-in code was sent to your email."));
       }
       return;
     }
@@ -105,7 +99,6 @@ export function AuthForm({
   async function handleOtpSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage("");
-    setSuccess("");
     if (mode === "sign-up") setVerificationEmail("");
     setOtpInvalid(false);
 
@@ -139,7 +132,6 @@ export function AuthForm({
 
   async function resendOtp() {
     setMessage("");
-    setSuccess("");
     setOtpInvalid(false);
     setSubmitting(true);
     try {
@@ -148,7 +140,6 @@ export function AuthForm({
         setMessage(t(result.error.message ?? "We couldn’t send your sign-in code."));
       } else {
         setOtpCode("");
-        setSuccess(t("A new sign-in code was sent to your email."));
       }
     } catch {
       setMessage(t("Something went wrong. Please try again."));
@@ -168,14 +159,11 @@ export function AuthForm({
     if (!verificationEmail) return;
 
     setMessage("");
-    setSuccess("");
     setResendingVerification(true);
     try {
       const result = await requestVerificationEmail(verificationEmail);
       if (result.error) {
         setMessage(t(result.error.message ?? "Something went wrong. Please try again."));
-      } else {
-        setSuccess("If an unverified account exists for this email, a verification link is on its way.");
       }
     } catch {
       setMessage(t("Something went wrong. Please try again."));
@@ -187,7 +175,6 @@ export function AuthForm({
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage("");
-    setSuccess("");
 
     const formData = new FormData(event.currentTarget);
     const email = String(formData.get("email") ?? "").trim();
@@ -220,7 +207,6 @@ export function AuthForm({
           setMessage(result.error.message ?? "We couldn’t create your account.");
         } else {
           setVerificationEmail(email);
-          setSuccess("If an unverified account exists for this email, a verification link is on its way.");
         }
       } else if (mode === "sign-in") {
         await signIn(email, password);
@@ -231,8 +217,6 @@ export function AuthForm({
         });
         if (result.error) {
           setMessage(result.error.message ?? "We couldn’t process that request.");
-        } else {
-          setSuccess("If an account exists for that email, a password reset link is on its way.");
         }
       } else if (isReset) {
         if (!token) {
@@ -242,7 +226,6 @@ export function AuthForm({
           if (result.error) {
             setMessage(result.error.message ?? "This reset link is invalid or expired.");
           } else {
-            setSuccess("Your password has been updated. You can now sign in.");
             router.replace("/login");
           }
         }
@@ -256,7 +239,6 @@ export function AuthForm({
 
   async function signInToDemo() {
     setMessage("");
-    setSuccess("");
     setSubmitting(true);
     try {
       await signIn("demo@venuguestpass.local", "VenuGuestPassDemo123!");
@@ -393,7 +375,6 @@ export function AuthForm({
                 {message}
               </p>
             )}
-            {success && <FormSaveSuccess autoDismiss={autoDismissSuccess} message={t(success)} />}
             {isSignUp && verificationEmail && (
               <div className="auth-inline-link">
                 <button disabled={submitting || resendingVerification} onClick={resendVerificationEmail} type="button">

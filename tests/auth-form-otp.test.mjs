@@ -45,7 +45,6 @@ function createHarness() {
       },
     },
     "@/components/brand-mark": { BrandMark: () => null },
-    "@/components/form-save-success": { FormSaveSuccess: () => null },
     "@/components/preferences-provider": { usePreferences: () => ({ locale: "en", t: (text) => text }) },
     "@/lib/auth-errors": { getSignInErrorMessage: (message) => message },
     "@/lib/localization": { localizeNode: (node) => node },

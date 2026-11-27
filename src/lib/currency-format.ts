@@ -15,16 +15,3 @@ export function formatCurrencyMinorUnits(locale: string, amountMinor: number, cu
     maximumFractionDigits: fractionDigits,
   }).format(amountMinor / 10 ** fractionDigits);
 }
-
-export function getAnnualDiscountPercent(monthlyAmountMinor: number | null, annualAmountMinor: number | null) {
-  if (
-    monthlyAmountMinor === null ||
-    annualAmountMinor === null ||
-    monthlyAmountMinor <= 0 ||
-    annualAmountMinor >= monthlyAmountMinor * 12
-  ) {
-    return null;
-  }
-
-  return Math.round(((monthlyAmountMinor * 12 - annualAmountMinor) / (monthlyAmountMinor * 12)) * 100);
-}

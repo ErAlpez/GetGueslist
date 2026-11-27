@@ -162,7 +162,6 @@ export function LandingAuthModal({
             {(hasOpened || (openInitially && !authenticated)) && (
               <div className={`landing-auth-experience${isSwitchingMode ? " is-switching-mode" : ""}`}>
                 <AuthForm
-                  autoDismissSuccess={false}
                   key={mode}
                   mode={mode}
                   onModeChange={handleModeChange}

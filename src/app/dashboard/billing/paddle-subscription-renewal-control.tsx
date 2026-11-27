@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { useActionToastFeedback } from "@/components/toast-provider";
 import {
   disablePaddleSubscriptionRenewalAction,
   type PaddleRenewalActionState,
@@ -28,6 +29,7 @@ export function PaddleSubscriptionRenewalControl({
     disablePaddleSubscriptionRenewalAction,
     initialState,
   );
+  useActionToastFeedback(disabling, disableState);
   const [confirming, setConfirming] = useState(false);
 
   if (scheduledCancellationAt) {

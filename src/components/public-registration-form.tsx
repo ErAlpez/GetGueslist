@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { useActionToastFeedback } from "@/components/toast-provider";
 import { LoaderCircle } from "lucide-react";
 import { registerForEventAction, type PublicRegistrationState } from "@/app/register/[eventId]/actions";
 import { usePreferences } from "@/components/preferences-provider";
@@ -24,6 +25,7 @@ export function PublicRegistrationForm({
 }) {
   const { t } = usePreferences();
   const [state, formAction, pending] = useActionState(registerForEventAction, initialState);
+  useActionToastFeedback(pending, state);
 
   return (
     <form action={formAction} className="public-registration-form">

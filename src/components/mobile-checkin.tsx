@@ -8,6 +8,7 @@ import { localizeNode } from "@/lib/localization";
 import { queueOfflineCheckIn, readOfflineQueue, syncOfflineCheckIns } from "@/lib/offline-checkin";
 import { endMobileCheckIn, pairMobileCheckIn, validateCheckIn } from "@/lib/api";
 import { BrandMark } from "@/components/brand-mark";
+import { showToast, updateToast } from "@/components/toast-provider";
 import "./mobile-checkin.css";
 
 type CheckInResult = {
@@ -106,6 +107,7 @@ function MobileCheckinScanner({ eventId, checkpoints }: { eventId: string; check
     scannerRef.current?.pause(true);
     setError("");
     setChecking(true);
+    const toastId = showToast(activeCheckpointId ? "Claiming checkpoint..." : "Checking in...");
 
     try {
       const response = await validateCheckIn({
@@ -116,6 +118,7 @@ function MobileCheckinScanner({ eventId, checkpoints }: { eventId: string; check
       const payload = await response.json() as CheckInResult;
       if (payload.result === "checked_in" || payload.result === "claimed") router.refresh();
       if (response.status === 401 || response.status === 403) {
+        updateToast(toastId, payload.message ?? "This phone no longer has access to check in.", "error");
         setBlocked(true);
         finishScan(payload.message ?? "This phone no longer has access to check in.", false, false);
         const scanner = scannerRef.current;
@@ -126,15 +129,21 @@ function MobileCheckinScanner({ eventId, checkpoints }: { eventId: string; check
         return;
       }
 
-      finishScan(responseMessage(payload), response.ok && (payload.result === "checked_in" || payload.result === "claimed"), true);
+      const succeeded = response.ok && (payload.result === "checked_in" || payload.result === "claimed");
+      updateToast(toastId, responseMessage(payload), succeeded ? "success" : "error");
+      finishScan(responseMessage(payload), succeeded, true);
     } catch {
       if (activeCheckpointId) {
-        finishScan("Checkpoint claims require an online connection. No claim was recorded.", false, true);
+        const message = "Checkpoint claims require an online connection. No claim was recorded.";
+        updateToast(toastId, message, "error");
+        finishScan(message, false, true);
       } else {
         const token = extractToken(decodedText);
         const deviceId = `mobile-${eventId}`;
         queueOfflineCheckIn({ eventId, token, deviceId, queuedAt: new Date().toISOString() });
-        finishScan("You’re offline. This scan was queued and will sync automatically.", false, true);
+        const message = "You’re offline. This scan was queued and will sync automatically.";
+        updateToast(toastId, message, "success");
+        finishScan(message, false, true);
       }
     }
   }, [activeCheckpointId, eventId, finishScan, router]);

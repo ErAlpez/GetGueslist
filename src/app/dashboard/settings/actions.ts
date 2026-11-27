@@ -12,7 +12,7 @@ import { workspaceRoleHasPermission } from "@/lib/workspace-roles";
 import { workspaceHasFeature } from "@/lib/plan-features";
 import { convertImageToAvif } from "@/lib/image-optimization";
 
-export type WorkspaceSettingsState = { error?: string; success?: string };
+export type WorkspaceSettingsState = { error?: string; success?: string; unchanged?: boolean };
 export type ProfilePictureState = { error?: string; success?: string };
 export type WorkspaceInvitationState = { error?: string; success?: string };
 
@@ -53,18 +53,31 @@ export async function updateWorkspaceAction(
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check your workspace details." };
 
+  const updatedSettings = {
+    name: parsed.data.name,
+    contactEmail: parsed.data.contactEmail || null,
+    contactPhone: parsed.data.contactPhone || null,
+    organizationType: parsed.data.organizationType || null,
+    address: parsed.data.address || null,
+    timezone: parsed.data.timezone,
+  };
+  const currentSettings = context.workspace;
+  if (
+    currentSettings.name === updatedSettings.name &&
+    currentSettings.contactEmail === updatedSettings.contactEmail &&
+    currentSettings.contactPhone === updatedSettings.contactPhone &&
+    currentSettings.organizationType === updatedSettings.organizationType &&
+    currentSettings.address === updatedSettings.address &&
+    currentSettings.timezone === updatedSettings.timezone
+  ) {
+    return { unchanged: true };
+  }
+
   const prisma = getPrisma();
   await prisma.$transaction([
     prisma.workspace.update({
       where: { id: context.workspace.id },
-      data: {
-        name: parsed.data.name,
-        contactEmail: parsed.data.contactEmail || null,
-        contactPhone: parsed.data.contactPhone || null,
-        organizationType: parsed.data.organizationType || null,
-        address: parsed.data.address || null,
-        timezone: parsed.data.timezone,
-      },
+      data: updatedSettings,
     }),
     prisma.activityLog.create({
       data: {

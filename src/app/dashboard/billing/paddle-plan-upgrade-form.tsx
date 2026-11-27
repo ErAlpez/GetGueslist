@@ -2,6 +2,7 @@
 
 import { ArrowUpRight } from "lucide-react";
 import { useActionState, useState } from "react";
+import { useActionToastFeedback } from "@/components/toast-provider";
 import {
   upgradeStarterToMaxAction,
   type PaddleUpgradeActionState,
@@ -17,6 +18,7 @@ export function PaddlePlanUpgradeForm({
   disabledLabel?: string;
 }) {
   const [state, action, pending] = useActionState(upgradeStarterToMaxAction, initialState);
+  useActionToastFeedback(pending, state);
   const [confirming, setConfirming] = useState(false);
 
   return (

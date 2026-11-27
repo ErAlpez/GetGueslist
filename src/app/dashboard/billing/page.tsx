@@ -14,7 +14,7 @@ import {
   PlanPrice,
   PlanPricingPeriod,
 } from "@/components/plan-pricing-period";
-import { formatCurrencyMinorUnits, getAnnualDiscountPercent } from "@/lib/currency-format";
+import { formatCurrencyMinorUnits } from "@/lib/currency-format";
 import { AnimatedMetric } from "@/components/animated-metric";
 import { PlanCheckoutForm } from "./plan-checkout-form";
 import { PaddlePlanUpgradeForm } from "./paddle-plan-upgrade-form";
@@ -55,12 +55,6 @@ export default async function BillingPage() {
     subscription?.billingPeriodEnd,
   );
   const planPricingPeriod = currentPaddleBillingPeriod ?? "monthly";
-  const annualDiscountPercent = plans.reduce((maximumDiscount, plan) => {
-    if (plan.code === "FREE") return maximumDiscount;
-
-    const discount = getAnnualDiscountPercent(plan.monthlyPriceCents, plan.yearlyPriceCents);
-    return Math.max(maximumDiscount, discount ?? 0);
-  }, 0) || null;
   const currentPlanPriceMinor = subscription
     ? planPricingPeriod === "annual"
       ? subscription.plan.yearlyPriceCents
@@ -187,7 +181,6 @@ export default async function BillingPage() {
 
       <section className="app-panel plan-options-panel">
         <PlanPricingPeriod
-          annualDiscountPercent={annualDiscountPercent}
           initialPeriod={planPricingPeriod}
           lockPeriod={hasActivePaddleSubscription && currentPaddleBillingPeriod !== null}
           header={

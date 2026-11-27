@@ -18,14 +18,13 @@ import { EventModulesManager } from "@/components/event-modules-manager";
 import { EventCheckpointsManager } from "@/components/event-checkpoints-manager";
 import { EventAttachmentsManager } from "@/components/event-attachments-manager";
 import { EventMoreMenu } from "@/components/event-more-menu";
-import { FormSaveSuccess } from "@/components/form-save-success";
 import {
   publishEventAction,
   unpublishEventAction,
 } from "@/app/dashboard/events/actions";
 import { getPrisma } from "@/lib/prisma";
 import { getPreferences } from "@/lib/preferences";
-import { localizeNode, translate } from "@/lib/localization";
+import { localizeNode } from "@/lib/localization";
 import { AnimatedMetric } from "@/components/animated-metric";
 import { formatEventDateRange } from "@/lib/datetime";
 import { readEventLogo } from "@/lib/event-logo";
@@ -146,9 +145,6 @@ export default async function EventDetailPage({ params, searchParams }: EventDet
       {notices.error === "registration_closed" && <p className="form-message form-error event-notice">This event’s date or registration deadline has passed, so it can’t be published.</p>}
       {notices.error === "has_registrations" && <p className="form-message form-error event-notice">This event has registrations, so it can’t be deleted. Archive it instead to keep the event history.</p>}
       {notices.error === "permission" && <p className="form-message form-error event-notice">You don’t have permission to edit events in this workspace.</p>}
-      {notices.published && <FormSaveSuccess className="event-notice" message={translate(locale, "Event published. Registration is now open.")} />}
-      {notices.unpublished && <FormSaveSuccess className="event-notice" message={translate(locale, "Event unpublished. Existing event data has been kept.")} />}
-      {notices.updated && <FormSaveSuccess className="event-notice" message={translate(locale, "Event details updated.")} />}
 
       <section className="event-detail-hero">
         <div className="event-detail-heading">

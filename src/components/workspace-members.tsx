@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { useActionToastFeedback } from "@/components/toast-provider";
 import { LoaderCircle, MailPlus, Trash2 } from "lucide-react";
 import {
   inviteWorkspaceMemberAction,
@@ -8,7 +9,6 @@ import {
   revokeWorkspaceInvitationAction,
   type WorkspaceInvitationState,
 } from "@/app/dashboard/settings/actions";
-import { FormSaveSuccess } from "@/components/form-save-success";
 
 const initialState: WorkspaceInvitationState = {};
 
@@ -37,6 +37,7 @@ export function WorkspaceMembers({
   ownerId: string;
 }) {
   const [state, formAction, pending] = useActionState(inviteWorkspaceMemberAction, initialState);
+  useActionToastFeedback(pending, state);
 
   if (!canManage) {
     return (
@@ -61,7 +62,6 @@ export function WorkspaceMembers({
         </button>
       </form>
       {state.error && <p className="form-message form-error" role="alert">{state.error}</p>}
-      {state.success && !pending && <FormSaveSuccess message={state.success} />}
 
       <div className="workspace-member-list">
         {members.map((member) => (

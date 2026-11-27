@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { useActionToastFeedback } from "@/components/toast-provider";
 import { Check, LoaderCircle, Mail, Nfc, Settings2, Utensils, CalendarClock, UserCheck } from "lucide-react";
 import {
   sendEventInvitationsAction,
@@ -8,7 +9,6 @@ import {
   type EventModuleState,
 } from "@/app/dashboard/events/actions";
 import { EventDateTime } from "@/components/event-date-time";
-import { FormSaveSuccess } from "@/components/form-save-success";
 
 const initialState: EventModuleState = {};
 
@@ -73,7 +73,9 @@ function ModuleCard({
   canManage: boolean;
 }) {
   const [state, formAction, pending] = useActionState(updateEventModuleAction, initialState);
+  useActionToastFeedback(pending, state);
   const [sendState, sendAction, sending] = useActionState(sendEventInvitationsAction, initialState);
+  useActionToastFeedback(sending, sendState);
   const [enabled, setEnabled] = useState(moduleRecord.enabled);
   const settings = readSettings(moduleRecord.settings);
   const meta = moduleMeta[moduleRecord.key as keyof typeof moduleMeta];
@@ -158,7 +160,6 @@ function ModuleCard({
             {sending ? <LoaderCircle className="spin" size={13} /> : <Mail size={13} />} Send invitations
           </button>
           {sendState.error && <p className="form-message form-error" role="alert">{sendState.error}</p>}
-          {sendState.success && !sending && <FormSaveSuccess message={sendState.success} />}
         </form>
       )}
 
@@ -172,7 +173,6 @@ function ModuleCard({
             {pending ? <LoaderCircle className="spin" size={13} /> : <Settings2 size={13} />} Save module
           </button>
           {state.error && <p className="form-message form-error" role="alert">{state.error}</p>}
-          {state.success && !pending && <FormSaveSuccess message={state.success} />}
         </form>
       )}
     </article>

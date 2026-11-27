@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { useActionToastFeedback } from "@/components/toast-provider";
 import { LoaderCircle, Save } from "lucide-react";
 import { savePlanAction, type AdminActionState } from "@/app/dashboard/admin/plans/actions";
 import { usePreferences } from "@/components/preferences-provider";
@@ -30,6 +31,7 @@ function selectedFeatures(features: unknown) {
 export function SuperAdminPlanEditor({ plan }: { plan?: PlanEditorValue }) {
   const { t } = usePreferences();
   const [state, formAction, pending] = useActionState(savePlanAction, initialState);
+  useActionToastFeedback(pending, state);
   const activeFeatures = selectedFeatures(plan?.features);
 
   return (

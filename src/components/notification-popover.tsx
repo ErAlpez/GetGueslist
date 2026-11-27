@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Bell, Check, Inbox, LoaderCircle, RefreshCw, UserRoundPlus, X } from "lucide-react";
 import { usePreferences } from "@/components/preferences-provider";
+import { showToast, updateToast } from "@/components/toast-provider";
 import { getNotifications, markNotificationsSeen } from "@/lib/api";
 import "./notification-popover.css";
 
@@ -195,6 +196,7 @@ export function NotificationPopover() {
     const ids = notifications.filter((notification) => !notification.seenAt && !markingRef.current.has(notification.id)).map((notification) => notification.id);
     if (!ids.length) return;
     ids.forEach((id) => markingRef.current.add(id));
+    const toastId = showToast(t("Marking notifications as seen..."));
     async function markSeen() {
       try {
         const response = await markNotificationsSeen(ids);
@@ -213,8 +215,10 @@ export function NotificationPopover() {
         setNotifications(updated);
         setClock(Date.now());
         setError("");
+        updateToast(toastId, t("Notifications marked as seen."), "success");
       } catch {
         if (mountedRef.current) setError(t("Could not mark notifications as seen."));
+        updateToast(toastId, t("Could not mark notifications as seen."), "error");
       } finally {
         ids.forEach((id) => markingRef.current.delete(id));
       }

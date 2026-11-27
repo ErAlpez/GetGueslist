@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { useActionToastFeedback } from "@/components/toast-provider";
 import { Check, Plus, Trash2 } from "lucide-react";
 import { ConfirmButton } from "@/components/confirm-button";
 import {
@@ -38,6 +39,7 @@ function EventCheckpointEditForm({
     updateEventCheckpointAction,
     {},
   );
+  useActionToastFeedback(pending, state);
   const [edited, setEdited] = useState(false);
 
   return localizeNode((
@@ -90,6 +92,7 @@ function EventCheckpointDeleteForm({
     deleteEventCheckpointAction,
     {},
   );
+  useActionToastFeedback(pending, state);
 
   return localizeNode((
     <form action={formAction} className="event-checkpoint-delete">
@@ -130,6 +133,7 @@ export function EventCheckpointsManager({
     createEventCheckpointAction,
     {},
   );
+  useActionToastFeedback(creating, createState);
 
   return localizeNode((
     <section aria-labelledby="event-checkpoints-heading" className="app-panel event-checkpoints-panel" id="checkpoints">

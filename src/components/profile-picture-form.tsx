@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useActionState, useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useActionToastFeedback } from "@/components/toast-provider";
 import { LoaderCircle, Save, Trash2, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
@@ -9,7 +10,6 @@ import {
   type ProfilePictureState,
 } from "@/app/dashboard/settings/actions";
 import { usePreferences } from "@/components/preferences-provider";
-import { FormSaveSuccess } from "@/components/form-save-success";
 import { ConfirmButton } from "@/components/confirm-button";
 import "./profile-picture-form.css";
 
@@ -28,9 +28,9 @@ export function ProfilePictureForm({
   const { t } = usePreferences();
   const router = useRouter();
   const [state, dispatchFormAction, pending] = useActionState(updateProfilePictureAction, initialState);
+  useActionToastFeedback(pending, state);
   const [imageData, setImageData] = useState("");
   const [clientError, setClientError] = useState("");
-  const [showFeedback, setShowFeedback] = useState(false);
   const requestId = useRef(0);
   const previewObjectUrl = useRef<string | null>(null);
   const [submittedImageData, setSubmittedImageData] = useState("");
@@ -59,7 +59,6 @@ export function ProfilePictureForm({
     const currentRequest = ++requestId.current;
     if (previewObjectUrl.current) URL.revokeObjectURL(previewObjectUrl.current);
     previewObjectUrl.current = null;
-    setShowFeedback(false);
     setClientError("");
     setImageData("");
     if (!acceptedImageTypes.has(file.type)) {
@@ -120,7 +119,7 @@ export function ProfilePictureForm({
   }
 
   return (
-    <form action={formAction} className="profile-picture-form" onSubmit={() => setShowFeedback(true)}>
+    <form action={formAction} className="profile-picture-form">
       <div className="profile-picture-preview" aria-label={t("Profile photo preview")} role="img">
         {preview ? (
           <Image alt="" className="profile-picture-image" height={72} src={preview} unoptimized width={72} />
@@ -166,7 +165,6 @@ export function ProfilePictureForm({
           >
             <Trash2 aria-hidden="true" size={14} />
           </ConfirmButton>
-          {showFeedback && !pending && state.success && <FormSaveSuccess message={t(state.success)} />}
         </div>
         {(clientError || state.error) && <p aria-live="polite" className="form-message form-error">{clientError || (state.error ? t(state.error) : "")}</p>}
         <small>{t("Images are resized and stored securely with your account.")}</small>

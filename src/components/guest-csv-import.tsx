@@ -9,7 +9,6 @@ import {
   type GuestCsvImportState,
   type GuestCsvPreviewState,
 } from "@/app/dashboard/attendees/actions";
-import { FormSaveSuccess } from "@/components/form-save-success";
 
 const csvTemplate = [
   "First name,Last name,Email,Phone,Company,Position,Category",
@@ -195,7 +194,6 @@ export function GuestCsvImport({
           {result?.error && <p className="form-message form-error" role="alert">{result.error}</p>}
           {result?.importedCount !== undefined && !result.error && (
             <>
-              {result.importedCount > 0 && <FormSaveSuccess message={`Imported ${result.importedCount} ${result.importedCount === 1 ? "guest" : "guests"}.`} />}
               {result.importedCount === 0 && <p className="form-message" role="status">No guests were imported.</p>}
               {issueRows.length > 0 && (
                 <details className="guest-csv-import-issues">

@@ -14,15 +14,8 @@ const output = ts.transpileModule(source, {
 }).outputText;
 const loaded = { exports: {} };
 new Function("require", "module", "exports", output)(require, loaded, loaded.exports);
-const { formatCurrencyMinorUnits, getAnnualDiscountPercent } = loaded.exports;
+const { formatCurrencyMinorUnits } = loaded.exports;
 
 test("USD plan prices use the dollar symbol instead of the currency code", () => {
   assert.equal(formatCurrencyMinorUnits("en-US", 199, "USD"), "$1.99");
-});
-
-test("annual pricing shows the catalog discount against twelve monthly payments", () => {
-  assert.equal(getAnnualDiscountPercent(1000, 10000), 17);
-  assert.equal(getAnnualDiscountPercent(1000, 12000), null);
-  assert.equal(getAnnualDiscountPercent(1000, 13000), null);
-  assert.equal(getAnnualDiscountPercent(null, 10000), null);
 });

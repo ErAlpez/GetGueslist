@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { useActionToastFeedback } from "@/components/toast-provider";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, LoaderCircle } from "lucide-react";
 import { createEventAction, updateEventAction, type EventFormState } from "@/app/dashboard/events/actions";
@@ -43,6 +44,7 @@ export function EventForm({ event }: { event?: { id: string; updatedAt: string; 
   const [values, setValues] = useState(event?.values ?? emptyValues);
   const action = event ? updateEventAction.bind(null, event.id, event.updatedAt) : createEventAction;
   const [state, formAction, pending] = useActionState(action, initialState);
+  useActionToastFeedback(pending, state);
   function setValue(name: keyof EventFormValues, value: string) {
     setValues((current) => ({ ...current, [name]: value }));
   }

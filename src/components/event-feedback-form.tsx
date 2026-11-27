@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { useActionToastFeedback } from "@/components/toast-provider";
 import { submitEventFeedbackAction } from "@/app/feedback/[token]/actions";
 
 type EventFeedbackFormProps = {
@@ -9,6 +10,7 @@ type EventFeedbackFormProps = {
 
 export function EventFeedbackForm({ token }: EventFeedbackFormProps) {
   const [state, formAction, pending] = useActionState(submitEventFeedbackAction, {});
+  useActionToastFeedback(pending, state);
 
   return (
     <form action={formAction} className="public-feedback-form">

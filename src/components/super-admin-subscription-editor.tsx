@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { useActionToastFeedback } from "@/components/toast-provider";
 import { LoaderCircle, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { updateWorkspacePlanAction, type AdminActionState } from "@/app/dashboard/admin/plans/actions";
@@ -25,6 +26,7 @@ export function SuperAdminSubscriptionEditor({
   const { t } = usePreferences();
   const router = useRouter();
   const [state, formAction, pending] = useActionState(updateWorkspacePlanAction, initialState);
+  useActionToastFeedback(pending, state);
   const [selectedPlanId, setSelectedPlanId] = useState(planId ?? "");
   const [selectedStatus, setSelectedStatus] = useState(status ?? "ACTIVE");
 

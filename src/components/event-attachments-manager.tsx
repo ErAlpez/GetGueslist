@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef } from "react";
+import { useActionToastFeedback } from "@/components/toast-provider";
 import { Download, FileText, Image, LoaderCircle, Trash2, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
@@ -38,6 +39,7 @@ function EventAttachmentRow({ attachment, eventId }: EventAttachmentRowProps) {
   const { locale, t } = usePreferences();
   const router = useRouter();
   const [state, formAction, pending] = useActionState(deleteEventAttachmentAction, initialState);
+  useActionToastFeedback(pending, state);
   const date = new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(attachment.createdAt);
   const downloadUrl = `/api/events/${encodeURIComponent(eventId)}/attachments/${encodeURIComponent(attachment.id)}`;
   const FileIcon = attachment.contentType.startsWith("image/") ? Image : FileText;
@@ -93,6 +95,7 @@ export function EventAttachmentsManager({
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [state, formAction, pending] = useActionState(uploadEventAttachmentAction, initialState);
+  useActionToastFeedback(pending, state);
   const atLimit = attachments.length >= maxEventAttachmentsPerEvent;
 
   useEffect(() => {

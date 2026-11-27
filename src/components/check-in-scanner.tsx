@@ -11,6 +11,7 @@ import { NfcCheckIn } from "@/components/nfc-checkin";
 import { localizeNode } from "@/lib/localization";
 import { queueOfflineCheckIn, readOfflineQueue, syncOfflineCheckIns } from "@/lib/offline-checkin";
 import { searchCheckIns, validateCheckIn } from "@/lib/api";
+import { showToast, updateToast } from "@/components/toast-provider";
 
 type CheckInResult = {
   result:
@@ -165,6 +166,7 @@ export function CheckInScanner({
     processingRef.current = true;
     setChecking(true);
     setResult(null);
+    const toastId = showToast(activeCheckpointId ? "Claiming checkpoint..." : "Checking in...");
 
     try {
       const response = await validateCheckIn({
@@ -175,6 +177,8 @@ export function CheckInScanner({
       });
       const payload = await response.json() as CheckInResult;
       setResult(payload);
+      const succeeded = response.ok && (payload.result === "checked_in" || payload.result === "claimed");
+      updateToast(toastId, payload.message ?? (succeeded ? "Check-in complete." : "This ticket could not be checked in."), succeeded ? "success" : "error");
       if (payload.result === "checked_in" || payload.result === "claimed") router.refresh();
       if (payload.result === "checked_in" || payload.result === "already_checked_in") {
         setSearchResult((current) => current && ({
@@ -189,7 +193,9 @@ export function CheckInScanner({
     } catch {
       const token = extractToken(rawValue);
       if (activeCheckpointId) {
-        setResult({ result: "invalid_request", message: "Checkpoint claims require an online connection. No claim was recorded." });
+        const message = "Checkpoint claims require an online connection. No claim was recorded.";
+        updateToast(toastId, message, "error");
+        setResult({ result: "invalid_request", message });
       } else {
         queueOfflineCheckIn({
           eventId,
@@ -198,6 +204,7 @@ export function CheckInScanner({
           queuedAt: new Date().toISOString(),
         });
         setQueuedCount(readOfflineQueue().length);
+        updateToast(toastId, "You’re offline. This scan was queued and will sync automatically.", "success");
         setResult({
           result: "invalid_request",
           message: "You’re offline. This scan was queued and will sync automatically.",
@@ -463,7 +470,7 @@ export function CheckInScanner({
                 <div className="manual-attendee" key={attendee.registrationId}>
                   <span className="manual-attendee-copy"><strong>{attendee.firstName} {attendee.lastName}</strong><small>{attendee.email || attendee.category.toLowerCase()}</small>{attendee.ticketId && <small>Ticket ID: {attendee.ticketId.toUpperCase()}</small>}</span>
                   {attendee.ticketToken && (activeCheckpointId ? attendee.ticketStatus === "USED" : attendee.ticketStatus === "ACTIVE")
-                    ? <button disabled={checking} onClick={() => { if (attendee.ticketToken) void checkIn(attendee.ticketToken); }} type="button">{activeCheckpointId ? "Claim" : "Check in"}</button>
+                    ? <button data-toast-managed="true" disabled={checking} onClick={() => { if (attendee.ticketToken) void checkIn(attendee.ticketToken); }} type="button">{activeCheckpointId ? "Claim" : "Check in"}</button>
                     : <span className="manual-ticket-state">{attendee.ticketStatus.toLowerCase().replaceAll("_", " ")}</span>}
                 </div>
               ))}

@@ -2,11 +2,11 @@
 
 import Image from "next/image";
 import { useActionState, useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useActionToastFeedback } from "@/components/toast-provider";
 import { ImagePlus, LoaderCircle, Save, Trash2, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { saveEventLogoAction, type EventLogoState } from "@/app/dashboard/events/actions";
 import { usePreferences } from "@/components/preferences-provider";
-import { FormSaveSuccess } from "@/components/form-save-success";
 import { ConfirmButton } from "@/components/confirm-button";
 import { eventLogoInputPrefix, maxEventLogoDataLength } from "@/lib/event-logo";
 
@@ -18,10 +18,10 @@ export function EventLogoForm({ eventId, logo }: { eventId: string; logo: string
   const { t } = usePreferences();
   const router = useRouter();
   const [state, dispatchFormAction, pending] = useActionState(saveEventLogoAction, initialState);
+  useActionToastFeedback(pending, state);
   const [imageData, setImageData] = useState("");
   const [processing, setProcessing] = useState(false);
   const [clientError, setClientError] = useState("");
-  const [showFeedback, setShowFeedback] = useState(false);
   const requestId = useRef(0);
   const previewObjectUrl = useRef<string | null>(null);
   const [submittedImageData, setSubmittedImageData] = useState("");
@@ -49,7 +49,6 @@ export function EventLogoForm({ eventId, logo }: { eventId: string; logo: string
     previewObjectUrl.current = null;
     setImageData("");
     setClientError("");
-    setShowFeedback(false);
     if (!acceptedTypes.has(file.type)) {
       setClientError(t("Choose a JPEG, PNG, WebP, or AVIF image."));
       setProcessing(false);
@@ -112,7 +111,7 @@ export function EventLogoForm({ eventId, logo }: { eventId: string; logo: string
   const visibleImageData = state.success && submittedImageData === imageData ? "" : imageData;
   const preview = visibleImageData || savedLogo;
   return (
-    <form action={formAction} className="event-logo-form" onSubmit={() => setShowFeedback(true)}>
+    <form action={formAction} className="event-logo-form">
       <div className="event-logo-preview" role="img" aria-label={t("Event logo preview")}>
         {preview ? <Image alt="" height={80} src={preview} unoptimized width={120} /> : <ImagePlus aria-hidden="true" size={24} />}
       </div>
@@ -136,10 +135,9 @@ export function EventLogoForm({ eventId, logo }: { eventId: string; logo: string
             name="removeLogo" onClick={() => { setImageData(""); setClientError(""); }} type="submit" value="true">
             <Trash2 aria-hidden="true" size={14} />
           </ConfirmButton>
-          {showFeedback && !pending && state.success && <FormSaveSuccess message={t(state.success)} />}
         </div>
         {processing && <p className="event-logo-hint" role="status">{t("Processing image...")}</p>}
-        {(clientError || (showFeedback && !pending && state.error)) && <p aria-live="polite" className="form-message form-error">{clientError || (state.error ? t(state.error) : "")}</p>}
+        {(clientError || (!pending && state.error)) && <p aria-live="polite" className="form-message form-error">{clientError || (state.error ? t(state.error) : "")}</p>}
         <small>{t("JPEG, PNG, WebP or AVIF, up to 8 MB.")}</small>
       </div>
     </form>

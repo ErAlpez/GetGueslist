@@ -1,11 +1,10 @@
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, QrCode } from "lucide-react";
 import { DownloadButton } from "@/components/download-button";
-import { FormSaveSuccess } from "@/components/form-save-success";
 import { createTicketToken } from "@/lib/tickets";
 import { getPrisma } from "@/lib/prisma";
 import { getPreferences } from "@/lib/preferences";
-import { localizeNode, translate } from "@/lib/localization";
+import { localizeNode } from "@/lib/localization";
 import { requireWorkspaceSection } from "@/lib/workspace";
 import { workspaceHasFeature } from "@/lib/plan-features";
 import { workspaceRoleHasPermission } from "@/lib/workspace-roles";
@@ -78,8 +77,6 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
     take: pageSize,
   });
 
-  const issuedTicket = issued ? tickets.find((ticket) => ticket.id === issued) : undefined;
-
   function ticketsHref(nextPage?: number) {
     const search = new URLSearchParams();
     if (eventId) search.set("event", eventId);
@@ -97,7 +94,6 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
           : <span className="plan-gated-label">{canExportCsv ? "Workspace-wide CSV export requires Max; select an event to export one." : "CSV export requires Starter."}</span>}
       </div>
       {!canViewTicketStatus && <p className="plan-gated-label ticket-status-gate">Ticket status visibility requires Max</p>}
-      {issuedTicket && <FormSaveSuccess className="ticket-success" message={translate(locale, `QR ticket created for ${issuedTicket.registration.attendee.firstName} ${issuedTicket.registration.attendee.lastName}.`)} />}
       <TicketsEventFilter allGuestCount={allGuestCount} events={events} selectedEventId={eventId} />
       {tickets.length ? (
         <>

@@ -163,12 +163,6 @@
   font-weight: 650;
 }
 
-.phone-scanner-access-notice {
-  margin: 8px 0 0;
-  color: var(--dashboard-accent-hover, #36704f);
-  font-size: 11px;
-}
-
 .phone-scanner-access-list-heading {
   margin-top: 14px;
 }

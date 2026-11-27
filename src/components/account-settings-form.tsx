@@ -6,10 +6,9 @@ import { LoaderCircle, LockKeyhole, Save, UserRound } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { localizeNode } from "@/lib/localization";
 import { usePreferences } from "@/components/preferences-provider";
-import { FormSaveSuccess } from "@/components/form-save-success";
 
 type FormMessage = {
-  tone: "error" | "success";
+  tone: "error";
   text: string;
 };
 
@@ -45,7 +44,6 @@ export function AccountSettingsForm({
     }
 
     if (!nameChanged && !emailChanged) {
-      setProfileMessage({ tone: "success", text: t("Your profile is already up to date.") });
       return;
     }
 
@@ -76,9 +74,6 @@ export function AccountSettingsForm({
           });
           return;
         }
-        setProfileMessage({ tone: "success", text: t("Profile saved. Check your email to confirm the address change.") });
-      } else {
-        setProfileMessage({ tone: "success", text: t("Profile details saved.") });
       }
 
       router.refresh();
@@ -117,7 +112,6 @@ export function AccountSettingsForm({
       }
 
       form.reset();
-      setPasswordMessage({ tone: "success", text: t("Your password has been updated.") });
     } catch {
       setPasswordMessage({ tone: "error", text: t("We couldn’t change your password. Please try again.") });
     } finally {
@@ -127,7 +121,7 @@ export function AccountSettingsForm({
 
   return localizeNode((
     <div className="account-settings-forms">
-      <form className="settings-form account-settings-form" onChange={() => setProfileMessage((current) => current?.tone === "success" ? null : current)} onSubmit={saveProfile}>
+      <form className="settings-form account-settings-form" onChange={() => setProfileMessage(null)} onSubmit={saveProfile}>
         <div className="account-form-heading">
           <UserRound aria-hidden="true" size={16} />
           <div><h3>Profile details</h3><p>Keep your account name and email current.</p></div>
@@ -148,7 +142,6 @@ export function AccountSettingsForm({
         <div className="settings-form-footer">
           <span>Email changes take effect after confirmation.</span>
           <div className="form-save-actions">
-            {profileMessage?.tone === "success" && !profilePending && <FormSaveSuccess message={profileMessage.text} />}
             <button className="button button-dark app-primary-button" disabled={profilePending} type="submit">
               {profilePending ? <LoaderCircle className="spin" size={14} /> : <Save size={14} />}
               Save profile
@@ -157,7 +150,7 @@ export function AccountSettingsForm({
         </div>
       </form>
 
-      <form className="settings-form account-settings-form account-password-form" onChange={() => setPasswordMessage((current) => current?.tone === "success" ? null : current)} onSubmit={changePassword}>
+      <form className="settings-form account-settings-form account-password-form" onChange={() => setPasswordMessage(null)} onSubmit={changePassword}>
         <div className="account-form-heading">
           <LockKeyhole aria-hidden="true" size={16} />
           <div><h3>Password</h3><p>Enter your current password to set a new one.</p></div>
@@ -177,7 +170,6 @@ export function AccountSettingsForm({
         <div className="settings-form-footer">
           <span>Use at least 8 characters.</span>
           <div className="form-save-actions">
-            {passwordMessage?.tone === "success" && !passwordPending && <FormSaveSuccess message={passwordMessage.text} />}
             <button className="button button-dark app-primary-button" disabled={passwordPending} type="submit">
               {passwordPending ? <LoaderCircle className="spin" size={14} /> : <LockKeyhole size={14} />}
               Update password

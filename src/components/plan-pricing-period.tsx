@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, type ReactNode } from "react";
-import { formatCurrencyMinorUnits, getAnnualDiscountPercent } from "@/lib/currency-format";
+import { formatCurrencyMinorUnits } from "@/lib/currency-format";
 
 export type BillingPeriod = "monthly" | "annual";
 
@@ -14,13 +14,11 @@ export function useBillingPeriod() {
 export function PlanPricingPeriod({
   children,
   header,
-  annualDiscountPercent,
   initialPeriod = "monthly",
   lockPeriod = false,
 }: {
   children: ReactNode;
   header?: ReactNode;
-  annualDiscountPercent?: number | null;
   initialPeriod?: BillingPeriod;
   lockPeriod?: boolean;
 }) {
@@ -58,10 +56,8 @@ export function PlanPricingPeriod({
         type="button"
       >
         Annual
+        <span className="plan-pricing-save">2 months free</span>
       </button>
-      <span className="plan-pricing-save">
-        {annualDiscountPercent ? `Save up to ${annualDiscountPercent}% annually` : "Annual pricing"}
-      </span>
     </div>
   );
 
@@ -92,7 +88,6 @@ export function PlanPrice({
   const isFree = monthlyPriceMinor === 0;
   const isAnnual = period === "annual" && !isFree;
   const priceMinor = isAnnual ? annualPriceMinor : monthlyPriceMinor;
-  const annualDiscountPercent = getAnnualDiscountPercent(monthlyPriceMinor, annualPriceMinor);
   const price = isFree
     ? "0"
     : priceMinor === null
@@ -101,7 +96,7 @@ export function PlanPrice({
   const unit = isFree
     ? "forever"
     : isAnnual
-      ? `/ year${annualDiscountPercent ? ` · save ${annualDiscountPercent}%` : ""}`
+      ? "/ year"
       : "/ month";
 
   return (

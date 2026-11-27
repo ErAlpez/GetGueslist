@@ -14,7 +14,6 @@ function harness(file, exportName, props) {
   let cursor = 0;
   let actionState = { success: "Saved." };
   let pending = false;
-  const FormSaveSuccess = () => null;
   const react = {
     ...require("react"),
     useRef(initial) {
@@ -36,8 +35,8 @@ function harness(file, exportName, props) {
     "@/app/dashboard/events/actions": {},
     "@/app/dashboard/settings/actions": {},
     "@/components/preferences-provider": { usePreferences: () => ({ locale: "en", t: (text) => text }) },
+    "@/components/toast-provider": { useActionToastFeedback: () => {} },
     "@/components/event-logo-form": { EventLogoForm: () => null },
-    "@/components/form-save-success": { FormSaveSuccess },
     "@/components/confirm-button": { ConfirmButton: () => null },
     "@/lib/localization": { localizeNode: (node) => node },
     "@/lib/registration-form": {
@@ -53,7 +52,6 @@ function harness(file, exportName, props) {
   const localRequire = (name) => Object.hasOwn(mocks, name) ? mocks[name] : require(name);
   new Function("require", "module", "exports", output)(localRequire, loaded, loaded.exports);
   return {
-    FormSaveSuccess,
     render() {
       cursor = 0;
       return loaded.exports[exportName](props);
@@ -74,24 +72,22 @@ function find(node, predicate) {
 
 const classIs = (name) => (node) => node.props?.className === name;
 
-test("registration save feedback stays beside save and clears when the questions change", () => {
+test("registration saves do not render duplicate inline success feedback", () => {
   const h = harness("src/components/registration-form-builder.tsx", "RegistrationFormBuilder", {
     eventId: "event", registrationUrl: "https://example.test", logo: null, questions: [], canShareRegistration: false,
     canCustomForms: true, canBranding: true,
   });
   let tree = h.render();
   const actions = find(tree, classIs("form-save-actions"));
-  assert.ok(find(actions, (node) => node.type === h.FormSaveSuccess));
   assert.ok(find(actions, (node) => node.type === "button" && node.props.type === "submit"));
 
   find(tree, classIs("button button-light registration-add-question")).props.onClick();
   tree = h.render();
-  assert.equal(find(tree, (node) => node.type === h.FormSaveSuccess), undefined);
-  find(tree, classIs("registration-form-builder")).props.onSubmit();
   h.setResult({ success: "Saved." }, true);
-  assert.equal(find(h.render(), (node) => node.type === h.FormSaveSuccess), undefined);
+  h.render();
   h.setResult({ success: "Saved." });
-  assert.ok(find(h.render(), (node) => node.type === h.FormSaveSuccess));
+  tree = h.render();
+  assert.equal(find(tree, (node) => node.props?.className === "form-success"), undefined);
 });
 
 test("custom questions can be added and existing answered questions stay locked", () => {
@@ -112,21 +108,14 @@ test("custom questions can be added and existing answered questions stay locked"
   assert.equal(data[0].id, "saved");
 });
 
-test("workspace save feedback clears on edit and errors remain visible", () => {
+test("workspace action errors remain visible without inline success feedback", () => {
   const h = harness("src/components/workspace-settings-form.tsx", "WorkspaceSettingsForm", {
     workspace: { name: "Workspace", contactEmail: null, contactPhone: null, organizationType: null, address: null, timezone: "UTC" },
   });
-  let tree = h.render();
-  assert.ok(find(find(tree, classIs("form-save-actions")), (node) => node.type === h.FormSaveSuccess));
-  tree.props.onChange();
-  assert.equal(find(h.render(), (node) => node.type === h.FormSaveSuccess), undefined);
-  tree.props.onSubmit();
-  h.setResult({ success: "Saved." }, true);
-  assert.equal(find(h.render(), (node) => node.type === h.FormSaveSuccess), undefined);
   h.setResult({ error: "Save failed." });
-  tree = h.render();
+  const tree = h.render();
   assert.ok(find(tree, classIs("form-message form-error")));
-  assert.equal(find(tree, (node) => node.type === h.FormSaveSuccess), undefined);
+  assert.equal(find(tree, (node) => node.props?.className === "form-success"), undefined);
 });
 
 test("workspace form prevents action resets from discarding edits", () => {

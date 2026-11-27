@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { ChevronDown, QrCode, RefreshCw, ShieldCheck, Smartphone, X } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
-import { FormSaveSuccess } from "@/components/form-save-success";
 import { usePreferences } from "@/components/preferences-provider";
 import { localizeNode } from "@/lib/localization";
 import { createScannerPairing, getScannerAccesses, revokeScannerAccess } from "@/lib/api";
+import { runWithToast, showToast } from "@/components/toast-provider";
 import "./phone-scanner-access.css";
 
 type ScannerAccess = {
@@ -43,7 +43,7 @@ async function readResponseJson<T>(response: Response, label: string): Promise<T
 }
 
 export function PhoneScannerAccess({ canManageAccess, eventId }: { canManageAccess: boolean; eventId: string }) {
-  const { locale, t } = usePreferences();
+  const { locale } = usePreferences();
   const [open, setOpen] = useState(false);
   const [deviceName, setDeviceName] = useState("Front gate phone");
   const [pairing, setPairing] = useState<PairingCode | null>(null);
@@ -52,7 +52,6 @@ export function PhoneScannerAccess({ canManageAccess, eventId }: { canManageAcce
   const [busy, setBusy] = useState(false);
   const [busyAccessId, setBusyAccessId] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverId = useId();
@@ -118,7 +117,7 @@ export function PhoneScannerAccess({ canManageAccess, eventId }: { canManageAcce
         if (items.some((item) => item.id === pairing.id && item.pairedAt)) {
           setPairing(null);
           setPairingUrl("");
-          setNotice(`${pairing.deviceName} connected.`);
+          showToast(`${pairing.deviceName} connected.`, "success");
         } else if (Date.now() >= new Date(pairing.pairingExpiresAt).getTime()) {
           setPairing(null);
           setPairingUrl("");
@@ -133,7 +132,6 @@ export function PhoneScannerAccess({ canManageAccess, eventId }: { canManageAcce
   async function createPairing() {
     setBusy(true);
     setError("");
-    setNotice("");
     setPairing(null);
     setPairingUrl("");
 
@@ -155,13 +153,11 @@ export function PhoneScannerAccess({ canManageAccess, eventId }: { canManageAcce
   async function revokeAccess(accessId: string) {
     setBusyAccessId(accessId);
     setError("");
-    setNotice("");
 
     try {
       const response = await revokeScannerAccess(accessId);
       const payload = await readResponseJson<{ error?: string }>(response, "Revocation request");
       if (!response.ok) throw new Error(payload.error ?? "Phone scanner access could not be revoked.");
-      setNotice("Phone scanner access was revoked.");
       setAccesses(await fetchAccesses());
     } catch (revokeError) {
       setError(getErrorMessage(revokeError));
@@ -235,13 +231,16 @@ export function PhoneScannerAccess({ canManageAccess, eventId }: { canManageAcce
             )}
 
             {error && <p aria-live="polite" className="form-message form-error">{error}</p>}
-            {notice && <FormSaveSuccess className="phone-scanner-access-notice" message={t(notice)} />}
 
             <div className="phone-scanner-access-list-heading">
               <strong>{canManageAccess ? "Phone access for this event" : "Phone access you created"}</strong>
               <button aria-label="Refresh phone scanner access" onClick={() => {
                 setError("");
-                void fetchAccesses().then(setAccesses).catch((loadError: unknown) => setError(getErrorMessage(loadError)));
+                void runWithToast(() => fetchAccesses(), {
+                  loading: "Loading phone scanner access...",
+                  success: "Phone scanner access loaded.",
+                  error: "Phone scanner access could not be loaded.",
+                }).then(setAccesses).catch((loadError: unknown) => setError(getErrorMessage(loadError)));
               }} type="button">
                 <RefreshCw aria-hidden="true" size={13} />
                 Refresh

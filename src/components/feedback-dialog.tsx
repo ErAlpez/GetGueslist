@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { useActionToastFeedback } from "@/components/toast-provider";
 import { createPortal } from "react-dom";
 import { LoaderCircle, MessageSquareText, Star, X } from "lucide-react";
 import { usePreferences } from "@/components/preferences-provider";
@@ -37,6 +38,7 @@ export function FeedbackDialog({ collapsed, isWorkspaceOwner }: { collapsed: boo
 function FeedbackForm({ isWorkspaceOwner, onClose }: { isWorkspaceOwner: boolean; onClose: () => void }) {
   const { t } = usePreferences();
   const [state, formAction, pending] = useActionState(submitFeedbackAction, initialState);
+  useActionToastFeedback(pending, state);
   const [rating, setRating] = useState(0);
 
   return (

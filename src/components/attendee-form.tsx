@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { useActionToastFeedback } from "@/components/toast-provider";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, LoaderCircle } from "lucide-react";
 import { registerAttendeeAction, type AttendeeFormState } from "@/app/dashboard/attendees/actions";
@@ -13,6 +14,7 @@ const initialState: AttendeeFormState = {};
 export function AttendeeForm({ eventId, eventName }: { eventId: string; eventName: string }) {
   const { locale } = usePreferences();
   const [state, formAction, pending] = useActionState(registerAttendeeAction, initialState);
+  useActionToastFeedback(pending, state);
 
   return localizeNode((
     <form action={formAction} className="event-form">

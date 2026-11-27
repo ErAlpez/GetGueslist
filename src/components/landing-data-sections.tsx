@@ -3,7 +3,6 @@ import "server-only";
 import { ArrowRight, Check, CreditCard, Star } from "lucide-react";
 import { LandingAuthTrigger } from "@/components/landing-auth-modal";
 import { PlanPrice, PlanPricingPeriod } from "@/components/plan-pricing-period";
-import { getAnnualDiscountPercent } from "@/lib/currency-format";
 import { localizeNode, type Locale } from "@/lib/localization";
 import { getPlanFeatureLabels } from "@/lib/plan-features";
 import { getPrisma } from "@/lib/prisma";
@@ -13,12 +12,6 @@ export async function LandingPricingSection({ locale }: { locale: Locale }) {
     where: { isActive: true },
     orderBy: { monthlyPriceCents: "asc" },
   });
-  const annualDiscountPercent = plans.reduce((maximumDiscount, plan) => {
-    if (plan.code === "FREE") return maximumDiscount;
-
-    const discount = getAnnualDiscountPercent(plan.monthlyPriceCents, plan.yearlyPriceCents);
-    return Math.max(maximumDiscount, discount ?? 0);
-  }, 0) || null;
 
   return localizeNode((
     <section className="section pricing-section" id="pricing">
@@ -27,7 +20,7 @@ export async function LandingPricingSection({ locale }: { locale: Locale }) {
         <h2>A plan for every <span>event program.</span></h2>
         <p className="section-lead">Choose monthly or annual access for your team. Plans do not renew automatically; your paid features remain available until the access end date.</p>
       </div>
-      <PlanPricingPeriod annualDiscountPercent={annualDiscountPercent}>
+      <PlanPricingPeriod>
         <div className="pricing-plan-grid">
           {plans.map((plan) => {
             const monthlyPriceMinor = plan.monthlyPriceCents;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useRef, useState } from "react";
+import { useActionToastFeedback } from "@/components/toast-provider";
 import { Check, ChevronDown, ClipboardList, Copy, ExternalLink, LoaderCircle, LockKeyhole, MessageCircle, Plus, Save, Trash2 } from "lucide-react";
 import {
   saveRegistrationFormAction,
@@ -8,7 +9,6 @@ import {
 } from "@/app/dashboard/events/actions";
 import { usePreferences } from "@/components/preferences-provider";
 import { EventLogoForm } from "@/components/event-logo-form";
-import { FormSaveSuccess } from "@/components/form-save-success";
 import { ConfirmButton } from "@/components/confirm-button";
 import {
   isRegistrationQuestionType,
@@ -51,7 +51,7 @@ export function RegistrationFormBuilder({
   })));
   const nextQuestionKey = useRef(0);
   const [state, formAction, pending] = useActionState(saveRegistrationFormAction, initialState);
-  const [edited, setEdited] = useState(false);
+  useActionToastFeedback(pending, state);
   const [linkFeedback, setLinkFeedback] = useState("");
   const registrationPath = `/register/${eventId}`;
 
@@ -66,14 +66,12 @@ export function RegistrationFormBuilder({
   }
 
   function updateQuestion(index: number, patch: Partial<RegistrationQuestionDraft>) {
-    setEdited(true);
     setQuestions((current) => current.map((question, questionIndex) =>
       questionIndex === index ? { ...question, ...patch } : question,
     ));
   }
 
   function addQuestion() {
-    setEdited(true);
     const localKey = `new-${nextQuestionKey.current++}`;
     setQuestions((current) => current.length >= maxQuestions
       ? current
@@ -82,7 +80,6 @@ export function RegistrationFormBuilder({
   }
 
   function removeQuestion(index: number) {
-    setEdited(true);
     setQuestions((current) => current.filter((_, questionIndex) => questionIndex !== index));
   }
 
@@ -138,7 +135,7 @@ export function RegistrationFormBuilder({
           )}
         </div>
         {canCustomForms ? (
-        <form action={formAction} className="registration-form-builder" onSubmit={() => setEdited(false)}>
+        <form action={formAction} className="registration-form-builder">
           <input name="eventId" type="hidden" value={eventId} />
           <input name="questions" type="hidden" value={serializedQuestions} />
           {state.error && <p aria-live="polite" className="form-message form-error">{t(state.error)}</p>}
@@ -236,7 +233,6 @@ export function RegistrationFormBuilder({
               <Plus size={14} /> {t("Add question")}
             </button>
             <div className="form-save-actions">
-              {state.success && !edited && !pending && <FormSaveSuccess message={t(state.success)} />}
               <button className="button button-dark app-primary-button" disabled={pending} type="submit">
                 {pending ? <LoaderCircle className="spin" size={14} /> : <Save size={14} />}
                 {t("Save registration form")}

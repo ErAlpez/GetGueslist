@@ -24,7 +24,7 @@ async function renderReviews(reviews) {
       PlanPricingPeriod: ({ children }) => children,
     },
     "@/components/landing-auth-modal": { LandingAuthTrigger: ({ children }) => React.createElement("button", null, children) },
-    "@/lib/currency-format": { getAnnualDiscountPercent: () => null },
+    "@/lib/currency-format": { formatCurrencyMinorUnits: () => "$0.00" },
     "@/lib/plan-features": { getPlanFeatureLabels: () => [] },
     "@/lib/prisma": {
       getPrisma: () => ({
