@@ -1,11 +1,12 @@
 "use client";
 
-import { useActionState } from "react";
-import { useActionToastFeedback } from "@/components/toast-provider";
+import { useEffect, useState, type FormEvent } from "react";
 import { LoaderCircle, Save } from "lucide-react";
-import { updateWorkspaceAction, type WorkspaceSettingsState } from "@/app/dashboard/settings/actions";
+import type { WorkspaceSettingsState } from "@/app/dashboard/settings/actions";
 import { usePreferences } from "@/components/preferences-provider";
 import { localizeNode } from "@/lib/localization";
+import { useRouter } from "next/navigation";
+import { submitSettingsMutation } from "@/components/settings-mutation-request";
 
 const initialState: WorkspaceSettingsState = {};
 
@@ -22,12 +23,27 @@ export function WorkspaceSettingsForm({
   };
 }) {
   const { locale } = usePreferences();
-  const [state, formAction, pending] = useActionState(updateWorkspaceAction, initialState);
-  useActionToastFeedback(pending, state);
+  const router = useRouter();
+  const [state, setState] = useState<WorkspaceSettingsState>(initialState);
+  const [pending, setPending] = useState(false);
 
-  // React resets uncontrolled forms after actions, discarding saved and in-flight edits.
+  useEffect(() => {
+    if (state.success) router.refresh();
+  }, [router, state.success]);
+
+  async function saveWorkspace(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    formData.set("_operation", "workspace");
+    setState({});
+    setPending(true);
+    const result = await submitSettingsMutation(formData, "Saving workspace details...", "Workspace settings saved.");
+    setState(result);
+    setPending(false);
+  }
+
   return localizeNode((
-    <form action={formAction} className="settings-form" onReset={(event) => event.preventDefault()}>
+    <form className="settings-form" data-toast-managed onReset={(event) => event.preventDefault()} onSubmit={saveWorkspace}>
       {state.error && <p aria-live="polite" className="form-message form-error">{state.error}</p>}
       <label className="form-field">Workspace name <input defaultValue={workspace.name} maxLength={100} name="name" required /></label>
       <div className="form-grid">

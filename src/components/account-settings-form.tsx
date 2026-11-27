@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { LoaderCircle, LockKeyhole, Save, UserRound } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { localizeNode } from "@/lib/localization";
 import { usePreferences } from "@/components/preferences-provider";
+import { showToast, updateToast } from "@/components/toast-provider";
 
 type FormMessage = {
   tone: "error";
@@ -27,6 +28,14 @@ export function AccountSettingsForm({
   const [passwordMessage, setPasswordMessage] = useState<FormMessage | null>(null);
   const [profilePending, setProfilePending] = useState(false);
   const [passwordPending, setPasswordPending] = useState(false);
+  const mounted = useRef(true);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   async function saveProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -48,12 +57,15 @@ export function AccountSettingsForm({
     }
 
     setProfilePending(true);
+    const toastId = showToast("Saving profile...", "loading", { deduplicate: false });
     let nameSaved = false;
     try {
       if (nameChanged) {
         const result = await authClient.updateUser({ name: nextName });
         if (result.error) {
-          setProfileMessage({ tone: "error", text: t(result.error.message ?? "We couldn’t save your profile.") });
+          const message = t(result.error.message ?? "We couldn’t save your profile.");
+          setProfileMessage({ tone: "error", text: message });
+          updateToast(toastId, message, "error");
           return;
         }
         nameSaved = true;
@@ -65,23 +77,29 @@ export function AccountSettingsForm({
           callbackURL: "/dashboard/settings",
         });
         if (result.error) {
-          router.refresh();
-          setProfileMessage({
-            tone: "error",
-            text: t(nameSaved
-              ? `Your name was saved, but the email change failed: ${result.error.message ?? "Try again."}`
-              : result.error.message ?? "We couldn’t change your email."),
-          });
+          if (mounted.current && nameSaved) router.refresh();
+          const message = t(nameSaved
+            ? `Your name was saved, but the email change failed: ${result.error.message ?? "Try again."}`
+            : result.error.message ?? "We couldn’t change your email.");
+          setProfileMessage({ tone: "error", text: message });
+          updateToast(toastId, message, "error");
           return;
         }
       }
 
-      router.refresh();
+      if (mounted.current) router.refresh();
+      updateToast(
+        toastId,
+        emailChanged ? "Profile updated. Check your email to confirm the change." : "Profile updated.",
+        "success",
+      );
     } catch {
-      if (nameSaved) router.refresh();
-      setProfileMessage({ tone: "error", text: t("We couldn’t save your profile. Please try again.") });
+      if (mounted.current && nameSaved) router.refresh();
+      const message = t("We couldn’t save your profile. Please try again.");
+      setProfileMessage({ tone: "error", text: message });
+      updateToast(toastId, message, "error");
     } finally {
-      setProfilePending(false);
+      if (mounted.current) setProfilePending(false);
     }
   }
 
@@ -104,24 +122,30 @@ export function AccountSettingsForm({
     }
 
     setPasswordPending(true);
+    const toastId = showToast("Updating password...", "loading", { deduplicate: false });
     try {
       const result = await authClient.changePassword({ currentPassword, newPassword });
       if (result.error) {
-        setPasswordMessage({ tone: "error", text: t(result.error.message ?? "We couldn’t change your password.") });
+        const message = t(result.error.message ?? "We couldn’t change your password.");
+        setPasswordMessage({ tone: "error", text: message });
+        updateToast(toastId, message, "error");
         return;
       }
 
       form.reset();
+      updateToast(toastId, "Password updated.", "success");
     } catch {
-      setPasswordMessage({ tone: "error", text: t("We couldn’t change your password. Please try again.") });
+      const message = t("We couldn’t change your password. Please try again.");
+      setPasswordMessage({ tone: "error", text: message });
+      updateToast(toastId, message, "error");
     } finally {
-      setPasswordPending(false);
+      if (mounted.current) setPasswordPending(false);
     }
   }
 
   return localizeNode((
     <div className="account-settings-forms">
-      <form className="settings-form account-settings-form" onChange={() => setProfileMessage(null)} onSubmit={saveProfile}>
+      <form className="settings-form account-settings-form" data-toast-managed onChange={() => setProfileMessage(null)} onSubmit={saveProfile}>
         <div className="account-form-heading">
           <UserRound aria-hidden="true" size={16} />
           <div><h3>Profile details</h3><p>Keep your account name and email current.</p></div>
@@ -150,7 +174,7 @@ export function AccountSettingsForm({
         </div>
       </form>
 
-      <form className="settings-form account-settings-form account-password-form" onChange={() => setPasswordMessage(null)} onSubmit={changePassword}>
+      <form className="settings-form account-settings-form account-password-form" data-toast-managed onChange={() => setPasswordMessage(null)} onSubmit={changePassword}>
         <div className="account-form-heading">
           <LockKeyhole aria-hidden="true" size={16} />
           <div><h3>Password</h3><p>Enter your current password to set a new one.</p></div>

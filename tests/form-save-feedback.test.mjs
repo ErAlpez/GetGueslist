@@ -16,6 +16,7 @@ function harness(file, exportName, props) {
   let pending = false;
   const react = {
     ...require("react"),
+    useEffect() {},
     useRef(initial) {
       const index = cursor++;
       if (!(index in slots)) slots[index] = { current: initial };
@@ -36,6 +37,8 @@ function harness(file, exportName, props) {
     "@/app/dashboard/settings/actions": {},
     "@/components/preferences-provider": { usePreferences: () => ({ locale: "en", t: (text) => text }) },
     "@/components/toast-provider": { useActionToastFeedback: () => {} },
+    "@/components/settings-mutation-request": { submitSettingsMutation: async () => ({ success: "Saved." }) },
+    "next/navigation": { useRouter: () => ({ refresh() {} }) },
     "@/components/event-logo-form": { EventLogoForm: () => null },
     "@/components/confirm-button": { ConfirmButton: () => null },
     "@/lib/localization": { localizeNode: (node) => node },
@@ -59,6 +62,7 @@ function harness(file, exportName, props) {
     setResult(result, isPending = false) {
       actionState = result;
       pending = isPending;
+      if (file === "src/components/workspace-settings-form.tsx") slots[0] = result;
     },
   };
 }
@@ -125,4 +129,15 @@ test("workspace form prevents action resets from discarding edits", () => {
   let prevented = false;
   h.render().props.onReset({ preventDefault() { prevented = true; } });
   assert.equal(prevented, true);
+});
+
+test("workspace settings submit without dispatching a Server Action", () => {
+  const h = harness("src/components/workspace-settings-form.tsx", "WorkspaceSettingsForm", {
+    workspace: { name: "Workspace", contactEmail: null, contactPhone: null, organizationType: null, address: null, timezone: "UTC" },
+  });
+  const form = find(h.render(), classIs("settings-form"));
+
+  assert.equal(typeof form.props.onSubmit, "function");
+  assert.equal(form.props.action, undefined);
+  assert.equal(form.props["data-toast-managed"], true);
 });

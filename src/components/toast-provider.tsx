@@ -271,6 +271,7 @@ function ToastInteractionObserver() {
         ? event.submitter
         : form.querySelector<HTMLElement>("button[type='submit'], input[type='submit']");
       if (!submitter) return;
+      if (!shouldObserveGlobalToast(submitter)) return;
       observeInteraction(form, submitter, true);
     };
 

@@ -1,16 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { useActionState, useEffect, useRef, useState, type ChangeEvent } from "react";
-import { useActionToastFeedback } from "@/components/toast-provider";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { LoaderCircle, Save, Trash2, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
-import {
-  updateProfilePictureAction,
-  type ProfilePictureState,
-} from "@/app/dashboard/settings/actions";
+import type { ProfilePictureState } from "@/app/dashboard/settings/actions";
 import { usePreferences } from "@/components/preferences-provider";
 import { ConfirmButton } from "@/components/confirm-button";
+import { submitSettingsMutation } from "@/components/settings-mutation-request";
 import "./profile-picture-form.css";
 
 const initialState: ProfilePictureState = {};
@@ -27,8 +24,8 @@ export function ProfilePictureForm({
 }) {
   const { t } = usePreferences();
   const router = useRouter();
-  const [state, dispatchFormAction, pending] = useActionState(updateProfilePictureAction, initialState);
-  useActionToastFeedback(pending, state);
+  const [state, setState] = useState<ProfilePictureState>(initialState);
+  const [pending, setPending] = useState(false);
   const [imageData, setImageData] = useState("");
   const [clientError, setClientError] = useState("");
   const requestId = useRef(0);
@@ -37,9 +34,25 @@ export function ProfilePictureForm({
   const visibleImageData = state.success && submittedImageData === imageData ? "" : imageData;
   const preview = visibleImageData || (state.success === "Profile photo removed." ? null : image);
 
-  function formAction(formData: FormData) {
+  async function saveProfilePicture(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const submitter = (event.nativeEvent as SubmitEvent).submitter;
+    if (submitter instanceof HTMLButtonElement && submitter.name) {
+      formData.set(submitter.name, submitter.value);
+    }
+    formData.set("_operation", "profile-picture");
+
     setSubmittedImageData(String(formData.get("imageData") ?? ""));
-    dispatchFormAction(formData);
+    setState({});
+    setPending(true);
+    const result = await submitSettingsMutation(
+      formData,
+      "Saving profile photo...",
+      formData.get("removeImage") === "true" ? "Profile photo removed." : "Profile photo updated.",
+    );
+    setState(result);
+    setPending(false);
   }
 
   useEffect(() => {
@@ -119,7 +132,7 @@ export function ProfilePictureForm({
   }
 
   return (
-    <form action={formAction} className="profile-picture-form">
+    <form className="profile-picture-form" data-toast-managed onSubmit={saveProfilePicture}>
       <div className="profile-picture-preview" aria-label={t("Profile photo preview")} role="img">
         {preview ? (
           <Image alt="" className="profile-picture-image" height={72} src={preview} unoptimized width={72} />
