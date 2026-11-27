@@ -470,7 +470,7 @@ export default async function Home({
       </section>
 
       <section className="section faq-section" id="faq">
-        <div className="faq-heading"><div className="section-kicker">GOOD QUESTIONS</div><h2>Before the<br /><span>first guest arrives.</span></h2><p>Something else on your mind? <a href="mailto:hello@guestlist.app">Talk to us <ArrowUpRight size={13} /></a></p></div>
+        <div className="faq-heading"><div className="section-kicker">GOOD QUESTIONS</div><h2>Before the<br /><span>first guest arrives.</span></h2><p>Something else on your mind? <a href="mailto:support@venuguestpass.com">Talk to us <ArrowUpRight size={13} /></a></p></div>
         <div className="faq-list">{faqs.map((faq, index) => <details className="faq-item" key={faq.question} name="landing-faq"><summary><span className="faq-index">0{index + 1}</span><span>{faq.question}</span><ChevronDown size={17} /></summary><p>{faq.answer}</p></details>)}</div>
       </section>
 

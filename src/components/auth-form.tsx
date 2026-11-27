@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { ArrowLeft, ArrowRight, Check, LoaderCircle, LockKeyhole, UserRound } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { BrandMark } from "@/components/brand-mark";
@@ -80,17 +80,6 @@ export function AuthForm({
   const isForgot = mode === "forgot-password";
   const { title, description } = headings[mode];
 
-  useEffect(() => {
-    if (!otpVerified) return;
-
-    const redirectTimeout = window.setTimeout(() => {
-      router.push("/dashboard");
-      router.refresh();
-    }, 1_350);
-
-    return () => window.clearTimeout(redirectTimeout);
-  }, [otpVerified, router]);
-
   async function signIn(email: string, password: string) {
     const result = await authClient.signIn.email({ email, password, callbackURL: "/dashboard" });
     if (result.error) {
@@ -111,7 +100,6 @@ export function AuthForm({
     }
 
     router.push("/dashboard");
-    router.refresh();
   }
 
   async function handleOtpSubmit(event: FormEvent<HTMLFormElement>) {
@@ -139,6 +127,7 @@ export function AuthForm({
       } else {
         setOtpCode("");
         setOtpVerified(true);
+        router.push("/dashboard");
       }
     } catch {
       setMessage(t("Something went wrong. Please try again."));
@@ -231,12 +220,7 @@ export function AuthForm({
           setMessage(result.error.message ?? "We couldn’t create your account.");
         } else {
           setVerificationEmail(email);
-          const verificationResult = await requestVerificationEmail(email);
-          if (verificationResult.error) {
-            setMessage(t(verificationResult.error.message ?? "Something went wrong. Please try again."));
-          } else {
-            setSuccess("If an unverified account exists for this email, a verification link is on its way.");
-          }
+          setSuccess("If an unverified account exists for this email, a verification link is on its way.");
         }
       } else if (mode === "sign-in") {
         await signIn(email, password);

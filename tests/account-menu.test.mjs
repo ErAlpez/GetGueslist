@@ -19,10 +19,13 @@ const roleOutput = ts.transpileModule(roleSource, {
 const roleModule = { exports: {} };
 new Function("require", "module", "exports", roleOutput)(require, roleModule, roleModule.exports);
 
-function harness(showOverview, signOutResult = {}, demoRole = null) {
+function harness(showOverview, signOutResult = {}, demoRole = null, readOfflineGuestQueue = () => []) {
   const slots = [];
   let cursor = 0;
   const navigation = [];
+  const signOut = typeof signOutResult === "function"
+    ? signOutResult
+    : async () => signOutResult;
   const mocks = {
     react: {
       ...require("react"),
@@ -41,7 +44,7 @@ function harness(showOverview, signOutResult = {}, demoRole = null) {
       usePathname: () => "/dashboard",
       useRouter: () => ({ replace: (url) => navigation.push(url), refresh: () => navigation.push("refresh") }),
     },
-    "@/lib/auth-client": { authClient: { signOut: async () => signOutResult } },
+    "@/lib/auth-client": { authClient: { signOut } },
     "@/components/preferences-provider": { usePreferences: () => ({ t: (text) => text }) },
     "@/app/dashboard/demo-role/actions": { switchDemoRoleAction: () => {} },
     "@/app/dashboard/demo-plan/actions": { switchDemoPlanAction: () => {} },
@@ -50,7 +53,7 @@ function harness(showOverview, signOutResult = {}, demoRole = null) {
       offlineVenuGuestPassCacheKey: "cache",
       offlineVenuGuestPassIdentityKey: "identity",
       offlineVenuGuestPassQueueKey: "queue",
-      readOfflineGuestQueue: () => [],
+      readOfflineGuestQueue,
     },
     "@/lib/workspace-roles": roleModule.exports,
     "./account-tooltip.css": {},
@@ -86,14 +89,17 @@ test("landing menu opens with overview, settings, and sign out", async () => {
   assert.ok(find(dialog, (node) => node.props?.href === "/dashboard"));
   assert.ok(find(dialog, (node) => node.props?.href === "/dashboard/settings"));
   const originalWindow = globalThis.window;
-  globalThis.window = { localStorage: { removeItem() {} } };
+  globalThis.window = {
+    localStorage: { removeItem() {} },
+    location: { replace: (url) => h.navigation.push(url) },
+  };
   try {
     await find(dialog, (node) => node.props?.className === "account-popover-sign-out").props.onClick();
   } finally {
     if (originalWindow) globalThis.window = originalWindow;
     else delete globalThis.window;
   }
-  assert.deepEqual(h.navigation, ["/", "refresh"]);
+  assert.deepEqual(h.navigation, ["/"]);
 });
 
 test("dashboard menu retains its existing links and reports sign-out failures", async () => {
@@ -105,6 +111,64 @@ test("dashboard menu retains its existing links and reports sign-out failures", 
   await find(dialog, (node) => node.props?.className === "account-popover-sign-out").props.onClick();
   assert.deepEqual(h.navigation, []);
   assert.equal(find(h.render(), (node) => node.props?.role === "alert").props.children, "Sign out failed. Please try again.");
+});
+
+test("sign out disables the button and ignores repeated clicks while the request is pending", async () => {
+  let resolveSignOut;
+  let calls = 0;
+  const h = harness(true, () => {
+    calls += 1;
+    return new Promise((resolve) => { resolveSignOut = resolve; });
+  });
+  const originalWindow = globalThis.window;
+  globalThis.window = {
+    localStorage: { removeItem() {} },
+    location: { replace: (url) => h.navigation.push(url) },
+  };
+
+  try {
+    find(h.render(), (node) => node.props?.className === "account-trigger").props.onClick();
+    const button = find(h.render(), (node) => node.props?.className === "account-popover-sign-out");
+    const pending = button.props.onClick();
+    assert.equal(find(h.render(), (node) => node.props?.className === "account-popover-sign-out").props.disabled, true);
+    await button.props.onClick();
+    assert.equal(calls, 1);
+    resolveSignOut({});
+    await pending;
+    assert.deepEqual(h.navigation, ["/"]);
+  } finally {
+    if (originalWindow) globalThis.window = originalWindow;
+    else delete globalThis.window;
+  }
+});
+
+test("sign out can continue after the offline queue check fails with explicit confirmation", async () => {
+  let signOutCalls = 0;
+  const h = harness(
+    true,
+    async () => { signOutCalls += 1; return {}; },
+    null,
+    () => { throw new Error("storage unavailable"); },
+  );
+  const originalWindow = globalThis.window;
+  globalThis.window = {
+    confirm: () => true,
+    localStorage: { removeItem() {} },
+    location: { replace: (url) => h.navigation.push(url) },
+  };
+  const originalConsoleError = console.error;
+  console.error = () => {};
+
+  try {
+    find(h.render(), (node) => node.props?.className === "account-trigger").props.onClick();
+    await find(h.render(), (node) => node.props?.className === "account-popover-sign-out").props.onClick();
+    assert.equal(signOutCalls, 1);
+    assert.deepEqual(h.navigation, ["/"]);
+  } finally {
+    console.error = originalConsoleError;
+    if (originalWindow) globalThis.window = originalWindow;
+    else delete globalThis.window;
+  }
 });
 
 test("demo role selector explains the selected role and updates the description", () => {

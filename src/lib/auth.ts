@@ -6,6 +6,7 @@ import { createAuthMiddleware } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
 import { twoFactor } from "better-auth/plugins";
 import { headers } from "next/headers";
+import { after } from "next/server";
 import { getPrisma } from "@/lib/prisma";
 
 function getTrustedOrigins(baseURL: string) {
@@ -73,14 +74,20 @@ function createAuth(secret: string) {
       },
     },
     emailVerification: {
-      sendOnSignUp: false,
+      sendOnSignUp: true,
       autoSignInAfterVerification: false,
       sendVerificationEmail: async ({ user, url }) => {
-        const { sendAuthEmail } = await import("@/lib/email");
-        await sendAuthEmail({
-          to: user.email,
-          subject: "Verify your VenuGuestPass email",
-          url,
+        after(async () => {
+          try {
+            const { sendAuthEmail } = await import("@/lib/email");
+            await sendAuthEmail({
+              to: user.email,
+              subject: "Verify your VenuGuestPass email",
+              url,
+            });
+          } catch (error) {
+            console.error("Verification email delivery failed.", error);
+          }
         });
       },
     },

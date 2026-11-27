@@ -141,8 +141,8 @@ test("statistic circles animate their fill from zero on entry and replay without
   h.intersection.trigger(h.iconCircle, true);
   assert.deepEqual(h.iconCircleFill.animations[0].keyframes, [{ strokeDashoffset: "100" }, { strokeDashoffset: "25" }]);
   assert.equal(h.iconCircleTrack.animations.length, 0);
-  assert.ok(h.circleFill.animations[0].options.delay > 0);
-  assert.ok(h.circleFill.animations[0].options.duration > 900);
+  assert.equal(h.circleFill.animations[0].options.delay, 80);
+  assert.equal(h.circleFill.animations[0].options.duration, 650);
   assert.equal(h.circleFill.animations[0].options.fill, "backwards");
   assert.equal(h.circle.animations.length, 0);
   h.intersection.trigger(h.circle, false);
@@ -170,8 +170,8 @@ test("dashboard reveals replay and bars fill only after intersection", () => {
   assert.deepEqual(h.horizontalFill.animations[0].keyframes[0], { clipPath: "inset(0 100% 0 0)" });
   assert.deepEqual(h.chartFill.animations[0].keyframes[0], { clipPath: "inset(100% 0 0 0)" });
   for (const fill of [h.horizontalFill, h.chartFill]) {
-    assert.ok(fill.animations[0].options.delay > 0);
-    assert.ok(fill.animations[0].options.duration > 750);
+    assert.equal(fill.animations[0].options.delay, 80);
+    assert.equal(fill.animations[0].options.duration, 600);
     assert.equal(fill.animations[0].options.fill, "backwards");
   }
   assert.equal(h.panel.animations[0].options.delay, 0);

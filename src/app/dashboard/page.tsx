@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -14,8 +15,9 @@ import {
 import { getDashboardSummary, requireWorkspaceSection } from "@/lib/workspace";
 import { workspaceRoleHasPermission } from "@/lib/workspace-roles";
 import { getPreferences } from "@/lib/preferences";
-import { localizeNode } from "@/lib/localization";
+import { localizeNode, type Locale } from "@/lib/localization";
 import { AnimatedMetric } from "@/components/animated-metric";
+import { DashboardLoadingContent } from "@/components/dashboard-loading-content";
 import { StatisticCircle, StatisticIconCircle } from "@/components/statistic-circle";
 import "./dashboard.css";
 
@@ -24,8 +26,47 @@ export default async function DashboardPage() {
     getPreferences(),
     requireWorkspaceSection("overview"),
   ]);
-  const summary = await getDashboardSummary(context.workspace.id, locale);
+  const summaryPromise = getDashboardSummary(context.workspace.id, locale);
   const canManageEvents = workspaceRoleHasPermission(context.membership.role, "events.manage");
+  const canManageBilling = workspaceRoleHasPermission(context.membership.role, "billing.manage");
+  const firstName = context.user.name.split(/\s+/)[0];
+
+  return (
+    <div className="dashboard-page">
+      {localizeNode((
+        <div className="page-heading-row">
+          <div>
+            <div className="page-kicker">OVERVIEW</div>
+            <h1>Good morning, {firstName}</h1>
+            <p>Here’s the latest from {context.workspace.name}.</p>
+          </div>
+          {canManageEvents && <Link className="button button-dark app-primary-button" href="/dashboard/events/new"><Plus size={16} /> Create event</Link>}
+        </div>
+      ), locale)}
+      <Suspense fallback={<DashboardLoadingContent includeHeading={false} />}>
+        <DashboardOverview
+          canManageBilling={canManageBilling}
+          canManageEvents={canManageEvents}
+          locale={locale}
+          summaryPromise={summaryPromise}
+        />
+      </Suspense>
+    </div>
+  );
+}
+
+async function DashboardOverview({
+  canManageBilling,
+  canManageEvents,
+  locale,
+  summaryPromise,
+}: {
+  canManageBilling: boolean;
+  canManageEvents: boolean;
+  locale: Locale;
+  summaryPromise: ReturnType<typeof getDashboardSummary>;
+}) {
+  const summary = await summaryPromise;
   const plan = summary.subscription?.plan;
   const PlanIcon = !plan || plan.code === "FREE" ? Gift : Sparkles;
   const activeEventLimit = plan?.activeEventLimit;
@@ -35,19 +76,9 @@ export default async function DashboardPage() {
       ? 0
       : Math.min(Math.round((summary.activeEvents / activeEventLimit) * 100), 100);
   const maxRegistrationCount = Math.max(...summary.registrationTrend.map((day) => day.count), 1);
-  const firstName = context.user.name.split(/\s+/)[0];
 
   return localizeNode((
-    <div className="dashboard-page">
-      <div className="page-heading-row">
-        <div>
-          <div className="page-kicker">OVERVIEW</div>
-          <h1>Good morning, {firstName}</h1>
-          <p>Here’s the latest from {context.workspace.name}.</p>
-        </div>
-        {canManageEvents && <Link className="button button-dark app-primary-button" href="/dashboard/events/new"><Plus size={16} /> Create event</Link>}
-      </div>
-
+    <>
       <section aria-label="Workspace statistics" className="stat-cards dashboard-stat-cards">
         <article className="stat-card stat-total-events">
           <span className="stat-card-label">Total events</span><StatisticCircle locale={locale} value={summary.totalEvents} total={summary.totalEvents} />
@@ -108,11 +139,11 @@ export default async function DashboardPage() {
         </section>
 
         <section className="app-panel usage-panel">
-          <div className="panel-heading-row"><div><h2>Your plan</h2><p>Usage for the current plan.</p></div>{workspaceRoleHasPermission(context.membership.role, "billing.manage") && <Link className="panel-action" href="/dashboard/billing">Manage <ArrowRight size={14} /></Link>}</div>
+          <div className="panel-heading-row"><div><h2>Your plan</h2><p>Usage for the current plan.</p></div>{canManageBilling && <Link className="panel-action" href="/dashboard/billing">Manage <ArrowRight size={14} /></Link>}</div>
           <div className="plan-summary"><span className="plan-summary-mark"><PlanIcon aria-hidden="true" size={18} /></span><span><strong>{plan?.name ?? "Free"} plan</strong><small>{summary.subscription?.status.toLowerCase().replace("_", " ") ?? "No subscription"}</small></span></div>
           <div className="usage-item"><div><span>Active events</span><strong><AnimatedMetric locale={locale} value={summary.activeEvents} /> <small>/ {activeEventLimit ?? "Unlimited"}</small></strong></div>{usagePercent !== null && <div className="usage-bar"><span style={{ width: `${usagePercent}%` }} /></div>}</div>
           <div className="usage-item"><div><span>Attendee limit per event</span><strong>{plan?.attendeePerEventLimit != null ? <AnimatedMetric locale={locale} value={plan.attendeePerEventLimit} /> : "Unlimited"}</strong></div></div>
-          <div className="usage-footer"><span>Plan limits are checked when creating events.</span>{workspaceRoleHasPermission(context.membership.role, "billing.manage") && <Link href="/dashboard/billing">View plans <ArrowRight size={13} /></Link>}</div>
+          <div className="usage-footer"><span>Plan limits are checked when creating events.</span>{canManageBilling && <Link href="/dashboard/billing">View plans <ArrowRight size={13} /></Link>}</div>
         </section>
 
         <section className="app-panel registrations-panel">
@@ -171,6 +202,6 @@ export default async function DashboardPage() {
           ) : <div className="recent-empty">Attendance activity appears here after the first check-in.</div>}
         </section>
       </div>
-    </div>
+    </>
   ), locale);
 }

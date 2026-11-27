@@ -45,7 +45,7 @@ export function LegalDocument({
                 <h2 id="legal-contact-heading">Contact</h2>
                 <p>
                   For questions about VenuGuestPass or your information, email{" "}
-                  <a href="mailto:hello@guestlist.app">hello@guestlist.app</a>.
+                  <a href="mailto:support@venuguestpass.com">support@venuguestpass.com</a>.
                 </p>
                 <nav aria-label="Legal policies" className="legal-policy-links">
                   {legalPolicies.map((policy) => (

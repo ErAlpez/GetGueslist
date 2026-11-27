@@ -86,7 +86,7 @@ export async function sendAuthEmail({ to, subject, url, message }: AuthEmail) {
       subject,
       html: `${message ? `<p>${escapeHtml(message).replace(/\r?\n/g, "<br />")}</p>` : ""}<p>Continue securely with VenuGuestPass:</p><p><a href="${escapeHtml(url)}">${escapeHtml(subject)}</a></p>`,
       ...(message ? { text: `${message}\n\n${subject}: ${url}` } : {}),
-  });
+  }, { signal: AbortSignal.timeout(10_000) });
 
   if (!response.ok) {
     throw new Error(`Email delivery failed with status ${response.status}.`);
@@ -232,7 +232,7 @@ export async function sendFeedbackEmail({ rating, message, email, workspaceName 
   }
 
   const response = await sendResendEmail(apiKey, from, {
-    to: ["hello@guestlist.app"],
+    to: ["support@venuguestpass.com"],
     reply_to: email,
     subject: `VenuGuestPass feedback: ${rating}/5`,
     html: `<p><strong>Rating:</strong> ${rating}/5</p><p><strong>From:</strong> ${escapeHtml(email)}</p><p><strong>Workspace:</strong> ${escapeHtml(workspaceName)}</p><hr /><p>${escapeHtml(message).replace(/\r?\n/g, "<br />")}</p>`,

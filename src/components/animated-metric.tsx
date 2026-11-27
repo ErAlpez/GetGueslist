@@ -23,11 +23,24 @@ export function AnimatedMetric({ value, locale }: { value: number; locale: strin
     const start = () => {
       cancelAnimationFrame(frame);
       const started = performance.now();
+      const duration = 450;
+      const minimumFrameInterval = 1000 / 30;
+      let lastUpdate = 0;
+      let lastDisplayedValue = 0;
       setAnimation({ target: value, current: 0 });
       const tick = (now: number) => {
-        const progress = Math.min((now - started) / 900, 1);
+        const elapsed = now - started;
+        const progress = Math.min(elapsed / duration, 1);
         const eased = 1 - (1 - progress) ** 3;
-        setAnimation({ target: value, current: Math.round(value * eased) });
+        const current = Math.round(value * eased);
+        if (
+          current !== lastDisplayedValue &&
+          (elapsed - lastUpdate >= minimumFrameInterval || progress === 1)
+        ) {
+          lastDisplayedValue = current;
+          lastUpdate = elapsed;
+          setAnimation({ target: value, current });
+        }
         if (progress < 1) frame = requestAnimationFrame(tick);
       };
       frame = requestAnimationFrame(tick);

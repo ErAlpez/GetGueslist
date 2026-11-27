@@ -21,6 +21,7 @@ function harness(initiallyReduced = false) {
   let nextFrame = 0;
   let memo;
   let formatterCount = 0;
+  let stateUpdateCount = 0;
   const frames = new Map();
   const media = {
     matches: initiallyReduced,
@@ -41,7 +42,7 @@ function harness(initiallyReduced = false) {
       }
       return memo.value;
     },
-    useState: () => [state, (value) => { state = value; }],
+    useState: () => [state, (value) => { state = value; stateUpdateCount += 1; }],
     useEffect: (callback) => { effect = callback; },
   };
   const localRequire = (name) => name === "react" ? react : require(name);
@@ -71,6 +72,7 @@ function harness(initiallyReduced = false) {
     cleanup,
     frames,
     formatterCount: () => formatterCount,
+    stateUpdateCount: () => stateUpdateCount,
     advance(now) {
       time = now;
       const pending = [...frames.values()];
@@ -84,7 +86,7 @@ test("formatter is reused across frames and updates when the locale changes", ()
   const h = harness();
   assert.deepEqual(h.text(1234), ["1,234", "1,234"]);
   h.observer.trigger(true);
-  h.advance(450);
+  h.advance(225);
   h.text();
   assert.equal(h.formatterCount(), 1);
   assert.deepEqual(h.text(1234, "de"), ["1.234", "1.234"]);
@@ -97,7 +99,7 @@ test("metrics count only in view, replay on re-entry and keep the accessible val
   assert.deepEqual(h.text(), ["100", "100"]);
   h.observer.trigger(true);
   assert.deepEqual(h.text(), ["0", "100"]);
-  h.advance(450);
+  h.advance(225);
   assert.deepEqual(h.text(), ["88", "100"]);
   h.advance(900);
   assert.deepEqual(h.text(), ["100", "100"]);
@@ -107,6 +109,17 @@ test("metrics count only in view, replay on re-entry and keep the accessible val
   h.cleanup();
   assert.equal(h.frames.size, 0);
   assert.equal(h.observer.disconnected, true);
+});
+
+test("metrics limit React updates while counting large values", () => {
+  const h = harness();
+  h.text(100000);
+  h.observer.trigger(true);
+  for (let time = 16; time <= 448; time += 16) h.advance(time);
+  h.advance(464);
+  assert.deepEqual(h.text(100000), ["100,000", "100,000"]);
+  assert.ok(h.stateUpdateCount() <= 16);
+  h.cleanup();
 });
 
 test("reduced motion stops animation and restores the actual value", () => {

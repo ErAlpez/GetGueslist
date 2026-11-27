@@ -71,8 +71,8 @@ export function DashboardMotion() {
               ? [{ strokeDashoffset: "100" }, { strokeDashoffset: circleOffset }]
               : [{ opacity: 0.35, translate: "0 12px" }, { opacity: 1, translate: "0 0" }];
         const animation = animatedElement.animate(keyframes, {
-          duration: circle ? 1400 : horizontal || chart ? 1200 : 500,
-          delay: progress ? 200 : 0,
+          duration: circle ? 650 : horizontal || chart ? 600 : 320,
+          delay: progress ? 80 : 0,
           fill: progress ? "backwards" : "none",
           easing: "cubic-bezier(.2, .7, .2, 1)",
         });

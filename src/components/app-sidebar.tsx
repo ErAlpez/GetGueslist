@@ -200,7 +200,7 @@ export function AppSidebar({
           <span className="plan-nudge-icon"><CircleHelp size={15} /></span><strong>{t("Need a hand?")}</strong>
           <p>{canContactSupport ? t("We’re here to help you get your event going.") : t("Email support is available on Max.")}</p>
           {canContactSupport
-            ? <a href="mailto:hello@guestlist.app">{t("Contact support")} <span>↗</span></a>
+            ? <a href="mailto:support@venuguestpass.com">{t("Contact support")} <span>↗</span></a>
             : <span className="plan-nudge-locked">{t("Max plan")}</span>}
         </div>
         <div className="sidebar-footer">VenuGuestPass <span>{t("Phase 1 preview")}</span></div>

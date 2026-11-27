@@ -39,7 +39,7 @@ export default async function RefundPolicyPage() {
         <h2>3. Billing questions</h2>
         <p>
           If you believe a charge is incorrect or need help with cancellation, contact{" "}
-          <a href="mailto:hello@guestlist.app">hello@guestlist.app</a> and include your workspace name and relevant
+          <a href="mailto:support@venuguestpass.com">support@venuguestpass.com</a> and include your workspace name and relevant
           transaction details. Do not send full payment card numbers by email.
         </p>
       </section>

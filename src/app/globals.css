@@ -36,7 +36,7 @@ button, a, summary { -webkit-tap-highlight-color: transparent; }
 .site-header { position: relative; z-index: 20; height: 78px; border-bottom: 1px solid rgba(32, 54, 46, .07); background: rgba(251, 252, 249, .91); }
 .header-inner { display: flex; align-items: center; justify-content: space-between; width: min(var(--container-width), calc(100% - 64px)); height: 100%; margin: 0 auto; }
 .brand { display: inline-flex; align-items: center; gap: 9px; color: #20312c; font-size: 19px; font-weight: 750; letter-spacing: -1px; }
-.brand-mark, .mini-mark { display: block; width: 27px; height: 27px; flex: 0 0 auto; border-radius: 5px; object-fit: cover; }
+.brand-mark, .mini-mark { display: block; width: 25px; height: 25px; flex: 0 0 auto; border-radius: 5px; object-fit: cover; }
 .desktop-nav { display: flex; align-items: center; gap: 33px; margin-left: 5%; color: #58635f; font-size: 12.5px; font-weight: 550; }
 .desktop-nav a, .footer-col a, .footer-bottom a { transition: color .2s ease; }
 .desktop-nav a:hover, .footer-col a:hover, .footer-bottom a:hover { color: var(--green); }
@@ -68,7 +68,7 @@ button, a, summary { -webkit-tap-highlight-color: transparent; }
 .preview-frame { overflow: hidden; border: 1px solid #dfe7df; border-radius: 13px 13px 0 0; background: white; box-shadow: 0 25px 75px rgba(45, 70, 56, .12), 0 3px 14px rgba(45, 70, 56, .06); }
 .preview-topbar { display: flex; align-items: center; height: 45px; padding: 0 17px; border-bottom: 1px solid #edf0ed; color: #293832; font-size: 10px; }
 .preview-brand { display: flex; align-items: center; gap: 6px; width: 215px; font-size: 11px; font-weight: 700; letter-spacing: -.5px; }
-.mini-mark { width: 27px; height: 27px; }
+.mini-mark { width: 20px; height: 20px; }
 .preview-workspace { display: flex; align-items: center; gap: 7px; color: #63716a; }
 .workspace-avatar { display: grid; width: 19px; height: 19px; place-items: center; border-radius: 5px; color: #417c69; background: #e4f2e9; font-size: 9px; font-weight: 700; }
 .preview-user { display: grid; width: 24px; height: 24px; margin-left: auto; place-items: center; border-radius: 50%; color: #566a60; background: #e8eee8; font-size: 8px; font-weight: 700; }
@@ -363,6 +363,9 @@ button, a, summary { -webkit-tap-highlight-color: transparent; }
   font-weight: 600;
   line-height: 1.4;
   text-align: left;
+}
+
+.form-save-success.is-auto-dismissing {
   animation: form-save-success-fade-out .35s ease 3s forwards;
 }
 
@@ -390,7 +393,7 @@ html[data-theme="dark"] .form-save-success svg {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .form-save-success {
+  .form-save-success.is-auto-dismissing {
     animation: none;
   }
   .auth-otp-loading-mark::before,

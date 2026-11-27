@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import type { WorkspaceRole } from "@prisma/client";
 import { ChevronRight, LayoutDashboard, LogOut, Settings } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
@@ -41,6 +41,8 @@ export function AccountMenu({
 }) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
+  const [signingOut, setSigningOut] = useState(false);
+  const signingOutRef = useRef(false);
   const [selectedDemoRole, setSelectedDemoRole] = useState<WorkspaceRole | null>(demoRole);
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -50,7 +52,6 @@ export function AccountMenu({
   const demoPlanId = useId();
   const demoRoleId = useId();
   const pathname = usePathname();
-  const router = useRouter();
   const { t } = usePreferences();
 
   useEffect(() => {
@@ -81,22 +82,28 @@ export function AccountMenu({
   }, [open]);
 
   async function signOut() {
+    if (signingOutRef.current) return;
+    signingOutRef.current = true;
+    setSigningOut(true);
     setError("");
-    let pendingOfflineGuests: number;
     try {
-      pendingOfflineGuests = readOfflineGuestQueue().length;
-    } catch (error) {
-      console.error("Offline guest registration queue could not be checked before sign out.", error);
-      setError(t("Could not verify the offline guest queue. Reconnect and sync before signing out."));
-      return;
-    }
-    if (
-      pendingOfflineGuests > 0 &&
-      !window.confirm(`There are ${pendingOfflineGuests} guest registration(s) waiting to sync. Signing out will remove them from this device. Continue?`)
-    ) {
-      return;
-    }
-    try {
+      let pendingOfflineGuests: number;
+      try {
+        pendingOfflineGuests = readOfflineGuestQueue().length;
+      } catch (error) {
+        console.error("Offline guest registration queue could not be checked before sign out.", error);
+        setError(t("Could not verify the offline guest queue. Reconnect and sync before signing out."));
+        if (!window.confirm(t("There may be guest registrations waiting to sync. Sign out anyway?"))) return;
+        pendingOfflineGuests = 0;
+        setError("");
+      }
+      if (
+        pendingOfflineGuests > 0 &&
+        !window.confirm(`There are ${pendingOfflineGuests} guest registration(s) waiting to sync. Signing out will remove them from this device. Continue?`)
+      ) {
+        return;
+      }
+
       const result = await authClient.signOut();
       if (result.error) {
         setError(t("Sign out failed. Please try again."));
@@ -110,10 +117,12 @@ export function AccountMenu({
         console.error("Offline guest data could not be cleared during sign out.", storageError);
         setError(t("Signed out, but offline guest data could not be cleared from this device."));
       }
-      router.replace("/");
-      router.refresh();
+      window.location.replace("/");
     } catch {
       setError(t("Sign out failed. Please try again."));
+    } finally {
+      signingOutRef.current = false;
+      setSigningOut(false);
     }
   }
 
@@ -239,12 +248,14 @@ export function AccountMenu({
           {error && <p className="account-error" role="alert">{error}</p>}
           <div aria-orientation="horizontal" className="account-popover-divider account-popover-divider-bottom" role="separator" />
           <button
+            aria-busy={signingOut}
             className="account-popover-sign-out"
+            disabled={signingOut}
             onClick={signOut}
             type="button"
           >
             <span className="account-signout-icon"><LogOut aria-hidden="true" size={15} /></span>
-            <span>{t("Sign out")}</span>
+            <span>{signingOut ? t("Signing out…") : t("Sign out")}</span>
             <ChevronRight aria-hidden="true" className="account-signout-chevron" size={14} />
           </button>
         </div>

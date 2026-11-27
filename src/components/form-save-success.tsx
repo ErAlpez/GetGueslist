@@ -23,7 +23,7 @@ export function FormSaveSuccess({
   if (autoDismiss && dismissal?.message === message && dismissal.dismissed) return null;
 
   return (
-    <p key={message} className={`form-message form-success form-save-success${className ? ` ${className}` : ""}`} role="status">
+    <p key={message} className={`form-message form-success form-save-success${autoDismiss ? " is-auto-dismissing" : ""}${className ? ` ${className}` : ""}`} role="status">
       <CircleCheck aria-hidden="true" size={16} />
       <span>{message}</span>
     </p>
