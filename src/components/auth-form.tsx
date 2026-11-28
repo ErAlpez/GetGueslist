@@ -265,17 +265,21 @@ export function AuthForm({
                 ? t("Verifying...")
                 : otpRequired
                   ? t("Check your email")
+                  : isSignUp && verificationEmail
+                    ? t("Verify your email")
                   : t(title)}
           </h1>
-          <p>
-            {otpVerified
-              ? t("Verified. Opening your workspace...")
-              : otpVerifying
-                ? t("Securely checking your code.")
-                : otpRequired
-                  ? `${t("We sent a six-digit code to")} ${otpEmail}.`
-                  : t(description)}
-          </p>
+          {!(isSignUp && verificationEmail) && (
+            <p>
+              {otpVerified
+                ? t("Verified. Opening your workspace...")
+                : otpVerifying
+                  ? t("Securely checking your code.")
+                  : otpRequired
+                    ? `${t("We sent a six-digit code to")} ${otpEmail}.`
+                    : t(description)}
+            </p>
+          )}
         </div>
         {otpVerified ? (
           <div aria-live="polite" className="auth-otp-transition auth-otp-transition--verified" role="status">
@@ -287,6 +291,23 @@ export function AuthForm({
             <span aria-hidden="true" className="auth-otp-loading-mark">
               <LoaderCircle className="spin" size={29} />
             </span>
+          </div>
+        ) : isSignUp && verificationEmail ? (
+          <div aria-live="polite" className="auth-verification-state" role="status">
+            <Check aria-hidden="true" size={20} />
+            <p>
+              {t("Verification email sent automatically to")} <strong>{verificationEmail}</strong>.
+              {" "}{t("Check your inbox and spam folder.")}
+            </p>
+            {message && <p className="form-message form-error" role="alert">{message}</p>}
+            <button
+              className="auth-verification-resend"
+              disabled={resendingVerification}
+              onClick={resendVerificationEmail}
+              type="button"
+            >
+              {resendingVerification ? t("Sending...") : t("Didn’t receive it? Resend verification email")}
+            </button>
           </div>
         ) : (
           <form className="auth-form" onSubmit={otpRequired ? handleOtpSubmit : handleSubmit} suppressHydrationWarning>
@@ -374,13 +395,6 @@ export function AuthForm({
               <p aria-live="polite" className={`form-message form-error${otpRequired ? " auth-otp-alert" : ""}`}>
                 {message}
               </p>
-            )}
-            {isSignUp && verificationEmail && (
-              <div className="auth-inline-link">
-                <button disabled={submitting || resendingVerification} onClick={resendVerificationEmail} type="button">
-                  {resendingVerification ? t("Sending...") : t("Resend verification email")}
-                </button>
-              </div>
             )}
             <button className="button button-dark auth-submit" disabled={submitting || resendingVerification || (isReset && !token)} type="submit">
               {submitting ? <LoaderCircle className="spin" size={17} /> : null}

@@ -262,6 +262,7 @@ button, a, summary { -webkit-tap-highlight-color: transparent; }
 .auth-heading h1 { margin: 0; color: #2b3932; font-size: 23px; font-weight: 650; letter-spacing: -.8px; }.auth-heading p { margin: 8px 0 0; color: #7c8981; font-size: 11px; line-height: 1.65; }
 .auth-form { display: flex; flex-direction: column; gap: 15px; margin-top: 15px; }.auth-form label { display: block; flex-direction: column; gap: 7px; color: #4f5c54; font-size: 10px; font-weight: 650; }.auth-form input { width: 100%; height: 41px; padding: 0 12px; border: 1px solid #e1e7e1; border-radius: 6px; outline: 0; color: #33423a; background: #fff; font-size: 11px; font-weight: 450; }.auth-form input::placeholder { color: #a4aea7; }.auth-form input:focus { border-color: #70a58a; box-shadow: 0 0 0 3px rgba(80, 148, 112, .11); }
 .auth-inline-link { display: flex; justify-content: flex-end; margin-top: -5px; }.auth-inline-link a, .auth-inline-link button, .auth-switch a { color: #397f68; font-weight: 650; }.auth-inline-link a { font-size: 9.5px; }.auth-inline-link button { padding: 0; border: 0; background: transparent; cursor: pointer; font: inherit; font-size: 9.5px; }.auth-inline-link button:disabled { cursor: not-allowed; opacity: .65; }
+.auth-verification-state { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 18px; padding: 16px; border: 1px solid #dcebe1; border-radius: 8px; color: #397f68; background: #f3f8f3; text-align: center; }.auth-verification-state > p { margin: 0; color: #52635a; font-size: 14px!important; line-height: 1.6; }.auth-verification-state > p strong { color: #2b3932; overflow-wrap: anywhere; }.auth-verification-state .form-message { width: 100%; text-align: left; }.auth-verification-resend { padding: 0; border: 0; color: #397f68; background: transparent; cursor: pointer; font: inherit; font-size: 11px; font-weight: 650; }.auth-verification-resend:disabled { cursor: not-allowed; opacity: .65; }
 .auth-form .auth-otp-input { font-size: 20px; font-variant-numeric: tabular-nums; letter-spacing: .25em; text-align: center; }
 .auth-form label.auth-otp-invalid { position: relative; z-index: 1; padding-bottom: 38px; }
 .auth-form .auth-otp-invalid input { border-color: #e7aaa4; box-shadow: 0 0 0 3px rgba(193, 81, 72, .1); }
@@ -923,6 +924,10 @@ html[data-theme="dark"] .faq-item > p,
 html[data-theme="dark"] .page-heading-row p,
 html[data-theme="dark"] .panel-heading-row p,
 html[data-theme="dark"] .auth-heading p { color: #a5b1a8; }
+html[data-theme="dark"] .auth-verification-state { border-color: #3a5543; color: #b8dfc2; background: #203328; }
+html[data-theme="dark"] .auth-verification-state > p { color: #d3ded5; }
+html[data-theme="dark"] .auth-verification-state > p strong,
+html[data-theme="dark"] .auth-verification-resend { color: #b8dfc2; }
 html[data-theme="dark"] .feature-card,
 html[data-theme="dark"] .step-card,
 html[data-theme="dark"] .pricing-card,

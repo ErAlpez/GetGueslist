@@ -37,6 +37,7 @@ function createHarness() {
     ),
     "@/lib/auth-client": {
       authClient: {
+        signUp: { email: async () => ({ data: {} }) },
         signIn: { email: async () => ({ data: { twoFactorRedirect: true } }) },
         twoFactor: {
           sendOtp: async () => ({ data: {} }),
@@ -59,9 +60,9 @@ function createHarness() {
 
   return {
     navigation,
-    render() {
+    render(mode = "sign-in") {
       stateIndex = 0;
-      return loadedModule.exports.AuthForm({ mode: "sign-in" });
+      return loadedModule.exports.AuthForm({ mode });
     },
   };
 }
@@ -92,6 +93,35 @@ test("successful OTP verification navigates without an artificial delay or extra
     await form.props.onSubmit({ preventDefault() {} });
 
     assert.deepEqual(h.navigation, ["/dashboard"]);
+  } finally {
+    if (originalFormData) globalThis.FormData = originalFormData;
+    else delete globalThis.FormData;
+  }
+});
+
+test("successful signup immediately confirms the verification email was sent", async () => {
+  const h = createHarness();
+  const originalFormData = globalThis.FormData;
+  globalThis.FormData = class {
+    get(key) {
+      return {
+        name: "Alex Morgan",
+        email: "alex@example.test",
+        password: "password123",
+        confirmPassword: "password123",
+      }[key] ?? null;
+    }
+  };
+
+  try {
+    const form = find(h.render("sign-up"), (node) => node.type === "form");
+    await form.props.onSubmit({ preventDefault() {}, currentTarget: {} });
+
+    const confirmation = find(h.render("sign-up"), (node) => node.props?.role === "status");
+    assert.ok(confirmation);
+    assert.match(JSON.stringify(confirmation), /Verification email sent automatically to/);
+    assert.match(JSON.stringify(confirmation), /alex@example\.test/);
+    assert.equal((JSON.stringify(h.render("sign-up")).match(/alex@example\.test/g) ?? []).length, 1);
   } finally {
     if (originalFormData) globalThis.FormData = originalFormData;
     else delete globalThis.FormData;
