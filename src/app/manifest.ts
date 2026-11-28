@@ -12,13 +12,13 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#1f3a2f",
     icons: [
       {
-        src: "/venuguestpass-pwa-192.png",
+        src: "/venuguestpass-pwa-192.png?v=20261128",
         sizes: "192x192",
         type: "image/png",
         purpose: "any",
       },
       {
-        src: "/venuguestpass-pwa-512.png",
+        src: "/venuguestpass-pwa-512.png?v=20261128",
         sizes: "512x512",
         type: "image/png",
         purpose: "any",

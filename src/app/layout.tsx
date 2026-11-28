@@ -19,6 +19,10 @@ export const metadata: Metadata = {
   },
   description:
     "Manage registrations, invitations, guestlists, tickets, and attendance in one powerful event management workspace.",
+  icons: {
+    icon: "/favicon.ico?v=20261128",
+    apple: "/venuguestpass-pwa-192.png?v=20261128",
+  },
   referrer: "no-referrer",
 };
 
